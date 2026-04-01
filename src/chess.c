@@ -46,6 +46,20 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
     if (color != WHITE && color != BLACK) return SCE_FAILURE;
 
     printf("\n");
+
+    // Print file
+    if (color == WHITE) {
+        for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
+            printf("%c ", 'A' + i);
+        }
+    } else {
+        for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
+            printf("%c ", 'H' - i);
+        }
+    }
+
+    printf("\n");
+
     for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
         for (uint j = 0; j < CHESSBOARD_DIMENSION; j++) {
             uint shift = (8U * (7U-i) + (7U-j));
@@ -110,6 +124,13 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
             }
             printf(" ");
             //printf("%d", piece_in_square);
+        }
+
+        // Print rank
+        if (color == WHITE) {
+            printf("%d ", i + 1);
+        } else {
+            printf("%d ", 8 - i);
         }
         printf("\n");
     }
