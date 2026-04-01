@@ -14,6 +14,7 @@ typedef unsigned int uint;
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
@@ -158,6 +159,7 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
     RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_precomputation_tbl), "Knight moves table generation failed!");
     RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_precomputation_tbl), "King moves table generation failed!");
     RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(ptr_precomputation_tbl), "Pawn moves/attacks table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Rays_Precompute(ptr_precomputation_tbl), "Pawn moves/attacks table generation failed!");
 
     return SCE_SUCCESS;
 }
@@ -404,6 +406,109 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
     return SCE_SUCCESS;
 
 }
+
+static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
+        const uint64_t pos = 1ULL << i;
+        // Right-down originated.
+        const uint row = i / CHESSBOARD_DIMENSION;
+        const uint col = i % CHESSBOARD_DIMENSION;
+        uint64_t n_ray = 0ULL;
+        uint64_t e_ray = 0ULL;
+        uint64_t s_ray = 0ULL;
+        uint64_t w_ray = 0ULL;
+        uint64_t ne_ray = 0ULL;
+        uint64_t nw_ray = 0ULL;
+        uint64_t se_ray = 0ULL;
+        uint64_t sw_ray = 0ULL;
+
+        // 8 cases
+        // N
+        // E
+        // S
+        // W
+        // NE
+        // NW
+        // SE
+        // SW
+
+        // For each case, check if applicable. If so, xor to moves.
+
+        // NORTH
+        uint shift = 1U;
+        while (row + shift < CHESSBOARD_DIMENSION) {
+            n_ray ^= (pos UP * shift);
+            shift++;
+        }
+
+        // EAST
+        shift = 1U;
+        while (col >= shift) {
+            e_ray ^= (pos RIGHT * shift);
+            shift++;
+        }
+
+        // SOUTH
+        shift = 1U;
+        while (row >= shift) {
+            s_ray ^= (pos DOWN * shift);
+            shift++;
+        }
+
+        // WEST
+        shift = 1U;
+        while (col + shift < CHESSBOARD_DIMENSION) {
+            w_ray ^= (pos LEFT * shift);
+            shift++;
+        }
+
+        // NORTHEAST
+        shift = 1U;
+        while (row + shift < CHESSBOARD_DIMENSION && col >= shift) {
+            ne_ray ^= ((pos UP * shift) RIGHT * shift);
+            shift++;
+        }
+
+        // NORTHWEST
+        shift = 1U;
+        while (row + shift < CHESSBOARD_DIMENSION && col + shift < CHESSBOARD_DIMENSION) {
+            nw_ray ^= ((pos UP * shift) LEFT * shift);
+            shift++;
+        }
+
+        // SOUTHEAST
+        shift = 1U;
+        while (row >= shift && col >= shift) {
+            se_ray ^= ((pos DOWN * shift) RIGHT * shift);
+            shift++;
+        }
+
+        // SOUTHWEST
+        shift = 1U;
+        while (row >= shift && col + shift < CHESSBOARD_DIMENSION) {
+            sw_ray ^= ((pos DOWN * shift) LEFT * shift);
+            shift++;
+        }
+
+        ptr_precomputation_tbl->rays[NORTH][i] = n_ray;
+        ptr_precomputation_tbl->rays[EAST][i] = e_ray;
+        ptr_precomputation_tbl->rays[SOUTH][i] = s_ray;
+        ptr_precomputation_tbl->rays[WEST][i] = w_ray;
+        ptr_precomputation_tbl->rays[NORTHEAST][i] = ne_ray;
+        ptr_precomputation_tbl->rays[NORTHWEST][i] = nw_ray;
+        ptr_precomputation_tbl->rays[SOUTHEAST][i] = se_ray;
+        ptr_precomputation_tbl->rays[SOUTHWEST][i] = sw_ray;
+#ifdef DEBUG
+        printf("Rays Table %d\n", i);
+        print_as_board(ptr_precomputation_tbl->rays[SOUTHWEST][i]);
+#endif
+    }
+
+    return SCE_SUCCESS;
+}
+
 #undef DOWN
 #undef UP
 #undef LEFT

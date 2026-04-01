@@ -35,6 +35,17 @@ typedef enum {
     BLACK = 1
 } PieceColor;
 
+typedef enum {
+    NORTH = 0,
+    EAST = 1,
+    SOUTH = 2,
+    WEST = 3,
+    NORTHEAST = 4,
+    NORTHWEST = 5,
+    SOUTHEAST = 6,
+    SOUTHWEST = 7
+} RayDirection;
+
 /**
  * @brief Bitboard capturing a chessboard.
  * 
@@ -55,10 +66,8 @@ typedef struct {
     uint64_t pawn_moves[2][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
     uint64_t pawn_attacks[2][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
 
-    // Sliders
-    uint64_t bishop[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
-    uint64_t rook[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
-    uint64_t queen[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    // Sliders: Queen, Rook, Bishop
+    uint64_t rays[8][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
 } SCE_PieceMovementPrecomputationTable;
 
 /**
