@@ -1,0 +1,61 @@
+#ifndef SCE_CHESS_H
+#define SCE_CHESS_H
+
+#include <stdint.h>
+
+#define SCE_SUCCESS 1
+#define SCE_FAILURE 0
+
+#define CHESSBOARD_DIMENSION 8
+
+#define W_PAWN 0U
+#define W_KNIGHT 1U
+#define W_BISHOP 2U
+#define W_ROOK 3U
+#define W_QUEEN 4U
+#define W_KING 5U
+#define B_PAWN 6U
+#define B_KNIGHT 7U
+#define B_BISHOP 8U
+#define B_ROOK 9U
+#define B_QUEEN 10U
+#define B_KING 11U
+
+#define N_TYPES_PIECES 12U
+
+#define PAWN_INITIAL_ROW (0xFFULL)
+#define KNIGHT_INITIAL_ROW ((1ULL << 6U) ^ (1ULL << 1U))
+#define BISHOP_INITIAL_ROW ((1ULL << 5U) ^ (1ULL << 2U))
+#define ROOK_INITIAL_ROW ((1ULL << 7U) ^ (1U))
+#define QUEEN_INITIAL_ROW (1ULL << 4U)
+#define KING_INITIAL_ROW (1ULL << 3U)
+
+/**
+ * @brief Bitboard capturing a chessboard.
+ * 
+ * Each uint64_t captures the entire board,
+ * and the bits represent the occupancy by each type.
+ * For example, 00000000 00000000 00000000 00000000 00000000 00000000 11111111 00000000
+ * for bitboards[W_PAWN] represents the row of white pawns.
+ */
+typedef struct {
+    uint64_t bitboards[N_TYPES_PIECES];
+} SCE_Chessboard;
+
+/**
+ * @brief Clear out the board with zeros.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @return int 1 for success, 0 for failure
+ */
+int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
+
+/**
+ * @brief Reset the board to a initial setup.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @return int 1 for success, 0 for failure
+ */
+int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
+
+#endif  // SCE_CHESS_H
