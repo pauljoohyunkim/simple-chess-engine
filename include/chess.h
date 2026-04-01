@@ -30,11 +30,6 @@
 #define QUEEN_INITIAL_ROW (1ULL << 4U)
 #define KING_INITIAL_ROW (1ULL << 3U)
 
-#define DOWN (8U)
-#define UP (8U)
-#define LEFT (1U)
-#define RIGHT (1U)
-
 typedef enum {
     WHITE = 0,
     BLACK = 1

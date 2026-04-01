@@ -162,6 +162,10 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
     return SCE_SUCCESS;
 }
 
+#define DOWN >> 8U
+#define UP << 8U
+#define LEFT << 1U
+#define RIGHT >> 1U
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
@@ -186,42 +190,42 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
 
         // RRU
         if (col >= 2U && row <= 6U) {
-            moves ^= (pos >> RIGHT >> RIGHT << UP);
+            moves ^= (pos RIGHT RIGHT UP);
         }
 
         // RRD
         if (col >= 2U && row >= 1U) {
-            moves ^= (pos >> RIGHT >> RIGHT >> DOWN);
+            moves ^= (pos RIGHT RIGHT DOWN);
         }
 
         // RUU
         if (col >= 1U && row <= 5U) {
-            moves ^= (pos >> RIGHT << UP << UP);
+            moves ^= (pos RIGHT UP UP);
         }
 
         // RDD
         if (col >= 1U && row >= 2U) {
-            moves ^= (pos >> RIGHT >> DOWN >> DOWN);
+            moves ^= (pos RIGHT DOWN DOWN);
         }
 
         // LLU
         if (col <= 5U && row <= 6U) {
-            moves ^= (pos << LEFT << LEFT << UP);
+            moves ^= (pos LEFT LEFT UP);
         }
 
         // LLD
         if (col <= 5U && row >= 1U) {
-            moves ^= (pos << LEFT << LEFT >> DOWN);
+            moves ^= (pos LEFT LEFT DOWN);
         }
 
         // LUU
         if (col <= 6U && row <= 5U) {
-            moves ^= (pos << LEFT << UP << UP);
+            moves ^= (pos LEFT UP UP);
         }
 
         // LDD
         if (col <= 6U && row >= 2U) {
-            moves ^= (pos << LEFT >> DOWN >> DOWN);
+            moves ^= (pos LEFT DOWN DOWN);
         }
 
         ptr_precomputation_tbl->knight_moves[i] = moves;
@@ -258,42 +262,42 @@ static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
         // U
         if (row <= 6U) {
-            moves ^= (pos << UP);
+            moves ^= (pos UP);
         }
 
         // D
         if (row >= 1U) {
-            moves ^= (pos >> DOWN);
+            moves ^= (pos DOWN);
         }
 
         // L
         if (col <= 6U) {
-            moves ^= (pos << LEFT);
+            moves ^= (pos LEFT);
         }
 
         // R
         if (col >= 1U) {
-            moves ^= (pos >> RIGHT);
+            moves ^= (pos RIGHT);
         }
 
         // RU
         if (col >= 1U && row <= 6U) {
-            moves ^= (pos >> RIGHT << UP);
+            moves ^= (pos RIGHT UP);
         }
 
         // RD
         if (col >= 1U && row >= 1U) {
-            moves ^= (pos >> RIGHT >> DOWN);
+            moves ^= (pos RIGHT DOWN);
         }
 
         // LU
         if (col <= 6U && row <= 6U) {
-            moves ^= (pos << LEFT << UP);
+            moves ^= (pos LEFT UP);
         }
 
         // LD
         if (col <= 6U && row >= 1U) {
-            moves ^= (pos << LEFT >> DOWN);
+            moves ^= (pos LEFT DOWN);
         }
 
 
@@ -342,45 +346,44 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         // MOVES
         // U
         if (row <= 6U) {
-            w_moves ^= (pos << UP);
+            w_moves ^= (pos UP);
         }
 
         // UU
         if (row == 1U) {
-            w_moves ^= (pos << UP << UP);
+            w_moves ^= (pos UP UP);
         }
 
         // D
         if (row >= 1U) {
-            b_moves ^= (pos >> DOWN);
+            b_moves ^= (pos DOWN);
         }
 
         // DD
         if (row == 6U) {
-            b_moves ^= (pos >> DOWN >> DOWN);
+            b_moves ^= (pos DOWN DOWN);
         }
 
         // ATTACKS
         // LU
         if (col <= 6U && row <= 6U) {
-            w_attacks ^= (pos << LEFT << UP);
+            w_attacks ^= (pos LEFT UP);
         }
 
         // RU
         if (col >= 1U && row <= 6U) {
-            w_attacks ^= (pos >> RIGHT << UP);
+            w_attacks ^= (pos RIGHT UP);
         }
 
         // LD
         if (col <= 6U && row >= 1U) {
-            b_attacks ^= (pos << LEFT >> DOWN);
+            b_attacks ^= (pos LEFT DOWN);
         }
 
         // RD
         if (col >= 1U && row >= 1U) {
-            b_attacks ^= (pos >> RIGHT >> DOWN);
+            b_attacks ^= (pos RIGHT DOWN);
         }
-
 
         ptr_precomputation_tbl->pawn_moves[WHITE][i] = w_moves;
         ptr_precomputation_tbl->pawn_moves[BLACK][i] = b_moves;
@@ -401,3 +404,7 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
     return SCE_SUCCESS;
 
 }
+#undef DOWN
+#undef UP
+#undef LEFT
+#undef RIGHT
