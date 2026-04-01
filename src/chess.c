@@ -50,7 +50,7 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
         for (uint j = 0; j < CHESSBOARD_DIMENSION; j++) {
             uint shift = (8U * (7U-i) + (7U-j));
             if (color == BLACK) {
-                shift = 63U - (8U * (7U-i) + (7U-j));
+                shift = 63U - shift;
             }
             uint64_t pos = 1ULL << shift;
 
@@ -58,10 +58,12 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
             // For each square, check if any of the type exists.
             for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
                 if (ptr_board->bitboards[piece_type] & pos) {
+                    // Check exclusive ownership of square.
+                    if (piece_in_square != UNASSIGNED) return SCE_FAILURE;
+
                     piece_in_square = (int) piece_type;
                 }
             }
-            // TODO: Check exclusive ownership of square.
 
             switch (piece_in_square) {
                 case W_PAWN:
