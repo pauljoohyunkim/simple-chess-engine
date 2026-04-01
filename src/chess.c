@@ -11,6 +11,7 @@
 typedef unsigned int uint;
 
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
@@ -153,6 +154,7 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
 
     // Precomputation: Knight
     RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_precomputation_tbl));
+    RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_precomputation_tbl));
 
     return SCE_SUCCESS;
 }
@@ -223,6 +225,79 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
 #ifdef DEBUG
         printf("Knight Table %d\n", i);
         print_as_board(ptr_precomputation_tbl->knight[i]);
+#endif
+    }
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
+        const uint64_t pos = 1ULL << i;
+        // Right-down originated.
+        const uint row = i / CHESSBOARD_DIMENSION;
+        const uint col = i % CHESSBOARD_DIMENSION;
+        uint64_t moves = 0ULL;
+
+        // 8 cases
+        // U
+        // D
+        // L
+        // R
+        // RU
+        // RD
+        // LU
+        // LD
+
+        // For each case, check if applicable. If so, xor to moves.
+
+        // U
+        if (row <= 6U) {
+            moves ^= (pos << UP);
+        }
+
+        // D
+        if (row >= 1U) {
+            moves ^= (pos >> DOWN);
+        }
+
+        // L
+        if (col <= 6U) {
+            moves ^= (pos << LEFT);
+        }
+
+        // R
+        if (col >= 1U) {
+            moves ^= (pos >> RIGHT);
+        }
+
+        // RU
+        if (col >= 1U && row <= 6U) {
+            moves ^= (pos >> RIGHT << UP);
+        }
+
+        // RD
+        if (col >= 1U && row >= 1U) {
+            moves ^= (pos >> RIGHT >> DOWN);
+        }
+
+        // LU
+        if (col <= 6U && row <= 6U) {
+            moves ^= (pos << LEFT << UP);
+        }
+
+        // LD
+        if (col <= 6U && row >= 1U) {
+            moves ^= (pos << LEFT >> DOWN);
+        }
+
+
+        ptr_precomputation_tbl->king[i] = moves;
+#ifdef DEBUG
+        printf("King Table %d\n", i);
+        print_as_board(ptr_precomputation_tbl->king[i]);
 #endif
     }
 
