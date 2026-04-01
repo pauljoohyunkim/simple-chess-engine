@@ -6,12 +6,14 @@
 #endif
 #include "chess.h"
 
-#define RETURN_IF_SCE_FAILURE(x) do { if (!x) return SCE_FAILURE; } while (0);
+#define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { perror(msg); return SCE_FAILURE; } } while (0);
 
 typedef unsigned int uint;
 
+// Static functions for generating components of precomputation table.
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
@@ -26,7 +28,7 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
 int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
 
-    RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ptr_board));
+    RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ptr_board), "Error when clearing board!");
 
     // White pieces
     ptr_board->bitboards[W_PAWN] = PAWN_INITIAL_ROW << (8U * 1U);
@@ -153,8 +155,9 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
     memset(ptr_precomputation_tbl, 0, sizeof(SCE_PieceMovementPrecomputationTable));
 
     // Precomputation: Knight
-    RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_precomputation_tbl));
-    RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_precomputation_tbl));
+    RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_precomputation_tbl), "Knight moves table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_precomputation_tbl), "King moves table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(ptr_precomputation_tbl), "Pawn moves/attacks table generation failed!");
 
     return SCE_SUCCESS;
 }
@@ -221,10 +224,10 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
             moves ^= (pos << LEFT >> DOWN >> DOWN);
         }
 
-        ptr_precomputation_tbl->knight[i] = moves;
+        ptr_precomputation_tbl->knight_moves[i] = moves;
 #ifdef DEBUG
         printf("Knight Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->knight[i]);
+        print_as_board(ptr_precomputation_tbl->knight_moves[i]);
 #endif
     }
 
@@ -294,12 +297,107 @@ static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         }
 
 
-        ptr_precomputation_tbl->king[i] = moves;
+        ptr_precomputation_tbl->king_moves[i] = moves;
 #ifdef DEBUG
         printf("King Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->king[i]);
+        print_as_board(ptr_precomputation_tbl->king_moves[i]);
 #endif
     }
 
     return SCE_SUCCESS;
+}
+
+static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
+        const uint64_t pos = 1ULL << i;
+        // Right-down originated.
+        const uint row = i / CHESSBOARD_DIMENSION;
+        const uint col = i % CHESSBOARD_DIMENSION;
+        uint64_t w_moves = 0ULL;
+        uint64_t w_attacks = 0ULL;
+        uint64_t b_moves = 0ULL;
+        uint64_t b_attacks = 0ULL;
+
+        // 2 cases for white moves
+        // U
+        // UU: Starting
+
+        // 2 cases for black moves
+        // D
+        // DD: Starting
+
+        // 2 cases for white attacks
+        // LU
+        // RU
+
+        // 2 cases for black attacks
+        // LD
+        // RD
+
+        // For each case, check if applicable. If so, xor to moves.
+
+
+        // MOVES
+        // U
+        if (row <= 6U) {
+            w_moves ^= (pos << UP);
+        }
+
+        // UU
+        if (row == 1U) {
+            w_moves ^= (pos << UP << UP);
+        }
+
+        // D
+        if (row >= 1U) {
+            b_moves ^= (pos >> DOWN);
+        }
+
+        // DD
+        if (row == 6U) {
+            b_moves ^= (pos >> DOWN >> DOWN);
+        }
+
+        // ATTACKS
+        // LU
+        if (col <= 6U && row <= 6U) {
+            w_attacks ^= (pos << LEFT << UP);
+        }
+
+        // RU
+        if (col >= 1U && row <= 6U) {
+            w_attacks ^= (pos >> RIGHT << UP);
+        }
+
+        // LD
+        if (col <= 6U && row >= 1U) {
+            b_attacks ^= (pos << LEFT >> DOWN);
+        }
+
+        // RD
+        if (col >= 1U && row >= 1U) {
+            b_attacks ^= (pos >> RIGHT >> DOWN);
+        }
+
+
+        ptr_precomputation_tbl->pawn_moves[WHITE][i] = w_moves;
+        ptr_precomputation_tbl->pawn_moves[BLACK][i] = b_moves;
+        ptr_precomputation_tbl->pawn_attacks[WHITE][i] = w_attacks;
+        ptr_precomputation_tbl->pawn_attacks[BLACK][i] = b_attacks;
+#ifdef DEBUG
+        printf("White Pawn Movement Table %d\n", i);
+        print_as_board(ptr_precomputation_tbl->pawn_moves[WHITE][i]);
+        printf("Black Pawn Movement Table %d\n", i);
+        print_as_board(ptr_precomputation_tbl->pawn_moves[BLACK][i]);
+        printf("White Pawn Attack Table %d\n", i);
+        print_as_board(ptr_precomputation_tbl->pawn_attacks[WHITE][i]);
+        printf("Black Pawn Attack Table %d\n", i);
+        print_as_board(ptr_precomputation_tbl->pawn_attacks[BLACK][i]);
+#endif
+    }
+
+    return SCE_SUCCESS;
+
 }
