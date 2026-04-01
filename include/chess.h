@@ -30,6 +30,11 @@
 #define QUEEN_INITIAL_ROW (1ULL << 4U)
 #define KING_INITIAL_ROW (1ULL << 3U)
 
+#define DOWN (8U)
+#define UP (8U)
+#define LEFT (1U)
+#define RIGHT (1U)
+
 typedef enum {
     WHITE = 0,
     BLACK = 1
@@ -46,6 +51,19 @@ typedef enum {
 typedef struct {
     uint64_t bitboards[N_TYPES_PIECES];
 } SCE_Chessboard;
+
+// 3584 bytes
+typedef struct {
+    // Leapers
+    uint64_t knight[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    uint64_t king[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    uint64_t pawn[2][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+
+    // Sliders
+    uint64_t bishop[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    uint64_t rook[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    uint64_t queen[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+} SCE_PieceMovementPrecomputationTable;
 
 /**
  * @brief Clear out the board with zeros.
@@ -70,5 +88,13 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
  * @return int 1 for success, 0 for failure
  */
 int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color);
+
+/**
+ * @brief Fill the movement precomputation table.
+ * 
+ * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @return int 1 for success, 0 for failure
+ */
+int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 #endif  // SCE_CHESS_H

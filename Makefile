@@ -2,8 +2,10 @@ PKG_DEPS=ncurses
 INCLUDES=-Iinclude
 
 CC=g++
+CFLAGSEXTRA=
 CFLAGS=-g -Wall -Wextra -O0 -pedantic -MMD -MP $(INCLUDES)
 CFLAGS+=`pkg-config --cflags $(PKG_DEPS)`
+CFLAGS+=$(CFLAGSEXTRA)
 LDLIBS=`pkg-config --libs $(PKG_DEPS)`
 
 BIN=bin
@@ -13,6 +15,7 @@ TESTS=tests
 HTML=html
 SRCS=$(wildcard $(SRC)/*.c)
 OBJS=$(patsubst $(SRC)/%.c,$(OBJ)/%.o, $(SRCS))
+DEPS=$(OBJS:.o=.d)
 
 .PHONY: all bin doc clean
 

@@ -1,10 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#ifdef DEBUG
+#include "dev.h"
+#endif
 #include "chess.h"
 
-#define RETURN_IF_FAILURE(x) do { if (x == SCE_FAILURE) return SCE_FAILURE; } while (0);
+#define RETURN_IF_SCE_FAILURE(x) do { if (!x) return SCE_FAILURE; } while (0);
 
 typedef unsigned int uint;
+
+static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
@@ -19,7 +25,7 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
 int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
 
-    RETURN_IF_FAILURE(SCE_Chessboard_clear(ptr_board));
+    RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ptr_board));
 
     // White pieces
     ptr_board->bitboards[W_PAWN] = PAWN_INITIAL_ROW << (8U * 1U);
@@ -138,3 +144,87 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
     return SCE_SUCCESS;
 }
 #undef UNASSIGNED
+
+int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    // Empty the table.
+    memset(ptr_precomputation_tbl, 0, sizeof(SCE_PieceMovementPrecomputationTable));
+
+    // Precomputation: Knight
+    RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_precomputation_tbl));
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
+        const uint64_t pos = 1ULL << i;
+        // Right-down originated.
+        const uint row = i / CHESSBOARD_DIMENSION;
+        const uint col = i % CHESSBOARD_DIMENSION;
+        uint64_t moves = 0ULL;
+
+        // 8 cases
+        // RRU
+        // RRD
+        // RUU
+        // RDD
+        // LLU
+        // LLD
+        // LUU
+        // LDD
+
+        // For each case, check if applicable. If so, xor to moves.
+
+        // RRU
+        if (col >= 2U && row <= 6U) {
+            moves ^= (pos >> RIGHT >> RIGHT << UP);
+        }
+
+        // RRD
+        if (col >= 2U && row >= 1U) {
+            moves ^= (pos >> RIGHT >> RIGHT >> DOWN);
+        }
+
+        // RUU
+        if (col >= 1U && row <= 5U) {
+            moves ^= (pos >> RIGHT << UP << UP);
+        }
+
+        // RDD
+        if (col >= 1U && row >= 2U) {
+            moves ^= (pos >> RIGHT >> DOWN >> DOWN);
+        }
+
+        // LLU
+        if (col <= 5U && row <= 6U) {
+            moves ^= (pos << LEFT << LEFT << UP);
+        }
+
+        // LLD
+        if (col <= 5U && row >= 1U) {
+            moves ^= (pos << LEFT << LEFT >> DOWN);
+        }
+
+        // LUU
+        if (col <= 6U && row <= 5U) {
+            moves ^= (pos << LEFT << UP << UP);
+        }
+
+        // LDD
+        if (col <= 6U && row >= 2U) {
+            moves ^= (pos << LEFT >> DOWN >> DOWN);
+        }
+
+        ptr_precomputation_tbl->knight[i] = moves;
+#ifdef DEBUG
+        printf("Knight Table %d\n", i);
+        print_as_board(ptr_precomputation_tbl->knight[i]);
+#endif
+    }
+
+    return SCE_SUCCESS;
+}
