@@ -6,7 +6,7 @@
 #define SCE_SUCCESS 1
 #define SCE_FAILURE 0
 
-#define CHESSBOARD_DIMENSION 8
+#define CHESSBOARD_DIMENSION 8U
 
 #define W_PAWN 0U
 #define W_KNIGHT 1U
@@ -29,6 +29,11 @@
 #define ROOK_INITIAL_ROW ((1ULL << 7U) ^ (1U))
 #define QUEEN_INITIAL_ROW (1ULL << 4U)
 #define KING_INITIAL_ROW (1ULL << 3U)
+
+typedef enum {
+    WHITE = 0,
+    BLACK = 1
+} PieceColor;
 
 /**
  * @brief Bitboard capturing a chessboard.
@@ -57,5 +62,13 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
  * @return int 1 for success, 0 for failure
  */
 int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
+
+/**
+ * @brief Print the board to console.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @return int 1 for success, 0 for failure
+ */
+int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color);
 
 #endif  // SCE_CHESS_H

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "chess.h"
 
@@ -38,3 +39,79 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
 
     return SCE_SUCCESS;
 }
+
+#define UNASSIGNED (-1)
+int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
+    if (ptr_board == NULL) return SCE_FAILURE;
+    if (color != WHITE && color != BLACK) return SCE_FAILURE;
+
+    printf("\n");
+    for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
+        for (uint j = 0; j < CHESSBOARD_DIMENSION; j++) {
+            uint shift = (8U * (7U-i) + (7U-j));
+            if (color == BLACK) {
+                shift = 63U - (8U * (7U-i) + (7U-j));
+            }
+            uint64_t pos = 1ULL << shift;
+
+            int piece_in_square = UNASSIGNED;
+            // For each square, check if any of the type exists.
+            for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
+                if (ptr_board->bitboards[piece_type] & pos) {
+                    piece_in_square = (int) piece_type;
+                }
+            }
+            // TODO: Check exclusive ownership of square.
+
+            switch (piece_in_square) {
+                case W_PAWN:
+                    printf("\x1b[37mP\x1b[0m");
+                    break;
+                case W_KNIGHT:
+                    printf("\x1b[37mN\x1b[0m");
+                    break;
+                case W_BISHOP:
+                    printf("\x1b[37mB\x1b[0m");
+                    break;
+                case W_ROOK:
+                    printf("\x1b[37mR\x1b[0m");
+                    break;
+                case W_QUEEN:
+                    printf("\x1b[37mQ\x1b[0m");
+                    break;
+                case W_KING:
+                    printf("\x1b[37mK\x1b[0m");
+                    break;
+                case B_PAWN:
+                    printf("\x1b[90mP\x1b[0m");
+                    break;
+                case B_KNIGHT:
+                    printf("\x1b[90mN\x1b[0m");
+                    break;
+                case B_BISHOP:
+                    printf("\x1b[90mB\x1b[0m");
+                    break;
+                case B_ROOK:
+                    printf("\x1b[90mR\x1b[0m");
+                    break;
+                case B_QUEEN:
+                    printf("\x1b[90mQ\x1b[0m");
+                    break;
+                case B_KING:
+                    printf("\x1b[90mK\x1b[0m");
+                    break;
+                case UNASSIGNED:
+                    printf("-");
+                    break;
+                default:
+                    return SCE_FAILURE;
+            }
+            printf(" ");
+            //printf("%d", piece_in_square);
+        }
+        printf("\n");
+    }
+
+    return SCE_SUCCESS;
+}
+#undef UNASSIGNED
