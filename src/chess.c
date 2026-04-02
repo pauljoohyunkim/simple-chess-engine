@@ -76,7 +76,7 @@ uint64_t SCE_Chessboard_Occupancy(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return 0U;
 
     uint64_t occupancy = 0ULL;
-    for (uint i = 0U; i < N_TYPES_PIECES; i++) {
+    for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
         occupancy ^= ptr_board->bitboards[i];
     }
 
@@ -105,7 +105,7 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
 
     for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
         for (uint j = 0; j < CHESSBOARD_DIMENSION; j++) {
-            uint shift = (8U * (7U-i) + (7U-j));
+            uint shift = (8U * (7U-i) + j);
             if (color == BLACK) {
                 shift = 63U - shift;
             }
@@ -264,10 +264,6 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
         }
 
         ptr_precomputation_tbl->knight_moves[i] = moves;
-#ifdef DEBUG
-        printf("Knight Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->knight_moves[i]);
-#endif
     }
 
     return SCE_SUCCESS;
@@ -337,10 +333,6 @@ static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
 
         ptr_precomputation_tbl->king_moves[i] = moves;
-#ifdef DEBUG
-        printf("King Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->king_moves[i]);
-#endif
     }
 
     return SCE_SUCCESS;
@@ -424,16 +416,6 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         ptr_precomputation_tbl->pawn_moves[BLACK][i] = b_moves;
         ptr_precomputation_tbl->pawn_attacks[WHITE][i] = w_attacks;
         ptr_precomputation_tbl->pawn_attacks[BLACK][i] = b_attacks;
-#ifdef DEBUG
-        printf("White Pawn Movement Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_moves[WHITE][i]);
-        printf("Black Pawn Movement Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_moves[BLACK][i]);
-        printf("White Pawn Attack Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_attacks[WHITE][i]);
-        printf("Black Pawn Attack Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_attacks[BLACK][i]);
-#endif
     }
 
     return SCE_SUCCESS;
@@ -533,10 +515,6 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         ptr_precomputation_tbl->rays[NORTHWEST][i] = nw_ray;
         ptr_precomputation_tbl->rays[SOUTHEAST][i] = se_ray;
         ptr_precomputation_tbl->rays[SOUTHWEST][i] = sw_ray;
-#ifdef DEBUG
-        printf("Rays Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->rays[SOUTHWEST][i]);
-#endif
     }
 
     return SCE_SUCCESS;
@@ -557,6 +535,8 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
         return false;
     }
 
+    const uint square_idx = COUNT_TRAILING_ZEROS(square);
+
     // Load attacker bitboards.
     const uint64_t attacker_pawns = attacked_by == WHITE ? ptr_board->bitboards[W_PAWN] : ptr_board->bitboards[B_PAWN];
     const uint64_t attacker_knights = attacked_by == WHITE ? ptr_board->bitboards[W_KNIGHT] : ptr_board->bitboards[B_KNIGHT];
@@ -572,17 +552,17 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
     // 4. Sliders with rays.
 
     // 1. Knight
-    if (ptr_precomputation_tbl->knight_moves[square] & attacker_knights) {
+    if (ptr_precomputation_tbl->knight_moves[square_idx] & attacker_knights) {
         return true;
     }
 
     // 2. Pawn
-    if (ptr_precomputation_tbl->pawn_attacks[attacked_by == WHITE ? BLACK : WHITE][square] & attacker_pawns) {
+    if (ptr_precomputation_tbl->pawn_attacks[attacked_by == WHITE ? BLACK : WHITE][square_idx] & attacker_pawns) {
         return true;
     }
 
     // 3. King
-    if (ptr_precomputation_tbl->king_moves[square] & attacker_king) {
+    if (ptr_precomputation_tbl->king_moves[square_idx] & attacker_king) {
         return true;
     }
 
@@ -596,27 +576,27 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
     // Project in positive direction and check for blockers. If blockers exist, check if they are threatening.
     for (uint i = 0U; i < sizeof(positive_directions) / sizeof(RayDirection); i++) {
         const RayDirection ray_direction = positive_directions[i];
-        const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square];
+        const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
         const uint64_t blocker = 1 << (63U - COUNT_LEADING_ZEROS(intersection));
         
         switch (ray_direction) {
             case NORTH:
             case WEST:
                 // Rook check
-                if (blocker & ptr_board->bitboards[attacked_by == WHITE ? W_ROOK : B_ROOK]) {
+                if (blocker & attacker_rooks) {
                     return true;
                 }
                 break;
             case NORTHEAST:
             case NORTHWEST:
                 // Bishop check
-                if (blocker & ptr_board->bitboards[attacked_by == WHITE ? W_BISHOP : B_BISHOP]) {
+                if (blocker & attacker_bishops) {
                     return true;
                 }
                 break;
         }
         // Queen check
-        if (blocker & ptr_board->bitboards[attacked_by == WHITE ? W_QUEEN : B_QUEEN]) {
+        if (blocker & attacker_queen) {
             return true;
         }
     }
@@ -625,27 +605,27 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
     // Project in positive direction and check for blockers. If blockers exist, check if they are threatening.
     for (uint i = 0U; i < sizeof(negative_directions) / sizeof(RayDirection); i++) {
         const RayDirection ray_direction = negative_directions[i];
-        const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square];
+        const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
         const uint64_t blocker = 1 << COUNT_TRAILING_ZEROS(intersection);
         
         switch (ray_direction) {
             case NORTH:
             case WEST:
                 // Rook check
-                if (blocker & ptr_board->bitboards[attacked_by == WHITE ? W_ROOK : B_ROOK]) {
+                if (blocker & attacker_rooks) {
                     return true;
                 }
                 break;
             case NORTHEAST:
             case NORTHWEST:
                 // Bishop check
-                if (blocker & ptr_board->bitboards[attacked_by == WHITE ? W_BISHOP : B_BISHOP]) {
+                if (blocker & attacker_bishops) {
                     return true;
                 }
                 break;
         }
         // Queen check
-        if (blocker & ptr_board->bitboards[attacked_by == WHITE ? W_QUEEN : B_QUEEN]) {
+        if (blocker & attacker_queen) {
             return true;
         }
     }

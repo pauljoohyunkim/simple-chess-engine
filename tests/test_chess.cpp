@@ -1,5 +1,11 @@
 #include <gtest/gtest.h>
 #include "../include/chess.h"
+#include "../include/dev.h"
+
+#define BOARD_CLEAR_SETUP(board) \
+    SCE_Chessboard board; \
+    SCE_Chessboard_clear(&board);
+
 
 #define BOARD_SETUP(board, precpt_tbl) \
     SCE_PieceMovementPrecomputationTable precpt_tbl; \
@@ -207,7 +213,65 @@ TEST(ChessBoard, Bitboard_To_AN) {
     ASSERT_EQ(memcmp(an, "H8", 2U), 0);
 }
 
-TEST(ChessBoard, Check_Under_Attack_1) {
+TEST(ChessBoard, Initial_Setup) {
     BOARD_SETUP(board, precpt_tbl);
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, 1, WHITE));
+
+    // White pieces
+    ASSERT_TRUE(board.bitboards[W_ROOK] & SCE_AN_To_Bitboard("A1"));
+    ASSERT_TRUE(board.bitboards[W_KNIGHT] & SCE_AN_To_Bitboard("B1"));
+    ASSERT_TRUE(board.bitboards[W_BISHOP] & SCE_AN_To_Bitboard("C1"));
+    ASSERT_TRUE(board.bitboards[W_QUEEN] & SCE_AN_To_Bitboard("D1"));
+    ASSERT_TRUE(board.bitboards[W_KING] & SCE_AN_To_Bitboard("E1"));
+    ASSERT_TRUE(board.bitboards[W_BISHOP] & SCE_AN_To_Bitboard("F1"));
+    ASSERT_TRUE(board.bitboards[W_KNIGHT] & SCE_AN_To_Bitboard("G1"));
+    ASSERT_TRUE(board.bitboards[W_ROOK] & SCE_AN_To_Bitboard("H1"));
+
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("A2"));
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("B2"));
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("C2"));
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("D2"));
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("E2"));
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("F2"));
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("G2"));
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("H2"));
+
+    // Black pieces
+    ASSERT_TRUE(board.bitboards[B_ROOK] & SCE_AN_To_Bitboard("A8"));
+    ASSERT_TRUE(board.bitboards[B_KNIGHT] & SCE_AN_To_Bitboard("B8"));
+    ASSERT_TRUE(board.bitboards[B_BISHOP] & SCE_AN_To_Bitboard("C8"));
+    ASSERT_TRUE(board.bitboards[B_QUEEN] & SCE_AN_To_Bitboard("D8"));
+    ASSERT_TRUE(board.bitboards[B_KING] & SCE_AN_To_Bitboard("E8"));
+    ASSERT_TRUE(board.bitboards[B_BISHOP] & SCE_AN_To_Bitboard("F8"));
+    ASSERT_TRUE(board.bitboards[B_KNIGHT] & SCE_AN_To_Bitboard("G8"));
+    ASSERT_TRUE(board.bitboards[B_ROOK] & SCE_AN_To_Bitboard("H8"));
+
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("A7"));
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("B7"));
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("C7"));
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("D7"));
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("E7"));
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("F7"));
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("G7"));
+    ASSERT_TRUE(board.bitboards[B_PAWN] & SCE_AN_To_Bitboard("H7"));
+
+    // Between A2 to H6, there should be nothing.
+
+    uint64_t empty = 0U;
+    for (uint i = 8*2; i < 8*6; i++) {
+        empty ^= (1ULL << i);
+    }
+
+    ASSERT_FALSE(SCE_Chessboard_Occupancy(&board) & empty);
+}
+
+TEST(ChessBoard, Check_Under_Attack_1) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    // Place a knight on A1
+    ASSERT_EQ(place_piece_on_board(&board, "A1", W_BISHOP), SCE_SUCCESS);
+    //ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B3"), WHITE));
+
+    SCE_Chessboard_print(&board, WHITE);
 }

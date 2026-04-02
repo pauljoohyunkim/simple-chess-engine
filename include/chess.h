@@ -32,8 +32,8 @@ extern "C" {
 #define KNIGHT_INITIAL_ROW ((1ULL << 6U) ^ (1ULL << 1U))
 #define BISHOP_INITIAL_ROW ((1ULL << 5U) ^ (1ULL << 2U))
 #define ROOK_INITIAL_ROW ((1ULL << 7U) ^ (1U))
-#define QUEEN_INITIAL_ROW (1ULL << 4U)
-#define KING_INITIAL_ROW (1ULL << 3U)
+#define QUEEN_INITIAL_ROW (1ULL << 3U)
+#define KING_INITIAL_ROW (1ULL << 4U)
 
 typedef enum {
     WHITE = 0,
