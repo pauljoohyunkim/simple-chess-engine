@@ -6,15 +6,28 @@
 #endif
 #include "chess.h"
 
-#define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { perror(msg); return SCE_FAILURE; } } while (0);
+#define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { fprintf(stderr, "%s\n", msg); return SCE_FAILURE; } } while (0);
 
 typedef unsigned int uint;
+
+// Miscellaneous static functions
+static uint count_set_bits(uint64_t n);
 
 // Static functions for generating components of precomputation table.
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+
+// Kernighan's Bit Counting Algorithm
+static uint count_set_bits(uint64_t n) {
+    uint cnt = 0U;
+    while (n > 0) {
+        n &= (n - 1);
+        cnt++;
+    }
+    return cnt;
+}
 
 int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
@@ -508,8 +521,45 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
     return SCE_SUCCESS;
 }
-
 #undef DOWN
 #undef UP
 #undef LEFT
 #undef RIGHT
+
+bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by) {
+    if (ptr_board == NULL || ptr_precomputation_tbl == NULL || (attacked_by != WHITE && attacked_by != BLACK)) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_IsSquareAttacked\033[0m\n");
+        return false;
+    }
+    
+    if (count_set_bits(square) != 1) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter (square) in SCE_IsSquareAttacked\033[0m\n");
+        return false;
+    }
+
+    // Load attacker bitboards.
+    const uint64_t attacker_pawns = attacked_by == WHITE ? ptr_board->bitboards[W_PAWN] : ptr_board->bitboards[B_PAWN];
+    const uint64_t attacker_knights = attacked_by == WHITE ? ptr_board->bitboards[W_KNIGHT] : ptr_board->bitboards[B_KNIGHT];
+    const uint64_t attacker_bishops = attacked_by == WHITE ? ptr_board->bitboards[W_BISHOP] : ptr_board->bitboards[B_BISHOP];
+    const uint64_t attacker_rooks = attacked_by == WHITE ? ptr_board->bitboards[W_ROOK] : ptr_board->bitboards[B_ROOK];
+    const uint64_t attacker_queen = attacked_by == WHITE ? ptr_board->bitboards[W_QUEEN] : ptr_board->bitboards[B_QUEEN];
+    const uint64_t attacker_king = attacked_by == WHITE ? ptr_board->bitboards[W_KING] : ptr_board->bitboards[B_KING];
+
+    // Reverse Lookup
+    // 1. Knight: From the square, check if any attacker knight is reachable as a knight.
+    // 2. Pawn: From the square, check if any attacker pawn is attackable. (Use victim table).
+    // 3. King
+    // 4. Sliders with rays.
+
+    // 1. Knight
+    if (ptr_precomputation_tbl->knight_moves[square] & attacker_knights) {
+        return true;
+    }
+
+    // 2. Pawn
+    if (ptr_precomputation_tbl->pawn_attacks[attacked_by == WHITE ? BLACK : WHITE][square] & attacker_pawns) {
+        return true;
+    }
+
+    return true;
+}

@@ -1,6 +1,11 @@
 #ifndef SCE_CHESS_H
 #define SCE_CHESS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdbool.h>
 #include <stdint.h>
 
 #define SCE_SUCCESS 1
@@ -102,4 +107,19 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color);
  */
 int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
+/**
+ * @brief Checks if the square is under attack by certain color.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @param square uint64_t value with a single bit active marking the square. It is paramount that only a single bit is active.
+ * @param attacked_by Color of the piece attacking the square.
+ * @return true The square is under attack.
+ * @return false The square is not under attack or error. If there is an error, there will be error message output to STDERR.
+ */
+bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by);
+
+#ifdef __cplusplus
+}
+#endif
 #endif  // SCE_CHESS_H
