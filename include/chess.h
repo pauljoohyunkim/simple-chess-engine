@@ -127,6 +127,14 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
  */
 bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by);
 
+/**
+ * @brief Converts algebraic notation for a square to bitboard
+ * 
+ * @param an Two-letter string, from "A1" to "H8"
+ * @return uint64_t bitboard, or 0 for error.
+ */
+uint64_t SCE_AN_To_Bitboard(const char* an);
+
 #ifdef __cplusplus
 }
 #endif

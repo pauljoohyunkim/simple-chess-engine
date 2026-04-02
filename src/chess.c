@@ -652,3 +652,33 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
 
     return false;
 }
+
+uint64_t SCE_AN_To_Bitboard(const char* an) {
+    if (an == NULL || strlen(an) != 2) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    const char file_char = an[0];
+    const char rank_char = an[1];
+    uint file_n;
+    uint rank_n;
+
+    if ('a' <= file_char && file_char <= 'h') {
+        file_n = (uint) file_char - 'a';
+    } else if ('A' <= file_char && file_char <= 'H') {
+        file_n = (uint) file_char - 'A';
+    } else {
+        fprintf(stderr, "\033[31m[-] Invalid parameter (file) in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    if ('1' <= rank_char && rank_char <= '8') {
+        rank_n = (uint) rank_char - '1';
+    } else {
+        fprintf(stderr, "\033[31m[-] Invalid parameter (rank) in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    return 1ULL << (rank_n * 8) << file_n;
+}
