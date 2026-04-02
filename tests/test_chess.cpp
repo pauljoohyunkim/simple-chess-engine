@@ -264,14 +264,57 @@ TEST(ChessBoard, Initial_Setup) {
     ASSERT_FALSE(SCE_Chessboard_Occupancy(&board) & empty);
 }
 
-TEST(ChessBoard, Check_Under_Attack_1) {
+TEST(ChessBoard, Square_Under_Attack_1) {
     BOARD_CLEAR_SETUP(board);
     SCE_PieceMovementPrecomputationTable precpt_tbl;
     SCE_PieceMovementPrecompute(&precpt_tbl);
 
     // Place a knight on A1
-    ASSERT_EQ(place_piece_on_board(&board, "A1", W_BISHOP), SCE_SUCCESS);
-    //ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B3"), WHITE));
+    ASSERT_EQ(place_piece_on_board(&board, "A1", W_KNIGHT), SCE_SUCCESS);
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B3"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C2"), WHITE));
 
     SCE_Chessboard_print(&board, WHITE);
+}
+
+TEST(ChessBoard, Square_Under_Attack_2) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    // Place a white bishop at C5
+    ASSERT_EQ(place_piece_on_board(&board, "C5", W_BISHOP), SCE_SUCCESS);
+    // Place a black rook at E7
+    ASSERT_EQ(place_piece_on_board(&board, "E7", B_ROOK), SCE_SUCCESS);
+    
+    // Attacked by white bishop: B4, A3, D6, E7, A7, B6, D4, E3, F2, G1
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B4"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A3"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D6"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E7"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A7"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B6"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D4"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E3"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F2"), WHITE));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G1"), WHITE));
+
+    // Attacked by black rook: E1, E2, E3, E4, E5, E6, E8, A7, B7, C7, D7, F7, G7, H7
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E1"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E2"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E3"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E4"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E5"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E6"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E8"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A7"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B7"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C7"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D7"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F7"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G7"), BLACK));
+    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H7"), BLACK));
+
+    SCE_Chessboard_print(&board, WHITE);
+
 }

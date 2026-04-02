@@ -8,7 +8,7 @@ void print_as_board(const uint64_t val) {
     printf("\n");
     for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
         for (uint j = 0; j < CHESSBOARD_DIMENSION; j++) {
-            uint64_t pos = 1ULL << ((7-i) * CHESSBOARD_DIMENSION + (7-j));
+            uint64_t pos = 1ULL << ((7-i) * CHESSBOARD_DIMENSION + j);
             if (pos & val) {
                 printf("*");
             } else {
