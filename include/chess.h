@@ -92,6 +92,14 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
 int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
 
 /**
+ * @brief Returns the bitboard of occupancy information.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @return uint64_t bitboard where set bits are occupied, or 0 for error.
+ */
+uint64_t SCE_Chessboard_Occupancy(SCE_Chessboard* const ptr_board);
+
+/**
  * @brief Print the board to console.
  * 
  * @param ptr_board Pointer to the SCE_Chessboard struct.
