@@ -199,8 +199,8 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
 
 #define DOWN >> 8U
 #define UP << 8U
-#define LEFT << 1U
-#define RIGHT >> 1U
+#define LEFT >> 1U
+#define RIGHT << 1U
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
@@ -460,7 +460,7 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
         // EAST
         shift = 1U;
-        while (col >= shift) {
+        while (col + shift < CHESSBOARD_DIMENSION) {
             e_ray ^= (pos RIGHT * shift);
             shift++;
         }
@@ -474,35 +474,35 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
         // WEST
         shift = 1U;
-        while (col + shift < CHESSBOARD_DIMENSION) {
+        while (col >= shift) {
             w_ray ^= (pos LEFT * shift);
             shift++;
         }
 
         // NORTHEAST
         shift = 1U;
-        while (row + shift < CHESSBOARD_DIMENSION && col >= shift) {
+        while (row + shift < CHESSBOARD_DIMENSION && col + shift < CHESSBOARD_DIMENSION) {
             ne_ray ^= ((pos UP * shift) RIGHT * shift);
             shift++;
         }
 
         // NORTHWEST
         shift = 1U;
-        while (row + shift < CHESSBOARD_DIMENSION && col + shift < CHESSBOARD_DIMENSION) {
+        while (row + shift < CHESSBOARD_DIMENSION && col >= shift) {
             nw_ray ^= ((pos UP * shift) LEFT * shift);
             shift++;
         }
 
         // SOUTHEAST
         shift = 1U;
-        while (row >= shift && col >= shift) {
+        while (row >= shift && col + shift < CHESSBOARD_DIMENSION) {
             se_ray ^= ((pos DOWN * shift) RIGHT * shift);
             shift++;
         }
 
         // SOUTHWEST
         shift = 1U;
-        while (row >= shift && col + shift < CHESSBOARD_DIMENSION) {
+        while (row >= shift && col >= shift) {
             sw_ray ^= ((pos DOWN * shift) LEFT * shift);
             shift++;
         }
@@ -567,66 +567,52 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
     }
 
     // 4. Sliders
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
     const RayDirection positive_directions[4U] = { NORTH, WEST, NORTHEAST, NORTHWEST };
     const RayDirection negative_directions[4U] = { EAST, SOUTH, SOUTHEAST, SOUTHWEST };
-    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
 
-    // TODO: Refactor (Code duplication can be merged)
-    // 4.1 Positive Direction
-    // Project in positive direction and check for blockers. If blockers exist, check if they are threatening.
-    for (uint i = 0U; i < sizeof(positive_directions) / sizeof(RayDirection); i++) {
-        const RayDirection ray_direction = positive_directions[i];
-        const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
-        const uint64_t blocker = 1 << (63U - COUNT_LEADING_ZEROS(intersection));
-        
+    for (RayDirection ray_direction = NORTH; ray_direction <= SOUTHWEST; ray_direction++) {
+        int sign_of_direction = 0;
         switch (ray_direction) {
             case NORTH:
-            case WEST:
-                // Rook check
-                if (blocker & attacker_rooks) {
-                    return true;
-                }
-                break;
-            case NORTHEAST:
+            case EAST:
             case NORTHWEST:
-                // Bishop check
-                if (blocker & attacker_bishops) {
-                    return true;
-                }
+            case NORTHEAST:
+               sign_of_direction = 1;
+               break;
+            case SOUTH:
+            case WEST:
+            case SOUTHEAST:
+            case SOUTHWEST:
+                sign_of_direction = -1;
                 break;
+            default:
+                return false;
         }
-        // Queen check
-        if (blocker & attacker_queen) {
-            return true;
-        }
-    }
-
-    // 4.2 Negative Direction
-    // Project in positive direction and check for blockers. If blockers exist, check if they are threatening.
-    for (uint i = 0U; i < sizeof(negative_directions) / sizeof(RayDirection); i++) {
-        const RayDirection ray_direction = negative_directions[i];
         const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
-        const uint64_t blocker = 1 << COUNT_TRAILING_ZEROS(intersection);
-        
-        switch (ray_direction) {
-            case NORTH:
-            case WEST:
-                // Rook check
-                if (blocker & attacker_rooks) {
-                    return true;
-                }
-                break;
-            case NORTHEAST:
-            case NORTHWEST:
-                // Bishop check
-                if (blocker & attacker_bishops) {
-                    return true;
-                }
-                break;
-        }
-        // Queen check
-        if (blocker & attacker_queen) {
-            return true;
+        if (intersection) {
+            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? 63U - COUNT_LEADING_ZEROS(intersection) : COUNT_TRAILING_ZEROS(intersection));
+            
+            switch (ray_direction) {
+                case NORTH:
+                case WEST:
+                    // Rook check
+                    if (blocker & attacker_rooks) {
+                        return true;
+                    }
+                    break;
+                case NORTHEAST:
+                case NORTHWEST:
+                    // Bishop check
+                    if (blocker & attacker_bishops) {
+                        return true;
+                    }
+                    break;
+            }
+            // Queen check
+            if (blocker & attacker_queen) {
+                return true;
+            }
         }
     }
 
