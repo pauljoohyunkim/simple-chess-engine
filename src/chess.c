@@ -77,7 +77,7 @@ uint64_t SCE_Chessboard_Occupancy(SCE_Chessboard* const ptr_board) {
 
     uint64_t occupancy = 0ULL;
     for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
-        occupancy ^= ptr_board->bitboards[i];
+        occupancy ^= ptr_board->bitboards[piece_type];
     }
 
     return occupancy;
