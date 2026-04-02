@@ -125,7 +125,7 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
  * @return true The square is under attack.
  * @return false The square is not under attack or error. If there is an error, there will be error message output to STDERR.
  */
-bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by);
+bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by);
 
 /**
  * @brief Converts algebraic notation for a square to bitboard

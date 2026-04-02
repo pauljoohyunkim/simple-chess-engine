@@ -271,8 +271,8 @@ TEST(ChessBoard, Square_Under_Attack_1) {
 
     // Place a knight on A1
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_KNIGHT), SCE_SUCCESS);
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B3"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C2"), WHITE));
 
     SCE_Chessboard_print(&board, WHITE);
 }
@@ -288,33 +288,172 @@ TEST(ChessBoard, Square_Under_Attack_2) {
     ASSERT_EQ(place_piece_on_board(&board, "E7", B_ROOK), SCE_SUCCESS);
     
     // Attacked by white bishop: B4, A3, D6, E7, A7, B6, D4, E3, F2, G1
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B4"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A3"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D6"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E7"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A7"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B6"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D4"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E3"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F2"), WHITE));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G1"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B4"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D6"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E7"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A7"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B6"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D4"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G1"), WHITE));
 
     // Attacked by black rook: E1, E2, E3, E4, E5, E6, E8, A7, B7, C7, D7, F7, G7, H7
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E1"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E2"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E3"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E4"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E5"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E6"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E8"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A7"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B7"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C7"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D7"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F7"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G7"), BLACK));
-    ASSERT_TRUE(SCE_IsSqaureAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H7"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E1"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E2"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E3"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E4"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E5"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E6"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E8"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A7"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B7"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C7"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D7"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F7"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G7"), BLACK));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H7"), BLACK));
 
     SCE_Chessboard_print(&board, WHITE);
+}
 
+TEST(ChessBoard, Square_Under_Attack_3) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    //   A B C D E F G H
+    // 8 R N B Q K B - R
+    // 7 P P - - P P P -
+    // 6 - - P - - N - P
+    // 5 - - - P - - - -
+    // 4 - - - - P - - -
+    // 3 - - - B - - - P
+    // 2 P P P P Q P P -
+    // 1 R N B - K - N R
+    // From rank 1 to 4, there are only white pieces.
+    // From rank 5 to 8, there are only black pieces.
+    // 1. e2-e4 h7-h6 2. f1-d3 c7-c6 3. h2-h3 g8-f6 4. d1-e2 d7-d5 
+
+    // Rank 1
+    ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B1", W_KNIGHT), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "C1", W_BISHOP), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G1", W_KNIGHT), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H1", W_ROOK), SCE_SUCCESS);
+
+    // Rank 2
+    ASSERT_EQ(place_piece_on_board(&board, "A2", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B2", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "C2", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D2", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E2", W_QUEEN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "F2", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G2", W_PAWN), SCE_SUCCESS);
+
+    // Rank 3
+    ASSERT_EQ(place_piece_on_board(&board, "D3", W_BISHOP), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H3", W_PAWN), SCE_SUCCESS);
+
+    // Rank 4
+    ASSERT_EQ(place_piece_on_board(&board, "E4", W_PAWN), SCE_SUCCESS);
+
+    // Rank 5
+    ASSERT_EQ(place_piece_on_board(&board, "D5", B_PAWN), SCE_SUCCESS);
+
+    // Rank 6
+    ASSERT_EQ(place_piece_on_board(&board, "C6", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "F6", B_KNIGHT), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H6", B_PAWN), SCE_SUCCESS);
+
+    // Rank 7
+    ASSERT_EQ(place_piece_on_board(&board, "A7", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B7", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E7", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "F7", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G7", B_PAWN), SCE_SUCCESS);
+
+    // Rank 8
+    ASSERT_EQ(place_piece_on_board(&board, "A8", B_ROOK), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B8", B_KNIGHT), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "C8", B_BISHOP), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D8", B_QUEEN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "F8", B_BISHOP), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H8", B_ROOK), SCE_SUCCESS);
+
+    // White attacks
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D5"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F5"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A6"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B5"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C4"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E4"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B1"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D1"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E1"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F1"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H3"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G1"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C2"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G4"), WHITE));
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H5"), WHITE));
+
+    // White does not attack
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A1"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C1"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H1"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G2"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A4"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B4"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D4"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F4"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H4"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A5"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C5"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E5"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G5"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B6"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C6"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D6"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E6"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F6"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G6"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H6"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H7"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("A8"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("B8"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("C8"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("D8"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E8"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F8"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("G8"), WHITE));
+    ASSERT_FALSE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("H8"), WHITE));
+
+
+    SCE_Chessboard_print(&board, WHITE);
 }

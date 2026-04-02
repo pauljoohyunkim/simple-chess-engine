@@ -393,22 +393,22 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
         // ATTACKS
         // LU
-        if (col <= 6U && row <= 6U) {
+        if (col >= 1U && row <= 6U) {
             w_attacks ^= (pos LEFT UP);
         }
 
         // RU
-        if (col >= 1U && row <= 6U) {
+        if (col <= 6U && row <= 6U) {
             w_attacks ^= (pos RIGHT UP);
         }
 
         // LD
-        if (col <= 6U && row >= 1U) {
+        if (col >= 1U && row >= 1U) {
             b_attacks ^= (pos LEFT DOWN);
         }
 
         // RD
-        if (col >= 1U && row >= 1U) {
+        if (col <= 6U && row >= 1U) {
             b_attacks ^= (pos RIGHT DOWN);
         }
 
@@ -524,7 +524,7 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 #undef LEFT
 #undef RIGHT
 
-bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by) {
+bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by) {
     if (ptr_board == NULL || ptr_precomputation_tbl == NULL || (attacked_by != WHITE && attacked_by != BLACK)) {
         fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_IsSquareAttacked\033[0m\n");
         return false;
