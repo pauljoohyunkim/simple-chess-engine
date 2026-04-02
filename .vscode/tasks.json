@@ -13,6 +13,10 @@
             "type": "shell",
             "command": "make bin CFLAGSEXTRA=-DDEBUG"
         },
-
+        {
+            "label": "Unit test",
+            "type": "shell",
+            "command": "make test CFLAGSEXTRA=-DDEBUG"
+        },
     ]
 }

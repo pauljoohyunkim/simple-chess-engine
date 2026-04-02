@@ -171,9 +171,9 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
 
         // Print rank
         if (color == WHITE) {
-            printf("%d ", i + 1);
-        } else {
             printf("%d ", 8 - i);
+        } else {
+            printf("%d ", i + 1);
         }
         printf("\n");
     }
@@ -591,6 +591,7 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
     const RayDirection negative_directions[4U] = { EAST, SOUTH, SOUTHEAST, SOUTHWEST };
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
 
+    // TODO: Refactor (Code duplication can be merged)
     // 4.1 Positive Direction
     // Project in positive direction and check for blockers. If blockers exist, check if they are threatening.
     for (uint i = 0U; i < sizeof(positive_directions) / sizeof(RayDirection); i++) {
