@@ -135,6 +135,19 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
  */
 uint64_t SCE_AN_To_Bitboard(const char* an);
 
+/**
+ * 
+ */
+
+/**
+ * @brief Converts bitboard with single bit to algebraic notation
+ * 
+ * @param an_out Char array. Needs at least three spaces (for null terminator)
+ * @param bitboard uin64_t representation of board. Only single bit must be set.
+ * @return int 1 for success, 0 for failure
+ */
+int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
+
 #ifdef __cplusplus
 }
 #endif

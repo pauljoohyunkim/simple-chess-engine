@@ -682,3 +682,19 @@ uint64_t SCE_AN_To_Bitboard(const char* an) {
 
     return 1ULL << (rank_n * 8) << file_n;
 }
+
+int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
+    if (an_out == NULL || COUNT_SET_BITS(bitboard) != 1) {
+        return SCE_FAILURE;
+    }
+
+    const uint shift = COUNT_TRAILING_ZEROS(bitboard);  // such that bitboard = 1 << shift
+    const uint row = shift / CHESSBOARD_DIMENSION;
+    const uint col = shift % CHESSBOARD_DIMENSION;
+
+    an_out[0] = 'A' + (char) col;
+    an_out[1] = '1' + (char) row;
+    an_out[2] = 0x00;
+
+    return SCE_SUCCESS;
+}
