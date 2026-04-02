@@ -591,10 +591,12 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
         }
         const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
         if (intersection) {
-            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? 63U - COUNT_LEADING_ZEROS(intersection) : COUNT_TRAILING_ZEROS(intersection));
+            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? COUNT_TRAILING_ZEROS(intersection) :63U - COUNT_LEADING_ZEROS(intersection));
             
             switch (ray_direction) {
                 case NORTH:
+                case SOUTH:
+                case EAST:
                 case WEST:
                     // Rook check
                     if (blocker & attacker_rooks) {
@@ -603,6 +605,8 @@ bool SCE_IsSqaureAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
                     break;
                 case NORTHEAST:
                 case NORTHWEST:
+                case SOUTHEAST:
+                case SOUTHWEST:
                     // Bishop check
                     if (blocker & attacker_bishops) {
                         return true;
