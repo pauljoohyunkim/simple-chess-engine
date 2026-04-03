@@ -465,8 +465,16 @@ TEST(MoveGeneration, Pseudomove_1) {
     list.count = 0;
 
     ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS);
+    uint n_moves[N_TYPES_PIECES] = { 0 };
     for (unsigned int i = 0; i < list.count; i++) {
         print_move_to_AN(list.moves[i]);
+        uint64_t src = 1ULL << (list.moves[i] SCE_CHESSMOVE_GET_SRC);
+        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+            if (src & board.bitboards[piece_type]) {
+                n_moves[piece_type]++;
+            }
+        }
     }
-    ASSERT_EQ(list.count, 8);
+    ASSERT_EQ(n_moves[B_KNIGHT], 4);
+    ASSERT_EQ(n_moves[W_KNIGHT], 4);
 }

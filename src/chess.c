@@ -23,6 +23,7 @@ static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
 static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 #ifdef __GNUC__
 #define COUNT_SET_BITS __builtin_popcountll
@@ -574,6 +575,7 @@ static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
     RETURN_IF_SCE_FAILURE(SCE_King_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "King (pseudolegal) move generation failed");
 
     // 3. Generate pseudolegal moves for sliders (bishop, rook, queen)
+    //RETURN_IF_SCE_FAILURE(SCE_Slider_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Slider (pseudolegal) move generation failed");
 
     // 4. Generate pseudolegal moves for pawns
 
@@ -583,7 +585,7 @@ static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
 static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
-    const uint piece_types[2U] = { W_KNIGHT, B_KNIGHT };
+    const uint piece_types[] = { W_KNIGHT, B_KNIGHT };
     for (uint i = 0U; i < 2U; i++) {
         const uint moving_piece_type = piece_types[i];
 
@@ -616,7 +618,7 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
 static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
-    const uint piece_types[2U] = { W_KING, B_KING };
+    const uint piece_types[] = { W_KING, B_KING };
     for (uint i = 0U; i < 2U; i++) {
         const uint moving_piece_type = piece_types[i];
 
@@ -634,9 +636,124 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
             const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
             SCE_AddToMoveList(move, ptr_movelist);
 
-            // Remove from the knight_moves.
+            // Remove from the king_moves.
             king_moves &= ~(1ULL << king_idx_dst);
         }
+    }
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
+    const uint piece_types[] = { W_ROOK, B_ROOK, W_BISHOP, B_BISHOP, W_QUEEN, B_QUEEN };
+    for (uint i = 0U; i < sizeof(piece_types)/sizeof(piece_types[0]); i++) {
+        // TODO: Implement logic here.
+        const uint moving_piece_type = piece_types[i];
+        const PieceColor moving_piece_color = (moving_piece_type >= W_PAWN && moving_piece_type <= W_KING) ? WHITE : BLACK;
+
+        uint64_t pieces = ptr_board->bitboards[moving_piece_type];
+        while (pieces) {
+            // Loop and generate moves for each piece. After generating move for a knight, remove the bit.
+            uint piece_idx_src = COUNT_TRAILING_ZEROS(pieces);
+            uint piece_row = piece_idx_src / CHESSBOARD_DIMENSION;
+            uint piece_col = piece_idx_src % CHESSBOARD_DIMENSION;
+            //const uint64_t piece = (1ULL << piece_idx_src);
+            const uint blockers_idx[] = {
+                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[NORTH][piece_idx_src] & occupancy),
+                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[EAST][piece_idx_src] & occupancy),
+                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[SOUTH][piece_idx_src] & occupancy)),
+                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[WEST][piece_idx_src] & occupancy)),
+                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[NORTHEAST][piece_idx_src] & occupancy),
+                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[NORTHWEST][piece_idx_src] & occupancy),
+                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[SOUTHEAST][piece_idx_src] & occupancy)),
+                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[SOUTHWEST][piece_idx_src] & occupancy))
+            };
+
+            // If there is a blocker, filter depending on what color the blocker is.
+            // If there isn't a blocker, the entire ray is pseudolegal.
+
+            uint max_shifts[8U] = { 0 };
+
+            // Horizontal Vertical Check (Rook-like)
+            switch (moving_piece_type) {
+                case W_ROOK:
+                case B_ROOK:
+                case W_QUEEN:
+                case B_QUEEN:
+                    if (blockers_idx[NORTH]) {
+                        uint blocker_idx = blockers_idx[NORTH];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[NORTH] = blocker_row - piece_row - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[NORTH] = blocker_row - piece_row;
+                        }
+                    } else {
+                        max_shifts[NORTH] = (CHESSBOARD_DIMENSION - 1U - piece_row);
+                    }
+
+                    if (blockers_idx[SOUTH]) {
+                        uint blocker_idx = blockers_idx[SOUTH];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[SOUTH] = piece_row - blocker_row - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[SOUTH] = piece_row - blocker_row;
+                        }
+                    } else {
+                        max_shifts[SOUTH] = piece_row;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            // Diagonal Check (Bishop-like)
+            switch (moving_piece_type) {
+                case W_BISHOP:
+                case B_BISHOP:
+                case W_QUEEN:
+                case B_QUEEN:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /*
+        // Get all knights
+        uint64_t knights = ptr_board->bitboards[moving_piece_type];
+        while (knights) {
+            // Loop and generate moves for each knight. After generating move for a knight, remove the bit.
+            uint knight_idx_src = COUNT_TRAILING_ZEROS(knights);
+            // Knight moves, but cannot attack the same color
+            uint64_t knight_moves = (ptr_precomputation_tbl->knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KNIGHT ? WHITE : BLACK)));
+            
+            while (knight_moves) {
+                // For each moves, add to list.
+                uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
+                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
+                SCE_AddToMoveList(move, ptr_movelist);
+
+                // Remove from the knight_moves.
+                knight_moves &= ~(1ULL << knight_idx_dst);
+            }
+
+            // Remove from the knights
+            knights &= ~(1ULL << knight_idx_src);
+        }
+        */
     }
 
     return SCE_SUCCESS;
@@ -707,7 +824,7 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
         }
         const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
         if (intersection) {
-            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? COUNT_TRAILING_ZEROS(intersection) :63U - COUNT_LEADING_ZEROS(intersection));
+            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? COUNT_TRAILING_ZEROS(intersection) : 63U - COUNT_LEADING_ZEROS(intersection));
             
             switch (ray_direction) {
                 case NORTH:

@@ -65,7 +65,7 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CHESSMOVE_GET_DST >> 6U & 63U
 #define SCE_CHESSMOVE_GET_FLAG >> 12U & 63U
 
-#define N_MAX_LEGAL_PSEUDOMOVES 256U
+#define N_MAX_LEGAL_PSEUDOMOVES (256U)
 typedef struct {
     SCE_ChessMove moves[N_MAX_LEGAL_PSEUDOMOVES];
     unsigned int count;
