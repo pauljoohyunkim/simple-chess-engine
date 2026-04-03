@@ -571,6 +571,7 @@ static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
     RETURN_IF_SCE_FAILURE(SCE_Knight_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Knight (pseudolegal) move generation failed");
 
     // 2. Generate pseudolegal moves for kings
+    RETURN_IF_SCE_FAILURE(SCE_King_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "King (pseudolegal) move generation failed");
 
     // 3. Generate pseudolegal moves for sliders (bishop, rook, queen)
 
@@ -625,7 +626,7 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
         // Loop and generate moves for the king.
         uint king_idx_src = COUNT_TRAILING_ZEROS(king);
         // King moves, but cannot attack the same color
-        uint64_t king_moves = (ptr_precomputation_tbl->knight_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
+        uint64_t king_moves = (ptr_precomputation_tbl->king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
         
         while (king_moves) {
             // For each moves, add to list.
