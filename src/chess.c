@@ -1,13 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef DEBUG
-#include "dev.h"
-#endif
 #include "chess.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { fprintf(stderr, "%s\n", msg); return SCE_FAILURE; } } while (0);
 
+#define MIN(x, y) ((x) > (y) ? (y) : (x))
 
 typedef unsigned int uint;
 
@@ -764,6 +762,70 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
                 case B_BISHOP:
                 case W_QUEEN:
                 case B_QUEEN:
+                    if (blockers_idx[NORTHEAST]) {
+                        uint blocker_idx = blockers_idx[NORTHEAST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[NORTHEAST] = blocker_col - piece_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[NORTHEAST] = blocker_col - piece_col;
+                        }
+                    } else {
+                        max_shifts[NORTHEAST] = MIN(CHESSBOARD_DIMENSION - piece_row, CHESSBOARD_DIMENSION - piece_col) - 1U;
+                    }
+
+                    if (blockers_idx[NORTHWEST]) {
+                        uint blocker_idx = blockers_idx[NORTHWEST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[NORTHWEST] = piece_col - blocker_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[NORTHWEST] = piece_col - blocker_col;
+                        }
+                    } else {
+                        max_shifts[NORTHWEST] = MIN(CHESSBOARD_DIMENSION - piece_row - 1U, piece_col);
+                    }
+
+                    if (blockers_idx[SOUTHEAST]) {
+                        uint blocker_idx = blockers_idx[SOUTHEAST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[SOUTHEAST] = blocker_col - piece_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[SOUTHEAST] = blocker_col - piece_col;
+                        }
+                    } else {
+                        max_shifts[SOUTHEAST] = MIN(piece_row, CHESSBOARD_DIMENSION - piece_col - 1U);
+                    }
+
+                    if (blockers_idx[SOUTHWEST]) {
+                        uint blocker_idx = blockers_idx[SOUTHWEST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[SOUTHWEST] = piece_col - blocker_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[SOUTHWEST] = piece_col - blocker_col;
+                        }
+                    } else {
+                        max_shifts[SOUTHWEST] = MIN(piece_row, piece_col);
+                    }
+
                     break;
                 default:
                     break;
