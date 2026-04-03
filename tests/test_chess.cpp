@@ -486,6 +486,8 @@ TEST(MoveGeneration, MoveGeneration_Simple) {
     SCE_Chessboard_print(&board, WHITE);
 
     MOVE_LIST_SETUP(list, n_moves)
+    ASSERT_EQ(n_moves[B_ROOK], 14U);
+    ASSERT_EQ(n_moves[W_BISHOP], 10U);
     
 }
 

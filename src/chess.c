@@ -622,19 +622,21 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
 
         // Get king
         uint64_t king = ptr_board->bitboards[moving_piece_type];
-        // Loop and generate moves for the king.
-        uint king_idx_src = COUNT_TRAILING_ZEROS(king);
-        // King moves, but cannot attack the same color
-        uint64_t king_moves = (ptr_precomputation_tbl->king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
-        
-        while (king_moves) {
-            // For each moves, add to list.
-            uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
-            const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
-            SCE_AddToMoveList(move, ptr_movelist);
+        if (king) {
+            // Loop and generate moves for the king.
+            uint king_idx_src = COUNT_TRAILING_ZEROS(king);
+            // King moves, but cannot attack the same color
+            uint64_t king_moves = (ptr_precomputation_tbl->king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
+            
+            while (king_moves) {
+                // For each moves, add to list.
+                uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
+                const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
+                SCE_AddToMoveList(move, ptr_movelist);
 
-            // Remove from the king_moves.
-            king_moves &= ~(1ULL << king_idx_dst);
+                // Remove from the king_moves.
+                king_moves &= ~(1ULL << king_idx_dst);
+            }
         }
     }
 
@@ -898,30 +900,6 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
             // Remove piece
             pieces &= ~(1ULL << piece_idx_src);
         }
-
-        /*
-        // Get all knights
-        uint64_t knights = ptr_board->bitboards[moving_piece_type];
-        while (knights) {
-            // Loop and generate moves for each knight. After generating move for a knight, remove the bit.
-            uint knight_idx_src = COUNT_TRAILING_ZEROS(knights);
-            // Knight moves, but cannot attack the same color
-            uint64_t knight_moves = (ptr_precomputation_tbl->knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KNIGHT ? WHITE : BLACK)));
-            
-            while (knight_moves) {
-                // For each moves, add to list.
-                uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
-                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
-                SCE_AddToMoveList(move, ptr_movelist);
-
-                // Remove from the knight_moves.
-                knight_moves &= ~(1ULL << knight_idx_dst);
-            }
-
-            // Remove from the knights
-            knights &= ~(1ULL << knight_idx_src);
-        }
-        */
     }
 
     return SCE_SUCCESS;
