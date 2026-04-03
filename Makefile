@@ -1,11 +1,13 @@
-PKG_DEPS=ncurses
+PKG_DEPS=gtest
 INCLUDES=-Iinclude
 
-CC=g++
+CC=gcc
 CFLAGSEXTRA=
 CFLAGS=-g -Wall -Wextra -O0 -pedantic -MMD -MP $(INCLUDES)
 CFLAGS+=`pkg-config --cflags $(PKG_DEPS)`
 CFLAGS+=$(CFLAGSEXTRA)
+CXX=g++
+CXXFLAGS=$(CFLAGS)
 LDLIBS=`pkg-config --libs $(PKG_DEPS)`
 
 BIN=bin
@@ -15,9 +17,11 @@ TESTS=tests
 HTML=html
 SRCS=$(wildcard $(SRC)/*.c)
 OBJS=$(patsubst $(SRC)/%.c,$(OBJ)/%.o, $(SRCS))
+TEST_SRCS=$(wildcard $(TESTS)/*.cpp)
+TEST_OBJS=$(patsubst $(TESTS)/%.cpp,$(OBJ)/%.o, $(TEST_SRCS))
 DEPS=$(OBJS:.o=.d)
 
-.PHONY: all bin doc clean
+.PHONY: all bin doc clean test
 
 bin: $(BIN)/sce_play
 
@@ -26,13 +30,22 @@ all: bin doc
 doc:
 	doxygen
 
+test: $(BIN)/test
+
 $(BIN)/sce_play: $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+
+$(OBJ)/test_%.o: $(TESTS)/test_%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 -include $(DEPS)
+
+OBJS_UNITTEST=$(filter-out obj/sce_play.o, $(OBJS)) $(TEST_OBJS)
+$(BIN)/test: $(OBJS_UNITTEST)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDLIBS)
 
 clean:
 	$(RM) -r $(OBJ)/*.{o,d} $(BIN)/* $(HTML)

@@ -6,15 +6,42 @@
 #endif
 #include "chess.h"
 
-#define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { perror(msg); return SCE_FAILURE; } } while (0);
+#define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { fprintf(stderr, "%s\n", msg); return SCE_FAILURE; } } while (0);
+
 
 typedef unsigned int uint;
+
 
 // Static functions for generating components of precomputation table.
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+
+static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
+
+static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+
+#ifdef __GNUC__
+#define COUNT_SET_BITS __builtin_popcountll
+// TODO: Implement fallback
+#define COUNT_TRAILING_ZEROS __builtin_ctzll
+#define COUNT_LEADING_ZEROS __builtin_clzll
+#else
+// Miscellaneous static functions
+static uint count_set_bits(uint64_t n);
+
+// Kernighan's Bit Counting Algorithm
+static uint count_set_bits(uint64_t n) {
+    uint cnt = 0U;
+    while (n > 0) {
+        n &= (n - 1);
+        cnt++;
+    }
+    return cnt;
+}
+#endif
 
 int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
@@ -50,6 +77,36 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     return SCE_SUCCESS;
 }
 
+uint64_t SCE_Chessboard_Occupancy(const SCE_Chessboard* const ptr_board) {
+    if (ptr_board == NULL) return 0U;
+
+    uint64_t occupancy = 0ULL;
+    for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
+        occupancy ^= ptr_board->bitboards[piece_type];
+    }
+
+    return occupancy;
+}
+
+uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Chessboard* const ptr_board, const PieceColor color) {
+    if (ptr_board == NULL || (color != WHITE && color != BLACK)) return 0U;
+
+    uint64_t occupancy = 0ULL;
+    if (color == WHITE) {
+        // White
+        for (uint piece_type = W_PAWN; piece_type <= W_KING; piece_type++) {
+            occupancy ^= ptr_board->bitboards[piece_type];
+        }
+    } else {
+        // Black
+        for (uint piece_type = B_PAWN; piece_type <= B_KING; piece_type++) {
+            occupancy ^= ptr_board->bitboards[piece_type];
+        }
+    }
+
+    return occupancy;
+}
+
 #define UNASSIGNED (-1)
 int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
     if (ptr_board == NULL) return SCE_FAILURE;
@@ -72,7 +129,7 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
 
     for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
         for (uint j = 0; j < CHESSBOARD_DIMENSION; j++) {
-            uint shift = (8U * (7U-i) + (7U-j));
+            uint shift = (8U * (7U-i) + j);
             if (color == BLACK) {
                 shift = 63U - shift;
             }
@@ -138,9 +195,9 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
 
         // Print rank
         if (color == WHITE) {
-            printf("%d ", i + 1);
-        } else {
             printf("%d ", 8 - i);
+        } else {
+            printf("%d ", i + 1);
         }
         printf("\n");
     }
@@ -166,8 +223,8 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
 
 #define DOWN >> 8U
 #define UP << 8U
-#define LEFT << 1U
-#define RIGHT >> 1U
+#define LEFT >> 1U
+#define RIGHT << 1U
 static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
@@ -191,50 +248,46 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
         // For each case, check if applicable. If so, xor to moves.
 
         // RRU
-        if (col >= 2U && row <= 6U) {
+        if (col <= 5U && row <= 6U) {
             moves ^= (pos RIGHT RIGHT UP);
         }
 
         // RRD
-        if (col >= 2U && row >= 1U) {
+        if (col <= 5U && row >= 1U) {
             moves ^= (pos RIGHT RIGHT DOWN);
         }
 
         // RUU
-        if (col >= 1U && row <= 5U) {
+        if (col <= 6U && row <= 5U) {
             moves ^= (pos RIGHT UP UP);
         }
 
         // RDD
-        if (col >= 1U && row >= 2U) {
+        if (col <= 6U && row >= 2U) {
             moves ^= (pos RIGHT DOWN DOWN);
         }
 
         // LLU
-        if (col <= 5U && row <= 6U) {
+        if (col >= 2U && row <= 6U) {
             moves ^= (pos LEFT LEFT UP);
         }
 
         // LLD
-        if (col <= 5U && row >= 1U) {
+        if (col >= 2U && row >= 1U) {
             moves ^= (pos LEFT LEFT DOWN);
         }
 
         // LUU
-        if (col <= 6U && row <= 5U) {
+        if (col >= 1U && row <= 5U) {
             moves ^= (pos LEFT UP UP);
         }
 
         // LDD
-        if (col <= 6U && row >= 2U) {
+        if (col >= 1U && row >= 2U) {
             moves ^= (pos LEFT DOWN DOWN);
         }
 
         ptr_precomputation_tbl->knight_moves[i] = moves;
-#ifdef DEBUG
-        printf("Knight Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->knight_moves[i]);
-#endif
     }
 
     return SCE_SUCCESS;
@@ -273,41 +326,37 @@ static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         }
 
         // L
-        if (col <= 6U) {
+        if (col >= 1U) {
             moves ^= (pos LEFT);
         }
 
         // R
-        if (col >= 1U) {
+        if (col <= 6U) {
             moves ^= (pos RIGHT);
         }
 
         // RU
-        if (col >= 1U && row <= 6U) {
+        if (col <= 6U && row <= 6U) {
             moves ^= (pos RIGHT UP);
         }
 
         // RD
-        if (col >= 1U && row >= 1U) {
+        if (col <= 6U && row >= 1U) {
             moves ^= (pos RIGHT DOWN);
         }
 
         // LU
-        if (col <= 6U && row <= 6U) {
+        if (col >= 1U && row <= 6U) {
             moves ^= (pos LEFT UP);
         }
 
         // LD
-        if (col <= 6U && row >= 1U) {
+        if (col >= 1U && row >= 1U) {
             moves ^= (pos LEFT DOWN);
         }
 
 
         ptr_precomputation_tbl->king_moves[i] = moves;
-#ifdef DEBUG
-        printf("King Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->king_moves[i]);
-#endif
     }
 
     return SCE_SUCCESS;
@@ -368,22 +417,22 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
         // ATTACKS
         // LU
-        if (col <= 6U && row <= 6U) {
+        if (col >= 1U && row <= 6U) {
             w_attacks ^= (pos LEFT UP);
         }
 
         // RU
-        if (col >= 1U && row <= 6U) {
+        if (col <= 6U && row <= 6U) {
             w_attacks ^= (pos RIGHT UP);
         }
 
         // LD
-        if (col <= 6U && row >= 1U) {
+        if (col >= 1U && row >= 1U) {
             b_attacks ^= (pos LEFT DOWN);
         }
 
         // RD
-        if (col >= 1U && row >= 1U) {
+        if (col <= 6U && row >= 1U) {
             b_attacks ^= (pos RIGHT DOWN);
         }
 
@@ -391,16 +440,6 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         ptr_precomputation_tbl->pawn_moves[BLACK][i] = b_moves;
         ptr_precomputation_tbl->pawn_attacks[WHITE][i] = w_attacks;
         ptr_precomputation_tbl->pawn_attacks[BLACK][i] = b_attacks;
-#ifdef DEBUG
-        printf("White Pawn Movement Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_moves[WHITE][i]);
-        printf("Black Pawn Movement Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_moves[BLACK][i]);
-        printf("White Pawn Attack Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_attacks[WHITE][i]);
-        printf("Black Pawn Attack Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->pawn_attacks[BLACK][i]);
-#endif
     }
 
     return SCE_SUCCESS;
@@ -445,7 +484,7 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
         // EAST
         shift = 1U;
-        while (col >= shift) {
+        while (col + shift < CHESSBOARD_DIMENSION) {
             e_ray ^= (pos RIGHT * shift);
             shift++;
         }
@@ -459,35 +498,35 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
         // WEST
         shift = 1U;
-        while (col + shift < CHESSBOARD_DIMENSION) {
+        while (col >= shift) {
             w_ray ^= (pos LEFT * shift);
             shift++;
         }
 
         // NORTHEAST
         shift = 1U;
-        while (row + shift < CHESSBOARD_DIMENSION && col >= shift) {
+        while (row + shift < CHESSBOARD_DIMENSION && col + shift < CHESSBOARD_DIMENSION) {
             ne_ray ^= ((pos UP * shift) RIGHT * shift);
             shift++;
         }
 
         // NORTHWEST
         shift = 1U;
-        while (row + shift < CHESSBOARD_DIMENSION && col + shift < CHESSBOARD_DIMENSION) {
+        while (row + shift < CHESSBOARD_DIMENSION && col >= shift) {
             nw_ray ^= ((pos UP * shift) LEFT * shift);
             shift++;
         }
 
         // SOUTHEAST
         shift = 1U;
-        while (row >= shift && col >= shift) {
+        while (row >= shift && col + shift < CHESSBOARD_DIMENSION) {
             se_ray ^= ((pos DOWN * shift) RIGHT * shift);
             shift++;
         }
 
         // SOUTHWEST
         shift = 1U;
-        while (row >= shift && col + shift < CHESSBOARD_DIMENSION) {
+        while (row >= shift && col >= shift) {
             sw_ray ^= ((pos DOWN * shift) LEFT * shift);
             shift++;
         }
@@ -500,16 +539,225 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         ptr_precomputation_tbl->rays[NORTHWEST][i] = nw_ray;
         ptr_precomputation_tbl->rays[SOUTHEAST][i] = se_ray;
         ptr_precomputation_tbl->rays[SOUTHWEST][i] = sw_ray;
-#ifdef DEBUG
-        printf("Rays Table %d\n", i);
-        print_as_board(ptr_precomputation_tbl->rays[SOUTHWEST][i]);
-#endif
+    }
+
+    return SCE_SUCCESS;
+}
+#undef DOWN
+#undef UP
+#undef LEFT
+#undef RIGHT
+
+static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
+    if (ptr_movelist == NULL) return SCE_FAILURE;
+    if (ptr_movelist->count == N_MAX_LEGAL_PSEUDOMOVES - 1U) { 
+        fprintf(stderr, "Adding to move list failure: MoveList full.\n");
+        return SCE_FAILURE;
+    }
+
+    // TODO: Validate move.
+    ptr_movelist->moves[ptr_movelist->count] = move;
+    ptr_movelist->count++;
+
+    return SCE_SUCCESS;
+}
+
+// Generate moves that the piece can physically move to without pins or checks.
+static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    // 1. Generate pseudolegal moves for knights
+    RETURN_IF_SCE_FAILURE(SCE_Knight_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Knight (pseudolegal) move generation failed");
+
+    // 2. Generate pseudolegal moves for kings
+
+    // 3. Generate pseudolegal moves for sliders (bishop, rook, queen)
+
+    // 4. Generate pseudolegal moves for pawns
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    const uint piece_types[2U] = { W_KNIGHT, B_KNIGHT };
+    for (uint i = 0U; i < 2U; i++) {
+        const uint moving_piece_type = piece_types[i];
+
+        // Get all knights
+        uint64_t knights = ptr_board->bitboards[moving_piece_type];
+        while (knights) {
+            // Loop and generate moves for each knight. After generating move for a knight, remove the bit.
+            uint knight_idx_src = COUNT_TRAILING_ZEROS(knights);
+            // Knight moves, but cannot attack the same color
+            uint64_t knight_moves = (ptr_precomputation_tbl->knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KNIGHT ? WHITE : BLACK)));
+            
+            while (knight_moves) {
+                // For each moves, add to list.
+                uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
+                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_DST);
+                SCE_AddToMoveList(move, ptr_movelist);
+
+                // Remove from the knight_moves.
+                knight_moves &= ~(1ULL << knight_idx_dst);
+            }
+
+            // Remove from the knights
+            knights &= ~(1ULL << knight_idx_src);
+        }
     }
 
     return SCE_SUCCESS;
 }
 
-#undef DOWN
-#undef UP
-#undef LEFT
-#undef RIGHT
+bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by) {
+    if (ptr_board == NULL || ptr_precomputation_tbl == NULL || (attacked_by != WHITE && attacked_by != BLACK)) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_IsSquareAttacked\033[0m\n");
+        return false;
+    }
+    
+    if (COUNT_SET_BITS(square) != 1) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter (square) in SCE_IsSquareAttacked\033[0m\n");
+        return false;
+    }
+
+    const uint square_idx = COUNT_TRAILING_ZEROS(square);
+
+    // Load attacker bitboards.
+    const uint64_t attacker_pawns = attacked_by == WHITE ? ptr_board->bitboards[W_PAWN] : ptr_board->bitboards[B_PAWN];
+    const uint64_t attacker_knights = attacked_by == WHITE ? ptr_board->bitboards[W_KNIGHT] : ptr_board->bitboards[B_KNIGHT];
+    const uint64_t attacker_bishops = attacked_by == WHITE ? ptr_board->bitboards[W_BISHOP] : ptr_board->bitboards[B_BISHOP];
+    const uint64_t attacker_rooks = attacked_by == WHITE ? ptr_board->bitboards[W_ROOK] : ptr_board->bitboards[B_ROOK];
+    const uint64_t attacker_queen = attacked_by == WHITE ? ptr_board->bitboards[W_QUEEN] : ptr_board->bitboards[B_QUEEN];
+    const uint64_t attacker_king = attacked_by == WHITE ? ptr_board->bitboards[W_KING] : ptr_board->bitboards[B_KING];
+
+    // Reverse Lookup
+    // 1. Knight: From the square, check if any attacker knight is reachable as a knight.
+    // 2. Pawn: From the square, check if any attacker pawn is attackable. (Use victim table).
+    // 3. King
+    // 4. Sliders with rays.
+
+    // 1. Knight
+    if (ptr_precomputation_tbl->knight_moves[square_idx] & attacker_knights) {
+        return true;
+    }
+
+    // 2. Pawn
+    if (ptr_precomputation_tbl->pawn_attacks[attacked_by == WHITE ? BLACK : WHITE][square_idx] & attacker_pawns) {
+        return true;
+    }
+
+    // 3. King
+    if (ptr_precomputation_tbl->king_moves[square_idx] & attacker_king) {
+        return true;
+    }
+
+    // 4. Sliders
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
+    const RayDirection positive_directions[4U] = { NORTH, WEST, NORTHEAST, NORTHWEST };
+    const RayDirection negative_directions[4U] = { EAST, SOUTH, SOUTHEAST, SOUTHWEST };
+
+    for (RayDirection ray_direction = NORTH; ray_direction <= SOUTHWEST; ray_direction++) {
+        int sign_of_direction = 0;
+        switch (ray_direction) {
+            case NORTH:
+            case EAST:
+            case NORTHWEST:
+            case NORTHEAST:
+               sign_of_direction = 1;
+               break;
+            case SOUTH:
+            case WEST:
+            case SOUTHEAST:
+            case SOUTHWEST:
+                sign_of_direction = -1;
+                break;
+            default:
+                return false;
+        }
+        const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
+        if (intersection) {
+            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? COUNT_TRAILING_ZEROS(intersection) :63U - COUNT_LEADING_ZEROS(intersection));
+            
+            switch (ray_direction) {
+                case NORTH:
+                case SOUTH:
+                case EAST:
+                case WEST:
+                    // Rook check
+                    if (blocker & attacker_rooks) {
+                        return true;
+                    }
+                    break;
+                case NORTHEAST:
+                case NORTHWEST:
+                case SOUTHEAST:
+                case SOUTHWEST:
+                    // Bishop check
+                    if (blocker & attacker_bishops) {
+                        return true;
+                    }
+                    break;
+            }
+            // Queen check
+            if (blocker & attacker_queen) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+uint64_t SCE_AN_To_Bitboard(const char* an) {
+    if (an == NULL || strlen(an) != 2) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    const char file_char = an[0];
+    const char rank_char = an[1];
+    uint file_n;
+    uint rank_n;
+
+    if ('a' <= file_char && file_char <= 'h') {
+        file_n = (uint) file_char - 'a';
+    } else if ('A' <= file_char && file_char <= 'H') {
+        file_n = (uint) file_char - 'A';
+    } else {
+        fprintf(stderr, "\033[31m[-] Invalid parameter (file) in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    if ('1' <= rank_char && rank_char <= '8') {
+        rank_n = (uint) rank_char - '1';
+    } else {
+        fprintf(stderr, "\033[31m[-] Invalid parameter (rank) in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    return 1ULL << (rank_n * 8) << file_n;
+}
+
+int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
+    if (an_out == NULL || COUNT_SET_BITS(bitboard) != 1) {
+        return SCE_FAILURE;
+    }
+
+    const uint shift = COUNT_TRAILING_ZEROS(bitboard);  // such that bitboard = 1 << shift
+    const uint row = shift / CHESSBOARD_DIMENSION;
+    const uint col = shift % CHESSBOARD_DIMENSION;
+
+    an_out[0] = 'A' + (char) col;
+    an_out[1] = '1' + (char) row;
+    an_out[2] = 0x00;
+
+    return SCE_SUCCESS;
+}
+
+int SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    // TODO: Implement this
+    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Could not generate pseudolegal moves.\n");
+    return SCE_SUCCESS;
+}

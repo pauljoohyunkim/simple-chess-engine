@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "chess.h"
 
 int main() {
