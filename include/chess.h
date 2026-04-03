@@ -35,6 +35,10 @@ extern "C" {
 #define QUEEN_INITIAL_ROW (1ULL << 3U)
 #define KING_INITIAL_ROW (1ULL << 4U)
 
+// Masks for file A and file H
+#define A_MASK 0x101010101010101ULL
+#define H_MASK 0x8080808080808080ULL
+
 typedef enum {
     WHITE = 0,
     BLACK = 1
@@ -64,6 +68,11 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CHESSMOVE_GET_SRC & 63U
 #define SCE_CHESSMOVE_GET_DST >> 6U & 63U
 #define SCE_CHESSMOVE_GET_FLAG >> 12U & 63U
+#define SCE_CHESSMOVE_FLAG_PROMOTE_TO_QUEEN (0x01U)
+#define SCE_CHESSMOVE_FLAG_PROMOTE_TO_ROOK (0x02U)
+#define SCE_CHESSMOVE_FLAG_PROMOTE_TO_BISHOP (0x03U)
+#define SCE_CHESSMOVE_FLAG_PROMOTE_TO_KNIGHT (0x04U)
+
 
 #define N_MAX_LEGAL_PSEUDOMOVES (256U)
 typedef struct {
