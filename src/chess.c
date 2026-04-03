@@ -28,8 +28,8 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
 #ifdef __GNUC__
 #define COUNT_SET_BITS __builtin_popcountll
 // TODO: Implement fallback
-#define COUNT_TRAILING_ZEROS __builtin_ctzll
-#define COUNT_LEADING_ZEROS __builtin_clzll
+#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
+#define COUNT_LEADING_ZEROS(x) __builtin_clzll(x)
 #else
 // Miscellaneous static functions
 static uint count_set_bits(uint64_t n);
@@ -575,7 +575,7 @@ static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
     RETURN_IF_SCE_FAILURE(SCE_King_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "King (pseudolegal) move generation failed");
 
     // 3. Generate pseudolegal moves for sliders (bishop, rook, queen)
-    //RETURN_IF_SCE_FAILURE(SCE_Slider_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Slider (pseudolegal) move generation failed");
+    RETURN_IF_SCE_FAILURE(SCE_Slider_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Slider (pseudolegal) move generation failed");
 
     // 4. Generate pseudolegal moves for pawns
 
@@ -624,7 +624,6 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
 
         // Get king
         uint64_t king = ptr_board->bitboards[moving_piece_type];
-        if (COUNT_SET_BITS(king) != 1) return SCE_FAILURE;
         // Loop and generate moves for the king.
         uint king_idx_src = COUNT_TRAILING_ZEROS(king);
         // King moves, but cannot attack the same color
@@ -662,16 +661,25 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
             uint piece_idx_src = COUNT_TRAILING_ZEROS(pieces);
             uint piece_row = piece_idx_src / CHESSBOARD_DIMENSION;
             uint piece_col = piece_idx_src % CHESSBOARD_DIMENSION;
-            //const uint64_t piece = (1ULL << piece_idx_src);
+            const uint64_t blockers[] = {
+                ptr_precomputation_tbl->rays[NORTH][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[EAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[SOUTH][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[WEST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[NORTHEAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[NORTHWEST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[SOUTHEAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[SOUTHWEST][piece_idx_src] & occupancy
+            };
             const uint blockers_idx[] = {
-                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[NORTH][piece_idx_src] & occupancy),
-                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[EAST][piece_idx_src] & occupancy),
-                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[SOUTH][piece_idx_src] & occupancy)),
-                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[WEST][piece_idx_src] & occupancy)),
-                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[NORTHEAST][piece_idx_src] & occupancy),
-                COUNT_TRAILING_ZEROS(ptr_precomputation_tbl->rays[NORTHWEST][piece_idx_src] & occupancy),
-                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[SOUTHEAST][piece_idx_src] & occupancy)),
-                (63U - COUNT_LEADING_ZEROS(ptr_precomputation_tbl->rays[SOUTHWEST][piece_idx_src] & occupancy))
+                blockers[NORTH] ? COUNT_TRAILING_ZEROS(blockers[NORTH]) : 0U,
+                blockers[EAST] ? COUNT_TRAILING_ZEROS(blockers[EAST]) : 0U,
+                blockers[SOUTH] ? (63U - COUNT_LEADING_ZEROS(blockers[SOUTH])) : 0U,
+                blockers[WEST] ? (63U - COUNT_LEADING_ZEROS(blockers[WEST])) : 0U,
+                blockers[NORTHEAST] ? COUNT_TRAILING_ZEROS(blockers[NORTHEAST]) : 0U,
+                blockers[NORTHWEST] ? COUNT_TRAILING_ZEROS(blockers[NORTHWEST]) : 0U,
+                blockers[SOUTHEAST] ? (63U - COUNT_LEADING_ZEROS(blockers[SOUTHEAST])) : 0U,
+                blockers[SOUTHWEST] ? (63U - COUNT_LEADING_ZEROS(blockers[SOUTHWEST])) : 0U
             };
 
             // If there is a blocker, filter depending on what color the blocker is.
@@ -700,6 +708,21 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
                         max_shifts[NORTH] = (CHESSBOARD_DIMENSION - 1U - piece_row);
                     }
 
+                    if (blockers_idx[EAST]) {
+                        uint blocker_idx = blockers_idx[EAST];
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[EAST] = blocker_col - piece_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[EAST] = blocker_col - piece_col;
+                        }
+                    } else {
+                        max_shifts[EAST] = (CHESSBOARD_DIMENSION - 1U - piece_col);
+                    }
+
                     if (blockers_idx[SOUTH]) {
                         uint blocker_idx = blockers_idx[SOUTH];
                         uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
@@ -714,6 +737,22 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
                     } else {
                         max_shifts[SOUTH] = piece_row;
                     }
+
+                    if (blockers_idx[WEST]) {
+                        uint blocker_idx = blockers_idx[WEST];
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[WEST] = piece_col - blocker_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[WEST] = piece_col - blocker_col;
+                        }
+                    } else {
+                        max_shifts[WEST] = piece_col;
+                    }
+
                     break;
                 default:
                     break;
@@ -729,6 +768,9 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
                 default:
                     break;
             }
+
+            // Remove piece
+            pieces &= ~(1ULL << piece_idx_src);
         }
 
         /*

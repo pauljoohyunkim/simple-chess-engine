@@ -13,6 +13,21 @@
     SCE_Chessboard board; \
     SCE_Chessboard_reset(&board);
 
+#define MOVE_LIST_SETUP(list, n_moves) \
+    SCE_ChessMoveList list; \
+    list.count = 0; \
+    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS); \
+    uint n_moves[N_TYPES_PIECES] = { 0 }; \
+    for (unsigned int i = 0; i < list.count; i++) { \
+        print_move_to_AN(list.moves[i]); \
+        uint64_t src = 1ULL << (list.moves[i] SCE_CHESSMOVE_GET_SRC); \
+        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) { \
+            if (src & board.bitboards[piece_type]) { \
+                n_moves[piece_type]++; \
+            } \
+        } \
+    }
+
 TEST(ChessBoard, AN_To_Bitboard) {
     ASSERT_EQ(1ULL << 0U, SCE_AN_To_Bitboard("A1"));
     ASSERT_EQ(1ULL << 1U, SCE_AN_To_Bitboard("B1"));
@@ -458,23 +473,27 @@ TEST(ChessBoard, Square_Under_Attack_3) {
     SCE_Chessboard_print(&board, WHITE);
 }
 
-TEST(MoveGeneration, Pseudomove_1) {
+TEST(MoveGeneration, MoveGeneration_Simple) {
+    BOARD_CLEAR_SETUP(board)
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    // Place a white bishop at C5
+    ASSERT_EQ(place_piece_on_board(&board, "C5", W_BISHOP), SCE_SUCCESS);
+    // Place a black rook at E7
+    ASSERT_EQ(place_piece_on_board(&board, "E7", B_ROOK), SCE_SUCCESS);
+
+    SCE_Chessboard_print(&board, WHITE);
+
+    MOVE_LIST_SETUP(list, n_moves)
+    
+}
+
+TEST(MoveGeneration, MoveGeneration_Initial) {
     BOARD_SETUP(board, precpt_tbl)
 
-    SCE_ChessMoveList list;
-    list.count = 0;
+    MOVE_LIST_SETUP(list, n_moves)
 
-    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS);
-    uint n_moves[N_TYPES_PIECES] = { 0 };
-    for (unsigned int i = 0; i < list.count; i++) {
-        print_move_to_AN(list.moves[i]);
-        uint64_t src = 1ULL << (list.moves[i] SCE_CHESSMOVE_GET_SRC);
-        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
-            if (src & board.bitboards[piece_type]) {
-                n_moves[piece_type]++;
-            }
-        }
-    }
     ASSERT_EQ(n_moves[B_KNIGHT], 4);
     ASSERT_EQ(n_moves[W_KNIGHT], 4);
 }
