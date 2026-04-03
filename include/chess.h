@@ -52,6 +52,23 @@ typedef enum {
 } RayDirection;
 
 /**
+ * Bits 0-5: Source (0-65)
+ * Bits 6-11: Destination ((0-63) << 6U)
+ * Bits 12-15: Flag ((0-15) << 12U)
+ *
+ */
+typedef uint16_t SCE_ChessMove;
+#define SCE_CHESSMOVE_SRC << 0U
+#define SCE_CHESSMOVE_DST << 6U
+#define SCE_CHESSMOVE_FLAG << 12U
+
+#define N_MAX_LEGAL_PSEUDOMOVES 256U
+typedef struct {
+    SCE_ChessMove moves[N_MAX_LEGAL_PSEUDOMOVES];
+    unsigned int count;
+} SCE_ChessMoveList;
+
+/**
  * @brief Bitboard capturing a chessboard.
  * 
  * Each uint64_t captures the entire board,
@@ -97,7 +114,16 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
  * @param ptr_board Pointer to the SCE_Chessboard struct.
  * @return uint64_t bitboard where set bits are occupied, or 0 for error.
  */
-uint64_t SCE_Chessboard_Occupancy(SCE_Chessboard* const ptr_board);
+uint64_t SCE_Chessboard_Occupancy(const SCE_Chessboard* const ptr_board);
+
+/**
+ * @brief Returns the bitboard of occupancy by color information.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct
+ * @param color Color of the piece
+ * @return uint64_t bitboard where set bits are occupied, or 0 for error.
+ */
+uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Chessboard* const ptr_board, const PieceColor color);
 
 /**
  * @brief Print the board to console.
@@ -136,10 +162,6 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
 uint64_t SCE_AN_To_Bitboard(const char* an);
 
 /**
- * 
- */
-
-/**
  * @brief Converts bitboard with single bit to algebraic notation
  * 
  * @param an_out Char array. Needs at least three spaces (for null terminator)
@@ -147,6 +169,16 @@ uint64_t SCE_AN_To_Bitboard(const char* an);
  * @return int 1 for success, 0 for failure
  */
 int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
+
+/**
+ * @brief Generates legal moves
+ * 
+ * @param ptr_movelist List of moves
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @return int 1 for success, 0 for failure.
+ */
+int SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 #ifdef __cplusplus
 }

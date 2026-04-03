@@ -36,3 +36,19 @@ int place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an,
 
     return SCE_SUCCESS;
 }
+
+int print_move_to_AN(const SCE_ChessMove move) {
+    uint64_t src = 1ULL << (move & 63);
+    uint64_t dst = (1ULL << ((move >> 6U) & 63));
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    //int ret = SCE_SUCCESS;
+
+    SCE_Bitboard_To_AN(an_src, src);
+    SCE_Bitboard_To_AN(an_dst, dst);
+
+    printf("%s -> %s\n", an_src, an_dst);
+
+    return SCE_SUCCESS;
+}

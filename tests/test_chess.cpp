@@ -457,3 +457,16 @@ TEST(ChessBoard, Square_Under_Attack_3) {
 
     SCE_Chessboard_print(&board, WHITE);
 }
+
+TEST(MoveGeneration, Pseudomove_1) {
+    BOARD_SETUP(board, precpt_tbl)
+
+    SCE_ChessMoveList list;
+    list.count = 0;
+
+    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS);
+    for (unsigned int i = 0; i < list.count; i++) {
+        print_move_to_AN(list.moves[i]);
+    }
+    ASSERT_EQ(list.count, 8);
+}
