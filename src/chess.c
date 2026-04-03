@@ -22,6 +22,7 @@ static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
 
 static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 #ifdef __GNUC__
 #define COUNT_SET_BITS __builtin_popcountll
@@ -596,7 +597,7 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
             while (knight_moves) {
                 // For each moves, add to list.
                 uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
-                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_DST);
+                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
                 SCE_AddToMoveList(move, ptr_movelist);
 
                 // Remove from the knight_moves.
@@ -605,6 +606,35 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
 
             // Remove from the knights
             knights &= ~(1ULL << knight_idx_src);
+        }
+    }
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    const uint piece_types[2U] = { W_KING, B_KING };
+    for (uint i = 0U; i < 2U; i++) {
+        const uint moving_piece_type = piece_types[i];
+
+        // Get king
+        uint64_t king = ptr_board->bitboards[moving_piece_type];
+        if (COUNT_SET_BITS(king) != 1) return SCE_FAILURE;
+        // Loop and generate moves for the king.
+        uint king_idx_src = COUNT_TRAILING_ZEROS(king);
+        // King moves, but cannot attack the same color
+        uint64_t king_moves = (ptr_precomputation_tbl->knight_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
+        
+        while (king_moves) {
+            // For each moves, add to list.
+            uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
+            const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
+            SCE_AddToMoveList(move, ptr_movelist);
+
+            // Remove from the knight_moves.
+            king_moves &= ~(1ULL << king_idx_dst);
         }
     }
 
@@ -655,8 +685,6 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
 
     // 4. Sliders
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
-    const RayDirection positive_directions[4U] = { NORTH, WEST, NORTHEAST, NORTHWEST };
-    const RayDirection negative_directions[4U] = { EAST, SOUTH, SOUTHEAST, SOUTHWEST };
 
     for (RayDirection ray_direction = NORTH; ray_direction <= SOUTHWEST; ray_direction++) {
         int sign_of_direction = 0;

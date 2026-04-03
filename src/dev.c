@@ -38,8 +38,8 @@ int place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an,
 }
 
 int print_move_to_AN(const SCE_ChessMove move) {
-    uint64_t src = 1ULL << (move & 63);
-    uint64_t dst = (1ULL << ((move >> 6U) & 63));
+    uint64_t src = 1ULL << (move SCE_CHESSMOVE_GET_SRC);
+    uint64_t dst = (1ULL << (move SCE_CHESSMOVE_GET_DST));
 
     char an_src[3U] = { 0 };
     char an_dst[3U] = { 0 };

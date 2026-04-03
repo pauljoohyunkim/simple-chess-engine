@@ -58,9 +58,12 @@ typedef enum {
  *
  */
 typedef uint16_t SCE_ChessMove;
-#define SCE_CHESSMOVE_SRC << 0U
-#define SCE_CHESSMOVE_DST << 6U
-#define SCE_CHESSMOVE_FLAG << 12U
+#define SCE_CHESSMOVE_SET_SRC << 0U
+#define SCE_CHESSMOVE_SET_DST << 6U
+#define SCE_CHESSMOVE_SET_FLAG << 12U
+#define SCE_CHESSMOVE_GET_SRC & 63U
+#define SCE_CHESSMOVE_GET_DST >> 6U & 63U
+#define SCE_CHESSMOVE_GET_FLAG >> 12U & 63U
 
 #define N_MAX_LEGAL_PSEUDOMOVES 256U
 typedef struct {
