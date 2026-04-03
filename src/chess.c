@@ -831,6 +831,70 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
                     break;
             }
 
+            // Based on max_shifts, add moves.
+            for (RayDirection direction = NORTH; direction <= SOUTHWEST; direction++) {
+                switch (direction) {
+                    case NORTH:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + CHESSBOARD_DIMENSION * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case EAST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case SOUTH:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - CHESSBOARD_DIMENSION * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case WEST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case NORTHEAST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION + 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case NORTHWEST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION - 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case SOUTHEAST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION - 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case SOUTHWEST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION + 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    default:
+                        return false;
+                }
+            }
+
             // Remove piece
             pieces &= ~(1ULL << piece_idx_src);
         }
