@@ -519,4 +519,7 @@ TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
     ASSERT_EQ(place_piece_on_board(&board, "G2", B_PAWN), SCE_SUCCESS);
 
     MOVE_LIST_SETUP(list, n_moves)
+
+    ASSERT_EQ(n_moves[W_PAWN], (4 + 4) + (1 + 1) + (1+1) + 1);
+    ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
 }
