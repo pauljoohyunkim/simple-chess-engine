@@ -500,6 +500,7 @@ TEST(MoveGeneration, MoveGeneration_Initial) {
     ASSERT_EQ(n_moves[W_KNIGHT], 4);
 }
 
+// https://lichess.org/editor/1n6/2P3p1/1p3k2/P7/3p4/4P3/1K1P2p1/8_w_-_-_0_1?color=white
 TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
     BOARD_CLEAR_SETUP(board)
     SCE_PieceMovementPrecomputationTable precpt_tbl;
@@ -507,12 +508,15 @@ TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
 
     ASSERT_EQ(place_piece_on_board(&board, "B8", B_KNIGHT), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "C7", W_PAWN), SCE_SUCCESS);
-    ASSERT_EQ(place_piece_on_board(&board, "B6", B_BISHOP), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G7", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B6", B_PAWN), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "F6", B_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "A5", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D4", B_PAWN), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "E3", W_PAWN), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "B2", W_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "D2", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G2", B_PAWN), SCE_SUCCESS);
 
     MOVE_LIST_SETUP(list, n_moves)
 }

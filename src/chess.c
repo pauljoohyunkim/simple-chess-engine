@@ -921,7 +921,6 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
         uint64_t single_push = (ptr_board->bitboards[W_PAWN] UP);
 
         // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
-        //const uint64_t double_push = ((single_push & (pawn_type == W_PAWN ? (PAWN_INITIAL_ROW UP * 2U) : (PAWN_INITIAL_ROW * 5U))) UP) & ~occupancy;
         // TODO: Need to set En passant square!
         const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 2U);
         uint64_t double_push = (filtered UP) & ~occupancy;
@@ -962,7 +961,6 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
             double_push &= ~pawn_dst;
         }
 
-        // TODO: Promotion possible at capture.
         while (capture_e) {
             const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(capture_e);
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
@@ -1003,12 +1001,11 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     }
 
     {
-        // TODO: Black pawn
+        // Black pawn
         // 1. Single Push
         uint64_t single_push = (ptr_board->bitboards[B_PAWN] DOWN) & ~occupancy;
 
         // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
-        //const uint64_t double_push = ((single_push & (pawn_type == W_PAWN ? (PAWN_INITIAL_ROW UP * 2U) : (PAWN_INITIAL_ROW * 5U))) UP) & ~occupancy;
         // TODO: Need to set En passant square!
         const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 5U);
         uint64_t double_push = (filtered DOWN) & ~occupancy;
@@ -1021,7 +1018,7 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
 
         // 1. Single Push
         while (single_push) {
-            const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(single_push);
+            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(single_push);
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
 
             const SCE_ChessMove move = ((pawn_idx_dst + CHESSBOARD_DIMENSION) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST);
@@ -1038,39 +1035,54 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
 
             single_push &= ~pawn_dst;
         }
-#if 0
 
         while (double_push) {
-            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(double_push);
+            const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(double_push);
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
 
-            const SCE_ChessMove move = (((pawn_idx_dst - CHESSBOARD_DIMENSION * 2U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+            const SCE_ChessMove move = (((pawn_idx_dst + CHESSBOARD_DIMENSION * 2U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
             RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add (double) pawn move.");
 
             double_push &= ~pawn_dst;
         }
 
         while (capture_e) {
-            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(capture_e);
+            const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(capture_e);
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
 
-            const SCE_ChessMove move = (((pawn_idx_dst - 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
-            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add (east capture) pawn move.");
+            const SCE_ChessMove move = (((pawn_idx_dst + 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+            if (pawn_idx_dst >= CHESSBOARD_DIMENSION * 2) {
+                // Normal push
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+            } else {
+                // Promotion
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_QUEEN SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_ROOK SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_BISHOP SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_KNIGHT SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) move.");
+            }
 
             capture_e &= ~pawn_dst;
         }
 
         while (capture_w) {
-            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(capture_w);
+            const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(capture_w);
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
 
-            const SCE_ChessMove move = (((pawn_idx_dst - 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
-            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add (east) pawn move.");
+            const SCE_ChessMove move = (((pawn_idx_dst + 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+            if (pawn_idx_dst >= CHESSBOARD_DIMENSION * 2) {
+                // Normal push
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+            } else {
+                // Promotion
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_QUEEN SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_ROOK SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_BISHOP SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_PROMOTE_TO_KNIGHT SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) move.");
+            }
 
             capture_w &= ~pawn_dst;
         }
-
-#endif
     }
 
     return SCE_SUCCESS;
