@@ -963,11 +963,31 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
                 double_push &= ~pawn_dst;
             }
 
-            // TODO: Implement white pawn
+            while (capture_e) {
+                const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(capture_e);
+                const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+                const SCE_ChessMove move = (((pawn_idx_dst - 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add (east capture) pawn move.");
+
+                capture_e &= ~pawn_dst;
+            }
+
+            while (capture_w) {
+                const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(capture_w);
+                const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+                const SCE_ChessMove move = (((pawn_idx_dst - 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add (east) pawn move.");
+
+                capture_w &= ~pawn_dst;
+            }
         } else {
             while (single_push) {
                 const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(single_push);
                 const uint64_t pawn_Dst = 1ULL << pawn_idx_dst;
+            
+                break;  // TODO: Implement black pawn logic. (break added for testing.)
             }
             
             // TODO: Implmenet black pawn
