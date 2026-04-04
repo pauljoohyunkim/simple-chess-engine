@@ -499,3 +499,20 @@ TEST(MoveGeneration, MoveGeneration_Initial) {
     ASSERT_EQ(n_moves[B_KNIGHT], 4);
     ASSERT_EQ(n_moves[W_KNIGHT], 4);
 }
+
+TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
+    BOARD_CLEAR_SETUP(board)
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "B8", B_KNIGHT), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "C7", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B6", B_BISHOP), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "F6", B_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "A5", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E3", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B2", W_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D2", W_PAWN), SCE_SUCCESS);
+
+    MOVE_LIST_SETUP(list, n_moves)
+}
