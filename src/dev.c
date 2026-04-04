@@ -38,8 +38,9 @@ int place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an,
 }
 
 int print_move_to_AN(const SCE_ChessMove move) {
-    uint64_t src = 1ULL << (move SCE_CHESSMOVE_GET_SRC);
-    uint64_t dst = (1ULL << (move SCE_CHESSMOVE_GET_DST));
+    const uint64_t src = 1ULL << (move SCE_CHESSMOVE_GET_SRC);
+    const uint64_t dst = 1ULL << (move SCE_CHESSMOVE_GET_DST);
+    const uint flag = move SCE_CHESSMOVE_GET_FLAG;
 
     char an_src[3U] = { 0 };
     char an_dst[3U] = { 0 };
@@ -48,7 +49,27 @@ int print_move_to_AN(const SCE_ChessMove move) {
     SCE_Bitboard_To_AN(an_src, src);
     SCE_Bitboard_To_AN(an_dst, dst);
 
-    printf("%s -> %s\n", an_src, an_dst);
+    printf("%s -> %s ", an_src, an_dst);
+    if (flag & SCE_CHESSMOVE_FLAG_CAPTURE) {
+        printf("CAPTURE ");
+    }
+    if ((flag & 0x7U) == SCE_CHESSMOVE_FLAG_PROMOTE_TO_KNIGHT) {
+        printf("PROMOTE TO KNIGHT ");
+    }
+    if ((flag & 0x7U) == SCE_CHESSMOVE_FLAG_PROMOTE_TO_BISHOP) {
+        printf("PROMOTE TO BISHOP ");
+    }
+    if ((flag & 0x7U) == SCE_CHESSMOVE_FLAG_PROMOTE_TO_ROOK) {
+        printf("PROMOTE TO ROOK ");
+    }
+    if ((flag & 0x7U) == SCE_CHESSMOVE_FLAG_PROMOTE_TO_QUEEN) {
+        printf("PROMOTE TO QUEEN ");
+    }
+    if ((flag & 0x7U) == SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH) {
+        printf("PAWN DOUBLE PUSH ");
+    }
+
+    printf("\n");
 
     return SCE_SUCCESS;
 }

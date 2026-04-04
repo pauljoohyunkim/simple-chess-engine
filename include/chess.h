@@ -68,8 +68,8 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CHESSMOVE_GET_SRC & 63U
 #define SCE_CHESSMOVE_GET_DST >> 6U & 63U
 #define SCE_CHESSMOVE_GET_FLAG >> 12U & 63U
-// 0b01-0b04: Queen promotion
-// 0b101: Pawn double push
+// 0b0001 - 0b0100: Queen promotion
+// 0b0101: Pawn double push
 // 0b1000: Capture
 #define SCE_CHESSMOVE_FLAG_PROMOTE_TO_QUEEN (0x01U)
 #define SCE_CHESSMOVE_FLAG_PROMOTE_TO_ROOK (0x02U)
