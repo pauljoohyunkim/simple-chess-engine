@@ -932,7 +932,6 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
         uint64_t capture_w = (pawn_type == W_PAWN ? (ptr_board->bitboards[W_PAWN] & ~A_MASK) UP LEFT : (ptr_board->bitboards[B_PAWN] & ~A_MASK) DOWN LEFT);
         
         // TODO: Bit-scan loop to add to move list.
-        
         if (pawn_type == W_PAWN) {
             // 1. Single Push
             while (single_push) {
@@ -955,7 +954,7 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
             }
 
             while (double_push) {
-                const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(single_push);
+                const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(double_push);
                 const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
 
                 const SCE_ChessMove move = (((pawn_idx_dst - CHESSBOARD_DIMENSION * 2U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
