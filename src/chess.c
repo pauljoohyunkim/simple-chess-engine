@@ -933,7 +933,7 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     {
         // White pawn
         // 1. Single Push
-        uint64_t single_push = (ptr_board->bitboards[W_PAWN] UP);
+        uint64_t single_push = (ptr_board->bitboards[W_PAWN] UP) & ~occupancy;
 
         // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
         // TODO: Need to set En passant square!
