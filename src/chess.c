@@ -582,6 +582,8 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
     const uint piece_types[] = { W_KNIGHT, B_KNIGHT };
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
     for (uint i = 0U; i < 2U; i++) {
         const uint moving_piece_type = piece_types[i];
 
@@ -596,8 +598,13 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
             while (knight_moves) {
                 // For each moves, add to list.
                 uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
+                uint64_t knight_dst = 1ULL << knight_idx_dst;
                 const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
-                SCE_AddToMoveList(move, ptr_movelist);
+                if (knight_dst & (moving_piece_type == W_KNIGHT ? occupancy_b : occupancy_w)) {
+                    SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
+                } else {
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
 
                 // Remove from the knight_moves.
                 knight_moves &= ~(1ULL << knight_idx_dst);
@@ -615,6 +622,8 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
     const uint piece_types[] = { W_KING, B_KING };
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
     for (uint i = 0U; i < 2U; i++) {
         const uint moving_piece_type = piece_types[i];
 
@@ -629,8 +638,13 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
             while (king_moves) {
                 // For each moves, add to list.
                 uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
+                uint64_t king_dst = 1ULL << king_idx_dst;
                 const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
-                SCE_AddToMoveList(move, ptr_movelist);
+                if (king_dst & (moving_piece_type == W_KING ? occupancy_b : occupancy_w)) {
+                    SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
+                } else {
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
 
                 // Remove from the king_moves.
                 king_moves &= ~(1ULL << king_idx_dst);
@@ -641,6 +655,7 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     return SCE_SUCCESS;
 }
 
+// TODO: Slider capture flag
 static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
