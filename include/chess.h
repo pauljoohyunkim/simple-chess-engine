@@ -91,9 +91,9 @@ typedef struct {
     uint64_t zobrist_hash;              // TODO: Repetition detection
 } SCE_UndoState;
 
-#define N_MAX_LEGAL_PSEUDOMOVES (512U)
+#define N_MAX_MOVES (512U)
 typedef struct {
-    SCE_ChessMove moves[N_MAX_LEGAL_PSEUDOMOVES];
+    SCE_ChessMove moves[N_MAX_MOVES];
     unsigned int count;
 } SCE_ChessMoveList;
 
@@ -110,6 +110,7 @@ typedef struct {
     int en_passant_idx;
     PieceColor to_move;
     SCE_ChessMoveList moves;
+    SCE_UndoState undo_states[N_MAX_MOVES];
 } SCE_Chessboard;
 
 // 3584 bytes

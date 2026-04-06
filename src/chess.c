@@ -562,7 +562,7 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
 static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
     if (ptr_movelist == NULL) return SCE_FAILURE;
-    if (ptr_movelist->count == N_MAX_LEGAL_PSEUDOMOVES - 1U) { 
+    if (ptr_movelist->count == N_MAX_MOVES - 1U) { 
         fprintf(stderr, "Adding to move list failure: MoveList full.\n");
         return SCE_FAILURE;
     }
