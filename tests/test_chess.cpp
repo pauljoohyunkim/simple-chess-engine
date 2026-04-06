@@ -523,3 +523,64 @@ TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
     ASSERT_EQ(n_moves[W_PAWN], (4 + 4) + (1 + 1) + (1+1) + 1);
     ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
 }
+
+TEST(MoveGeneration, MoveGeneration_EnPassant_WhitePawn) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "D5", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D6", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E5", B_PAWN), SCE_SUCCESS);
+    board.en_passant_idx = 5U * CHESSBOARD_DIMENSION + 4U;           // E6: Double push by B_PAWN to E5
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    int en_passant_idx = -1;
+    for (uint i = 0; i < list.count; i++) {
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE)) {
+            en_passant_idx = i;
+            break;
+        }
+    }
+    ASSERT_NE(en_passant_idx, -1);
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    uint en_passant_src_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_SRC;
+    uint en_passant_dst_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_DST;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << en_passant_src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << en_passant_dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp(an_src, "D5"), 0);
+    ASSERT_EQ(strcmp(an_dst, "E6"), 0);
+}
+
+TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "D4", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E4", B_PAWN), SCE_SUCCESS);
+    board.en_passant_idx = 2U * CHESSBOARD_DIMENSION + 3U;           // D3: Double push by W_PAWN to D4
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    int en_passant_idx = -1;
+    for (uint i = 0; i < list.count; i++) {
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE)) {
+            en_passant_idx = i;
+            break;
+        }
+    }
+    ASSERT_NE(en_passant_idx, -1);
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    uint en_passant_src_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_SRC;
+    uint en_passant_dst_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_DST;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << en_passant_src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << en_passant_dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp(an_src, "E4"), 0);
+    ASSERT_EQ(strcmp(an_dst, "D3"), 0);
+}

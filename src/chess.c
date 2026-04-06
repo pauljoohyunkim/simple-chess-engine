@@ -4,6 +4,7 @@
 #include "chess.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { fprintf(stderr, "%s\n", msg); return SCE_FAILURE; } } while (0);
+#define UNASSIGNED (-1)
 
 #define MIN(x, y) ((x) > (y) ? (y) : (x))
 
@@ -51,6 +52,8 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
         ptr_board->bitboards[i] = 0U;
     }
 
+    ptr_board->en_passant_idx = UNASSIGNED;
+
     return SCE_SUCCESS;
 }
 
@@ -74,6 +77,8 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     ptr_board->bitboards[B_ROOK] = ROOK_INITIAL_ROW << (8U * 7U);
     ptr_board->bitboards[B_QUEEN] = QUEEN_INITIAL_ROW << (8U * 7U);
     ptr_board->bitboards[B_KING] = KING_INITIAL_ROW << (8U * 7U);
+
+    ptr_board->en_passant_idx = UNASSIGNED;
 
     return SCE_SUCCESS;
 }
@@ -108,7 +113,6 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Chessboard* const ptr_board, c
     return occupancy;
 }
 
-#define UNASSIGNED (-1)
 int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
     if (ptr_board == NULL) return SCE_FAILURE;
     if (color != WHITE && color != BLACK) return SCE_FAILURE;
@@ -205,7 +209,6 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
 
     return SCE_SUCCESS;
 }
-#undef UNASSIGNED
 
 int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
@@ -1013,6 +1016,33 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
 
             capture_w &= ~pawn_dst;
         }
+
+        // En passant
+        {
+            if (ptr_board->en_passant_idx != UNASSIGNED) {
+                const uint64_t en_passant_square = (1ULL << (unsigned int) ptr_board->en_passant_idx);
+                const uint64_t en_passant_attack_eligible = (ptr_board->bitboards[W_PAWN] & (PAWN_INITIAL_ROW UP * 4U));
+                // East
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~H_MASK) UP RIGHT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx - 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+
+                // West
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~A_MASK) UP LEFT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx - 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+            }
+        }
     }
 
     {
@@ -1097,6 +1127,33 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
             }
 
             capture_w &= ~pawn_dst;
+        }
+
+        // En passant
+        {
+            if (ptr_board->en_passant_idx != UNASSIGNED) {
+                const uint64_t en_passant_square = (1ULL << (unsigned int) ptr_board->en_passant_idx);
+                const uint64_t en_passant_attack_eligible = (ptr_board->bitboards[B_PAWN] & (PAWN_INITIAL_ROW UP * 3U));
+                // East
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~H_MASK) DOWN RIGHT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx + 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+
+                // West
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~A_MASK) DOWN LEFT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx + 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+            }
         }
     }
 

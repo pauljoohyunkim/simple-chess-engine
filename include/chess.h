@@ -99,6 +99,7 @@ typedef struct {
  */
 typedef struct {
     uint64_t bitboards[N_TYPES_PIECES];
+    int en_passant_idx;
 } SCE_Chessboard;
 
 // 3584 bytes
