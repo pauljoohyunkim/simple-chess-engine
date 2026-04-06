@@ -51,6 +51,8 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
         ptr_board->bitboards[i] = 0U;
     }
 
+    ptr_board->en_passant_idx = NO_EN_PASANT_SQUARE_SET;
+
     return SCE_SUCCESS;
 }
 
@@ -74,6 +76,8 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     ptr_board->bitboards[B_ROOK] = ROOK_INITIAL_ROW << (8U * 7U);
     ptr_board->bitboards[B_QUEEN] = QUEEN_INITIAL_ROW << (8U * 7U);
     ptr_board->bitboards[B_KING] = KING_INITIAL_ROW << (8U * 7U);
+
+    ptr_board->en_passant_idx = NO_EN_PASANT_SQUARE_SET;
 
     return SCE_SUCCESS;
 }
