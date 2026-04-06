@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef DEBUG
-#include "dev.h"
-#endif
 #include "chess.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if (!x) { fprintf(stderr, "%s\n", msg); return SCE_FAILURE; } } while (0);
+#define UNASSIGNED (-1)
 
+#define MIN(x, y) ((x) > (y) ? (y) : (x))
 
 typedef unsigned int uint;
 
@@ -22,12 +21,15 @@ static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
 
 static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 #ifdef __GNUC__
 #define COUNT_SET_BITS __builtin_popcountll
 // TODO: Implement fallback
-#define COUNT_TRAILING_ZEROS __builtin_ctzll
-#define COUNT_LEADING_ZEROS __builtin_clzll
+#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
+#define COUNT_LEADING_ZEROS(x) __builtin_clzll(x)
 #else
 // Miscellaneous static functions
 static uint count_set_bits(uint64_t n);
@@ -49,6 +51,8 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     for (uint i = 0U; i < N_TYPES_PIECES; i++) {
         ptr_board->bitboards[i] = 0U;
     }
+
+    ptr_board->en_passant_idx = UNASSIGNED;
 
     return SCE_SUCCESS;
 }
@@ -73,6 +77,8 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     ptr_board->bitboards[B_ROOK] = ROOK_INITIAL_ROW << (8U * 7U);
     ptr_board->bitboards[B_QUEEN] = QUEEN_INITIAL_ROW << (8U * 7U);
     ptr_board->bitboards[B_KING] = KING_INITIAL_ROW << (8U * 7U);
+
+    ptr_board->en_passant_idx = UNASSIGNED;
 
     return SCE_SUCCESS;
 }
@@ -107,7 +113,6 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Chessboard* const ptr_board, c
     return occupancy;
 }
 
-#define UNASSIGNED (-1)
 int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
     if (ptr_board == NULL) return SCE_FAILURE;
     if (color != WHITE && color != BLACK) return SCE_FAILURE;
@@ -204,7 +209,6 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
 
     return SCE_SUCCESS;
 }
-#undef UNASSIGNED
 
 int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
@@ -543,10 +547,6 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
     return SCE_SUCCESS;
 }
-#undef DOWN
-#undef UP
-#undef LEFT
-#undef RIGHT
 
 static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
     if (ptr_movelist == NULL) return SCE_FAILURE;
@@ -570,10 +570,13 @@ static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
     RETURN_IF_SCE_FAILURE(SCE_Knight_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Knight (pseudolegal) move generation failed");
 
     // 2. Generate pseudolegal moves for kings
+    RETURN_IF_SCE_FAILURE(SCE_King_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "King (pseudolegal) move generation failed");
 
     // 3. Generate pseudolegal moves for sliders (bishop, rook, queen)
+    RETURN_IF_SCE_FAILURE(SCE_Slider_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Slider (pseudolegal) move generation failed");
 
     // 4. Generate pseudolegal moves for pawns
+    RETURN_IF_SCE_FAILURE(SCE_Pawn_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Pawn (pseudolegal) move generation failed");
 
     return SCE_SUCCESS;
 }
@@ -581,7 +584,9 @@ static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
 static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
-    const uint piece_types[2U] = { W_KNIGHT, B_KNIGHT };
+    const uint piece_types[] = { W_KNIGHT, B_KNIGHT };
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
     for (uint i = 0U; i < 2U; i++) {
         const uint moving_piece_type = piece_types[i];
 
@@ -596,8 +601,13 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
             while (knight_moves) {
                 // For each moves, add to list.
                 uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
-                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_DST);
-                SCE_AddToMoveList(move, ptr_movelist);
+                uint64_t knight_dst = 1ULL << knight_idx_dst;
+                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
+                if (knight_dst & (moving_piece_type == W_KNIGHT ? occupancy_b : occupancy_w)) {
+                    SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
+                } else {
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
 
                 // Remove from the knight_moves.
                 knight_moves &= ~(1ULL << knight_idx_dst);
@@ -605,6 +615,545 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
 
             // Remove from the knights
             knights &= ~(1ULL << knight_idx_src);
+        }
+    }
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    const uint piece_types[] = { W_KING, B_KING };
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
+    for (uint i = 0U; i < 2U; i++) {
+        const uint moving_piece_type = piece_types[i];
+
+        // Get king
+        uint64_t king = ptr_board->bitboards[moving_piece_type];
+        if (king) {
+            // Loop and generate moves for the king.
+            uint king_idx_src = COUNT_TRAILING_ZEROS(king);
+            // King moves, but cannot attack the same color
+            uint64_t king_moves = (ptr_precomputation_tbl->king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
+            
+            while (king_moves) {
+                // For each moves, add to list.
+                uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
+                uint64_t king_dst = 1ULL << king_idx_dst;
+                const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
+                if (king_dst & (moving_piece_type == W_KING ? occupancy_b : occupancy_w)) {
+                    SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
+                } else {
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+
+                // Remove from the king_moves.
+                king_moves &= ~(1ULL << king_idx_dst);
+            }
+        }
+    }
+
+    return SCE_SUCCESS;
+}
+
+// TODO: Slider capture flag
+static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
+    const uint piece_types[] = { W_ROOK, B_ROOK, W_BISHOP, B_BISHOP, W_QUEEN, B_QUEEN };
+    for (uint i = 0U; i < sizeof(piece_types)/sizeof(piece_types[0]); i++) {
+        // TODO: Implement logic here.
+        const uint moving_piece_type = piece_types[i];
+        const PieceColor moving_piece_color = (moving_piece_type >= W_PAWN && moving_piece_type <= W_KING) ? WHITE : BLACK;
+
+        uint64_t pieces = ptr_board->bitboards[moving_piece_type];
+        while (pieces) {
+            // Loop and generate moves for each piece. After generating move for a knight, remove the bit.
+            uint piece_idx_src = COUNT_TRAILING_ZEROS(pieces);
+            uint piece_row = piece_idx_src / CHESSBOARD_DIMENSION;
+            uint piece_col = piece_idx_src % CHESSBOARD_DIMENSION;
+            const uint64_t blockers[] = {
+                ptr_precomputation_tbl->rays[NORTH][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[EAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[SOUTH][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[WEST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[NORTHEAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[NORTHWEST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[SOUTHEAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tbl->rays[SOUTHWEST][piece_idx_src] & occupancy
+            };
+            const uint blockers_idx[] = {
+                blockers[NORTH] ? COUNT_TRAILING_ZEROS(blockers[NORTH]) : 0U,
+                blockers[EAST] ? COUNT_TRAILING_ZEROS(blockers[EAST]) : 0U,
+                blockers[SOUTH] ? (63U - COUNT_LEADING_ZEROS(blockers[SOUTH])) : 0U,
+                blockers[WEST] ? (63U - COUNT_LEADING_ZEROS(blockers[WEST])) : 0U,
+                blockers[NORTHEAST] ? COUNT_TRAILING_ZEROS(blockers[NORTHEAST]) : 0U,
+                blockers[NORTHWEST] ? COUNT_TRAILING_ZEROS(blockers[NORTHWEST]) : 0U,
+                blockers[SOUTHEAST] ? (63U - COUNT_LEADING_ZEROS(blockers[SOUTHEAST])) : 0U,
+                blockers[SOUTHWEST] ? (63U - COUNT_LEADING_ZEROS(blockers[SOUTHWEST])) : 0U
+            };
+
+            // If there is a blocker, filter depending on what color the blocker is.
+            // If there isn't a blocker, the entire ray is pseudolegal.
+
+            uint max_shifts[8U] = { 0 };
+
+            // Horizontal Vertical Check (Rook-like)
+            switch (moving_piece_type) {
+                case W_ROOK:
+                case B_ROOK:
+                case W_QUEEN:
+                case B_QUEEN:
+                    if (blockers_idx[NORTH]) {
+                        uint blocker_idx = blockers_idx[NORTH];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[NORTH] = blocker_row - piece_row - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[NORTH] = blocker_row - piece_row;
+                        }
+                    } else {
+                        max_shifts[NORTH] = (CHESSBOARD_DIMENSION - 1U - piece_row);
+                    }
+
+                    if (blockers_idx[EAST]) {
+                        uint blocker_idx = blockers_idx[EAST];
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[EAST] = blocker_col - piece_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[EAST] = blocker_col - piece_col;
+                        }
+                    } else {
+                        max_shifts[EAST] = (CHESSBOARD_DIMENSION - 1U - piece_col);
+                    }
+
+                    if (blockers_idx[SOUTH]) {
+                        uint blocker_idx = blockers_idx[SOUTH];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[SOUTH] = piece_row - blocker_row - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[SOUTH] = piece_row - blocker_row;
+                        }
+                    } else {
+                        max_shifts[SOUTH] = piece_row;
+                    }
+
+                    if (blockers_idx[WEST]) {
+                        uint blocker_idx = blockers_idx[WEST];
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[WEST] = piece_col - blocker_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[WEST] = piece_col - blocker_col;
+                        }
+                    } else {
+                        max_shifts[WEST] = piece_col;
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+
+            // Diagonal Check (Bishop-like)
+            switch (moving_piece_type) {
+                case W_BISHOP:
+                case B_BISHOP:
+                case W_QUEEN:
+                case B_QUEEN:
+                    if (blockers_idx[NORTHEAST]) {
+                        uint blocker_idx = blockers_idx[NORTHEAST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[NORTHEAST] = blocker_col - piece_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[NORTHEAST] = blocker_col - piece_col;
+                        }
+                    } else {
+                        max_shifts[NORTHEAST] = MIN(CHESSBOARD_DIMENSION - piece_row, CHESSBOARD_DIMENSION - piece_col) - 1U;
+                    }
+
+                    if (blockers_idx[NORTHWEST]) {
+                        uint blocker_idx = blockers_idx[NORTHWEST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[NORTHWEST] = piece_col - blocker_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[NORTHWEST] = piece_col - blocker_col;
+                        }
+                    } else {
+                        max_shifts[NORTHWEST] = MIN(CHESSBOARD_DIMENSION - piece_row - 1U, piece_col);
+                    }
+
+                    if (blockers_idx[SOUTHEAST]) {
+                        uint blocker_idx = blockers_idx[SOUTHEAST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[SOUTHEAST] = blocker_col - piece_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[SOUTHEAST] = blocker_col - piece_col;
+                        }
+                    } else {
+                        max_shifts[SOUTHEAST] = MIN(piece_row, CHESSBOARD_DIMENSION - piece_col - 1U);
+                    }
+
+                    if (blockers_idx[SOUTHWEST]) {
+                        uint blocker_idx = blockers_idx[SOUTHWEST];
+                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
+                        uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
+                        // Check color
+                        if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
+                            // Blocker is the same color as moving piece.
+                            max_shifts[SOUTHWEST] = piece_col - blocker_col - 1U;
+                        } else {
+                            // Blocker is enemy. Can be captured.
+                            max_shifts[SOUTHWEST] = piece_col - blocker_col;
+                        }
+                    } else {
+                        max_shifts[SOUTHWEST] = MIN(piece_row, piece_col);
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+
+            // Based on max_shifts, add moves.
+            for (RayDirection direction = NORTH; direction <= SOUTHWEST; direction++) {
+                switch (direction) {
+                    case NORTH:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + CHESSBOARD_DIMENSION * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case EAST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case SOUTH:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - CHESSBOARD_DIMENSION * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case WEST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case NORTHEAST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION + 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case NORTHWEST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION - 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case SOUTHEAST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION - 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    case SOUTHWEST:
+                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION + 1U) * shift);
+                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) ^ (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                        }
+                        break;
+                    default:
+                        return false;
+                }
+            }
+
+            // Remove piece
+            pieces &= ~(1ULL << piece_idx_src);
+        }
+    }
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    // Four cases:
+    // 1. Single Push
+    // 2. Double Push (At rank 2, 7)
+    // 3. Capture (Seriously why can't these guys capture ahead)
+
+    const uint pawn_types[] = { W_PAWN, B_PAWN };
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
+    {
+        // White pawn
+        // 1. Single Push
+        uint64_t single_push = (ptr_board->bitboards[W_PAWN] UP) & ~occupancy;
+
+        // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
+        // TODO: Need to set En passant square!
+        const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 2U);
+        uint64_t double_push = (filtered UP) & ~occupancy;
+
+        // 3. Capture
+        // 3.1. Capture EAST
+        uint64_t capture_e = ((ptr_board->bitboards[W_PAWN] & ~H_MASK) UP RIGHT) & occupancy_b;
+        // 3.2. Capture WEST
+        uint64_t capture_w = ((ptr_board->bitboards[W_PAWN] & ~A_MASK) UP LEFT) & occupancy_b;
+
+        // 1. Single Push
+        while (single_push) {
+            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(single_push);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = ((pawn_idx_dst - CHESSBOARD_DIMENSION) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST);
+            if (pawn_idx_dst < CHESSBOARD_DIMENSION * 7U) {
+                // Normal push
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+            } else {
+                // Promotion
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_ROOK_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) move.");
+            }
+
+            single_push &= ~pawn_dst;
+        }
+
+        while (double_push) {
+            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(double_push);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = (((pawn_idx_dst - CHESSBOARD_DIMENSION * 2U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add (double) pawn move.");
+
+            double_push &= ~pawn_dst;
+        }
+
+        while (capture_e) {
+            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(capture_e);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = (((pawn_idx_dst - 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+            if (pawn_idx_dst < CHESSBOARD_DIMENSION * 7U) {
+                // Normal capture
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn capture move.");
+            } else {
+                // Promotion + Capture
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) capture move.");
+            }
+
+            capture_e &= ~pawn_dst;
+        }
+
+        while (capture_w) {
+            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(capture_w);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = (((pawn_idx_dst - 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+            if (pawn_idx_dst < CHESSBOARD_DIMENSION * 7U) {
+                // Normal capture
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn capture move.");
+            } else {
+                // Promotion + Capture
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) capture move.");
+            }
+
+            capture_w &= ~pawn_dst;
+        }
+
+        // En passant
+        {
+            if (ptr_board->en_passant_idx != UNASSIGNED) {
+                const uint64_t en_passant_square = (1ULL << (unsigned int) ptr_board->en_passant_idx);
+                const uint64_t en_passant_attack_eligible = (ptr_board->bitboards[W_PAWN] & (PAWN_INITIAL_ROW UP * 4U));
+                // East
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~H_MASK) UP RIGHT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx - 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+
+                // West
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~A_MASK) UP LEFT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx - 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+            }
+        }
+    }
+
+    {
+        // Black pawn
+        // 1. Single Push
+        uint64_t single_push = (ptr_board->bitboards[B_PAWN] DOWN) & ~occupancy;
+
+        // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
+        // TODO: Need to set En passant square!
+        const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 5U);
+        uint64_t double_push = (filtered DOWN) & ~occupancy;
+
+        // 3. Capture
+        // 3.1. Capture EAST
+        uint64_t capture_e = ((ptr_board->bitboards[B_PAWN] & ~H_MASK) DOWN RIGHT) & occupancy_w;
+        // 3.2. Capture WEST
+        uint64_t capture_w = ((ptr_board->bitboards[B_PAWN] & ~A_MASK) DOWN LEFT) & occupancy_w;
+
+        // 1. Single Push
+        while (single_push) {
+            const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(single_push);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = ((pawn_idx_dst + CHESSBOARD_DIMENSION) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST);
+            if (pawn_idx_dst >= CHESSBOARD_DIMENSION * 2) {
+                // Normal push
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+            } else {
+                // Promotion
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_ROOK_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) move.");
+            }
+
+            single_push &= ~pawn_dst;
+        }
+
+        while (double_push) {
+            const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(double_push);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = (((pawn_idx_dst + CHESSBOARD_DIMENSION * 2U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add (double) pawn move.");
+
+            double_push &= ~pawn_dst;
+        }
+
+        while (capture_e) {
+            const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(capture_e);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = (((pawn_idx_dst + 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+            if (pawn_idx_dst >= CHESSBOARD_DIMENSION * 2) {
+                // Normal push
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+            } else {
+                // Promotion + Capture
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) capture move.");
+            }
+
+            capture_e &= ~pawn_dst;
+        }
+
+        while (capture_w) {
+            const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(capture_w);
+            const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
+
+            const SCE_ChessMove move = (((pawn_idx_dst + 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+            if (pawn_idx_dst >= CHESSBOARD_DIMENSION * 2) {
+                // Normal push
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+            } else {
+                // Promotion + Capture
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (bishop promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (rook promotion) capture move.");
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (queen promotion) capture move.");
+            }
+
+            capture_w &= ~pawn_dst;
+        }
+
+        // En passant
+        {
+            if (ptr_board->en_passant_idx != UNASSIGNED) {
+                const uint64_t en_passant_square = (1ULL << (unsigned int) ptr_board->en_passant_idx);
+                const uint64_t en_passant_attack_eligible = (ptr_board->bitboards[B_PAWN] & (PAWN_INITIAL_ROW UP * 3U));
+                // East
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~H_MASK) DOWN RIGHT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx + 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+
+                // West
+                {
+                    const uint64_t pawn_dst = ((en_passant_attack_eligible & ~A_MASK) DOWN LEFT) & en_passant_square;
+                    if (pawn_dst) {
+                        const uint pawn_dst_idx = COUNT_TRAILING_ZEROS(pawn_dst);
+                        const SCE_ChessMove move = ((pawn_dst_idx + 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_dst_idx SCE_CHESSMOVE_SET_DST);
+                        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn en-passant capture move.");
+                    }
+                }
+            }
         }
     }
 
@@ -655,8 +1204,6 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
 
     // 4. Sliders
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
-    const RayDirection positive_directions[4U] = { NORTH, WEST, NORTHEAST, NORTHWEST };
-    const RayDirection negative_directions[4U] = { EAST, SOUTH, SOUTHEAST, SOUTHWEST };
 
     for (RayDirection ray_direction = NORTH; ray_direction <= SOUTHWEST; ray_direction++) {
         int sign_of_direction = 0;
@@ -678,7 +1225,7 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
         }
         const uint64_t intersection = occupancy & ptr_precomputation_tbl->rays[ray_direction][square_idx];
         if (intersection) {
-            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? COUNT_TRAILING_ZEROS(intersection) :63U - COUNT_LEADING_ZEROS(intersection));
+            const uint64_t blocker = 1ULL << ( sign_of_direction > 0 ? COUNT_TRAILING_ZEROS(intersection) : 63U - COUNT_LEADING_ZEROS(intersection));
             
             switch (ray_direction) {
                 case NORTH:

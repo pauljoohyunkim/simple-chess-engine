@@ -13,6 +13,21 @@
     SCE_Chessboard board; \
     SCE_Chessboard_reset(&board);
 
+#define MOVE_LIST_SETUP(list, n_moves) \
+    SCE_ChessMoveList list; \
+    list.count = 0; \
+    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS); \
+    uint n_moves[N_TYPES_PIECES] = { 0 }; \
+    for (unsigned int i = 0; i < list.count; i++) { \
+        print_move_to_AN(list.moves[i]); \
+        uint64_t src = 1ULL << (list.moves[i] SCE_CHESSMOVE_GET_SRC); \
+        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) { \
+            if (src & board.bitboards[piece_type]) { \
+                n_moves[piece_type]++; \
+            } \
+        } \
+    }
+
 TEST(ChessBoard, AN_To_Bitboard) {
     ASSERT_EQ(1ULL << 0U, SCE_AN_To_Bitboard("A1"));
     ASSERT_EQ(1ULL << 1U, SCE_AN_To_Bitboard("B1"));
@@ -458,15 +473,114 @@ TEST(ChessBoard, Square_Under_Attack_3) {
     SCE_Chessboard_print(&board, WHITE);
 }
 
-TEST(MoveGeneration, Pseudomove_1) {
+TEST(MoveGeneration, MoveGeneration_Simple) {
+    BOARD_CLEAR_SETUP(board)
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    // Place a white bishop at C5
+    ASSERT_EQ(place_piece_on_board(&board, "C5", W_BISHOP), SCE_SUCCESS);
+    // Place a black rook at E7
+    ASSERT_EQ(place_piece_on_board(&board, "E7", B_ROOK), SCE_SUCCESS);
+
+    SCE_Chessboard_print(&board, WHITE);
+
+    MOVE_LIST_SETUP(list, n_moves)
+    ASSERT_EQ(n_moves[B_ROOK], 14U);
+    ASSERT_EQ(n_moves[W_BISHOP], 10U);
+    
+}
+
+TEST(MoveGeneration, MoveGeneration_Initial) {
     BOARD_SETUP(board, precpt_tbl)
 
-    SCE_ChessMoveList list;
-    list.count = 0;
+    MOVE_LIST_SETUP(list, n_moves)
 
-    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS);
-    for (unsigned int i = 0; i < list.count; i++) {
-        print_move_to_AN(list.moves[i]);
+    ASSERT_EQ(n_moves[B_KNIGHT], 4);
+    ASSERT_EQ(n_moves[W_KNIGHT], 4);
+}
+
+// https://lichess.org/editor/1n6/2P3p1/1p3k2/P7/3p4/4P3/1K1P2p1/8_w_-_-_0_1?color=white
+TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
+    BOARD_CLEAR_SETUP(board)
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "B8", B_KNIGHT), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "C7", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G7", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B6", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "F6", B_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "A5", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D4", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E3", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "B2", W_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D2", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G2", B_PAWN), SCE_SUCCESS);
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    ASSERT_EQ(n_moves[W_PAWN], (4 + 4) + (1 + 1) + (1+1) + 1);
+    ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
+}
+
+TEST(MoveGeneration, MoveGeneration_EnPassant_WhitePawn) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "D5", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D6", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E5", B_PAWN), SCE_SUCCESS);
+    board.en_passant_idx = 5U * CHESSBOARD_DIMENSION + 4U;           // E6: Double push by B_PAWN to E5
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    int en_passant_idx = -1;
+    for (uint i = 0; i < list.count; i++) {
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE)) {
+            en_passant_idx = i;
+            break;
+        }
     }
-    ASSERT_EQ(list.count, 8);
+    ASSERT_NE(en_passant_idx, -1);
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    uint en_passant_src_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_SRC;
+    uint en_passant_dst_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_DST;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << en_passant_src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << en_passant_dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp(an_src, "D5"), 0);
+    ASSERT_EQ(strcmp(an_dst, "E6"), 0);
+}
+
+TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "D4", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E4", B_PAWN), SCE_SUCCESS);
+    board.en_passant_idx = 2U * CHESSBOARD_DIMENSION + 3U;           // D3: Double push by W_PAWN to D4
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    int en_passant_idx = -1;
+    for (uint i = 0; i < list.count; i++) {
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE)) {
+            en_passant_idx = i;
+            break;
+        }
+    }
+    ASSERT_NE(en_passant_idx, -1);
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    uint en_passant_src_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_SRC;
+    uint en_passant_dst_idx = list.moves[en_passant_idx] SCE_CHESSMOVE_GET_DST;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << en_passant_src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << en_passant_dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp(an_src, "E4"), 0);
+    ASSERT_EQ(strcmp(an_dst, "D3"), 0);
 }
