@@ -202,6 +202,14 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
 bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by);
 
 /**
+ * @brief Converts algebraic notation for a square to index
+ * 
+ * @param an Two-letter string, from "A1" to "H8"
+ * @return unsigned int index for bitboard, or -1 for error.
+ */
+int SCE_AN_To_Idx(const char* an);
+
+/**
  * @brief Converts algebraic notation for a square to bitboard
  * 
  * @param an Two-letter string, from "A1" to "H8"

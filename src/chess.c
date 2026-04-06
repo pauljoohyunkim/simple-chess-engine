@@ -1295,9 +1295,9 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
     return false;
 }
 
-uint64_t SCE_AN_To_Bitboard(const char* an) {
+int SCE_AN_To_Idx(const char* an) {
     if (an == NULL || strlen(an) != 2) {
-        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
+        fprintf(stderr, "\033[31m[-] Invalid parameter in converting from AN\033[0m\n");
         return 0U;
     }
 
@@ -1311,18 +1311,33 @@ uint64_t SCE_AN_To_Bitboard(const char* an) {
     } else if ('A' <= file_char && file_char <= 'H') {
         file_n = (uint) file_char - 'A';
     } else {
-        fprintf(stderr, "\033[31m[-] Invalid parameter (file) in SCE_AN_To_Bitboard\033[0m\n");
-        return 0U;
+        fprintf(stderr, "\033[31m[-] Invalid parameter (file) in converting from AN\033[0m\n");
+        return -1;
     }
 
     if ('1' <= rank_char && rank_char <= '8') {
         rank_n = (uint) rank_char - '1';
     } else {
-        fprintf(stderr, "\033[31m[-] Invalid parameter (rank) in SCE_AN_To_Bitboard\033[0m\n");
+        fprintf(stderr, "\033[31m[-] Invalid parameter (rank) in converting from AN\033[0m\n");
+        return -1;
+    }
+
+    return rank_n * 8 + file_n;
+}
+
+uint64_t SCE_AN_To_Bitboard(const char* an) {
+    if (an == NULL || strlen(an) != 2) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
         return 0U;
     }
 
-    return 1ULL << (rank_n * 8) << file_n;
+    int idx = SCE_AN_To_Idx(an);
+    if (idx == -1) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    return 1ULL << (uint) idx;
 }
 
 int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
