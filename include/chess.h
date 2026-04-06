@@ -83,7 +83,7 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE (14U)
 #define SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE (15U)
 
-#define N_MAX_LEGAL_PSEUDOMOVES (256U)
+#define N_MAX_LEGAL_PSEUDOMOVES (512U)
 typedef struct {
     SCE_ChessMove moves[N_MAX_LEGAL_PSEUDOMOVES];
     unsigned int count;
@@ -101,6 +101,7 @@ typedef struct {
     uint64_t bitboards[N_TYPES_PIECES];
     int en_passant_idx;
     PieceColor to_move;
+    SCE_ChessMoveList moves;
 } SCE_Chessboard;
 
 // 3584 bytes
@@ -114,6 +115,14 @@ typedef struct {
     // Sliders: Queen, Rook, Bishop
     uint64_t rays[8][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
 } SCE_PieceMovementPrecomputationTable;
+
+/**
+ * @brief Clear out the move list
+ * 
+ * @param ptr_list Pointer to the SCE_ChessMoveList struct.
+ * @return int 1 for success, 0 for failure
+ */
+int SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list);
 
 /**
  * @brief Clear out the board with zeros.

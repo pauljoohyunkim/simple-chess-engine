@@ -45,6 +45,14 @@ static uint count_set_bits(uint64_t n) {
 }
 #endif
 
+int SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
+    if (ptr_list == NULL) return SCE_FAILURE;
+
+    memset(ptr_list, 0, sizeof(SCE_ChessMoveList));
+
+    return SCE_SUCCESS;
+}
+
 int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_FAILURE;
 
@@ -54,6 +62,7 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
 
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
@@ -81,6 +90,7 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
 
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
