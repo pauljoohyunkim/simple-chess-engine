@@ -83,6 +83,14 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE (14U)
 #define SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE (15U)
 
+typedef struct {
+    unsigned int captured_piece;
+    int en_passant_square;
+    uint16_t castling_right;
+    unsigned int half_move_clock;       // 50-move rule
+    uint64_t zobrist_hash;              // TODO: Repetition detection
+} SCE_UndoState;
+
 #define N_MAX_LEGAL_PSEUDOMOVES (512U)
 typedef struct {
     SCE_ChessMove moves[N_MAX_LEGAL_PSEUDOMOVES];

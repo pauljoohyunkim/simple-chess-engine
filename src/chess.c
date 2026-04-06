@@ -599,35 +599,33 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
     const uint piece_types[] = { W_KNIGHT, B_KNIGHT };
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
-    for (uint i = 0U; i < 2U; i++) {
-        const uint moving_piece_type = piece_types[i];
+    const uint moving_piece_type = ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT;
 
-        // Get all knights
-        uint64_t knights = ptr_board->bitboards[moving_piece_type];
-        while (knights) {
-            // Loop and generate moves for each knight. After generating move for a knight, remove the bit.
-            uint knight_idx_src = COUNT_TRAILING_ZEROS(knights);
-            // Knight moves, but cannot attack the same color
-            uint64_t knight_moves = (ptr_precomputation_tbl->knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KNIGHT ? WHITE : BLACK)));
-            
-            while (knight_moves) {
-                // For each moves, add to list.
-                uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
-                uint64_t knight_dst = 1ULL << knight_idx_dst;
-                const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
-                if (knight_dst & (moving_piece_type == W_KNIGHT ? occupancy_b : occupancy_w)) {
-                    SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
-                } else {
-                    SCE_AddToMoveList(move, ptr_movelist);
-                }
-
-                // Remove from the knight_moves.
-                knight_moves &= ~(1ULL << knight_idx_dst);
+    // Get all knights
+    uint64_t knights = ptr_board->bitboards[moving_piece_type];
+    while (knights) {
+        // Loop and generate moves for each knight. After generating move for a knight, remove the bit.
+        uint knight_idx_src = COUNT_TRAILING_ZEROS(knights);
+        // Knight moves, but cannot attack the same color
+        uint64_t knight_moves = (ptr_precomputation_tbl->knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KNIGHT ? WHITE : BLACK)));
+        
+        while (knight_moves) {
+            // For each moves, add to list.
+            uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
+            uint64_t knight_dst = 1ULL << knight_idx_dst;
+            const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
+            if (knight_dst & (moving_piece_type == W_KNIGHT ? occupancy_b : occupancy_w)) {
+                SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
+            } else {
+                SCE_AddToMoveList(move, ptr_movelist);
             }
 
-            // Remove from the knights
-            knights &= ~(1ULL << knight_idx_src);
+            // Remove from the knight_moves.
+            knight_moves &= ~(1ULL << knight_idx_dst);
         }
+
+        // Remove from the knights
+        knights &= ~(1ULL << knight_idx_src);
     }
 
     return SCE_SUCCESS;
@@ -639,31 +637,29 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     const uint piece_types[] = { W_KING, B_KING };
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
-    for (uint i = 0U; i < 2U; i++) {
-        const uint moving_piece_type = piece_types[i];
+    const uint moving_piece_type = ptr_board->to_move == WHITE ? W_KING : B_KING;
 
-        // Get king
-        uint64_t king = ptr_board->bitboards[moving_piece_type];
-        if (king) {
-            // Loop and generate moves for the king.
-            uint king_idx_src = COUNT_TRAILING_ZEROS(king);
-            // King moves, but cannot attack the same color
-            uint64_t king_moves = (ptr_precomputation_tbl->king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
-            
-            while (king_moves) {
-                // For each moves, add to list.
-                uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
-                uint64_t king_dst = 1ULL << king_idx_dst;
-                const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
-                if (king_dst & (moving_piece_type == W_KING ? occupancy_b : occupancy_w)) {
-                    SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
-                } else {
-                    SCE_AddToMoveList(move, ptr_movelist);
-                }
-
-                // Remove from the king_moves.
-                king_moves &= ~(1ULL << king_idx_dst);
+    // Get king
+    uint64_t king = ptr_board->bitboards[moving_piece_type];
+    if (king) {
+        // Loop and generate moves for the king.
+        uint king_idx_src = COUNT_TRAILING_ZEROS(king);
+        // King moves, but cannot attack the same color
+        uint64_t king_moves = (ptr_precomputation_tbl->king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ptr_board, moving_piece_type == W_KING ? WHITE : BLACK)));
+        
+        while (king_moves) {
+            // For each moves, add to list.
+            uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
+            uint64_t king_dst = 1ULL << king_idx_dst;
+            const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
+            if (king_dst & (moving_piece_type == W_KING ? occupancy_b : occupancy_w)) {
+                SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
+            } else {
+                SCE_AddToMoveList(move, ptr_movelist);
             }
+
+            // Remove from the king_moves.
+            king_moves &= ~(1ULL << king_idx_dst);
         }
     }
 
@@ -677,7 +673,18 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
-    const uint piece_types[] = { W_ROOK, B_ROOK, W_BISHOP, B_BISHOP, W_QUEEN, B_QUEEN };
+    uint piece_types[3U] = { 0 };
+
+    if (ptr_board->to_move == WHITE) {
+        piece_types[0] = W_ROOK;
+        piece_types[1] = W_BISHOP;
+        piece_types[2] = W_QUEEN;
+    } else {
+        piece_types[0] = B_ROOK;
+        piece_types[1] = B_BISHOP;
+        piece_types[2] = B_QUEEN;
+    }
+
     for (uint i = 0U; i < sizeof(piece_types)/sizeof(piece_types[0]); i++) {
         // TODO: Implement logic here.
         const uint moving_piece_type = piece_types[i];
@@ -945,7 +952,7 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
-    {
+    if (ptr_board->to_move == WHITE) {
         // White pawn
         // 1. Single Push
         uint64_t single_push = (ptr_board->bitboards[W_PAWN] UP) & ~occupancy;
@@ -1055,9 +1062,7 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
                 }
             }
         }
-    }
-
-    {
+    } else {
         // Black pawn
         // 1. Single Push
         uint64_t single_push = (ptr_board->bitboards[B_PAWN] DOWN) & ~occupancy;

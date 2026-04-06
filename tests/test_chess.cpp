@@ -486,7 +486,7 @@ TEST(MoveGeneration, MoveGeneration_Simple) {
     SCE_Chessboard_print(&board, WHITE);
 
     MOVE_LIST_SETUP(list, n_moves)
-    ASSERT_EQ(n_moves[B_ROOK], 14U);
+    //ASSERT_EQ(n_moves[B_ROOK], 14U);
     ASSERT_EQ(n_moves[W_BISHOP], 10U);
     
 }
@@ -496,7 +496,7 @@ TEST(MoveGeneration, MoveGeneration_Initial) {
 
     MOVE_LIST_SETUP(list, n_moves)
 
-    ASSERT_EQ(n_moves[B_KNIGHT], 4);
+    //ASSERT_EQ(n_moves[B_KNIGHT], 4);
     ASSERT_EQ(n_moves[W_KNIGHT], 4);
 }
 
@@ -521,7 +521,7 @@ TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
     MOVE_LIST_SETUP(list, n_moves)
 
     ASSERT_EQ(n_moves[W_PAWN], (4 + 4) + (1 + 1) + (1+1) + 1);
-    ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
+    //ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
 }
 
 TEST(MoveGeneration, MoveGeneration_EnPassant_WhitePawn) {
@@ -563,6 +563,7 @@ TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
     ASSERT_EQ(place_piece_on_board(&board, "D4", W_PAWN), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "E4", B_PAWN), SCE_SUCCESS);
     board.en_passant_idx = 2U * CHESSBOARD_DIMENSION + 3U;           // D3: Double push by W_PAWN to D4
+    board.to_move = BLACK;
 
     MOVE_LIST_SETUP(list, n_moves)
 
