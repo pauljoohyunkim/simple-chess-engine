@@ -570,8 +570,13 @@ static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* con
     }
 
     // TODO: Specify nontrivial values for rooks/kings
-    //ptr_precomputation_tbl->castling_mask[7U] = 14U;
-    //ptr_precomputation_tbl->castling_mask
+    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("A1"))] &= ~SCE_CASTLING_RIGHTS_WQ;
+    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("H1"))] &= ~SCE_CASTLING_RIGHTS_WK;
+    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("E1"))] &= ~(SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ);
+    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("A8"))] &= ~SCE_CASTLING_RIGHTS_BQ;
+    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("H8"))] &= ~SCE_CASTLING_RIGHTS_BK;
+    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("E8"))] &= ~(SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ);
+
 
     return SCE_SUCCESS;
 }
