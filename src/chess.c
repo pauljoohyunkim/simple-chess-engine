@@ -16,6 +16,7 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
 static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
 
@@ -233,6 +234,7 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
     RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_precomputation_tbl), "King moves table generation failed!");
     RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(ptr_precomputation_tbl), "Pawn moves/attacks table generation failed!");
     RETURN_IF_SCE_FAILURE(SCE_Rays_Precompute(ptr_precomputation_tbl), "Pawn moves/attacks table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_CastlingMask_Precompute(ptr_precomputation_tbl), "Castling mask table generation failed!");
 
     return SCE_SUCCESS;
 }
@@ -556,6 +558,20 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
         ptr_precomputation_tbl->rays[SOUTHEAST][i] = se_ray;
         ptr_precomputation_tbl->rays[SOUTHWEST][i] = sw_ray;
     }
+
+    return SCE_SUCCESS;
+}
+
+static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
+        ptr_precomputation_tbl->castling_mask[i] = 15U;
+    }
+
+    // TODO: Specify nontrivial values for rooks/kings
+    //ptr_precomputation_tbl->castling_mask[7U] = 14U;
+    //ptr_precomputation_tbl->castling_mask
 
     return SCE_SUCCESS;
 }
