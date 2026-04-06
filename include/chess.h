@@ -89,7 +89,6 @@ typedef struct {
     unsigned int count;
 } SCE_ChessMoveList;
 
-#define NO_EN_PASANT_SQUARE_SET (-1)
 /**
  * @brief Bitboard capturing a chessboard.
  * 

@@ -523,3 +523,28 @@ TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
     ASSERT_EQ(n_moves[W_PAWN], (4 + 4) + (1 + 1) + (1+1) + 1);
     ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
 }
+
+TEST(MoveGeneration, MoveGeneration_EnPassant_WhitePawn) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "D5", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D6", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E5", B_PAWN), SCE_SUCCESS);
+    board.en_passant_idx = 5U * CHESSBOARD_DIMENSION + 4U;           // E6: Double push by B_PAWN to E5
+
+    MOVE_LIST_SETUP(list, n_moves)
+}
+
+TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "D4", W_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "E4", B_PAWN), SCE_SUCCESS);
+    board.en_passant_idx = 2U * CHESSBOARD_DIMENSION + 3U;           // D3: Double push by W_PAWN to D4
+
+    MOVE_LIST_SETUP(list, n_moves)
+}
