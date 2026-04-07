@@ -633,3 +633,52 @@ TEST(MoveGeneration, MoveGeneration_White_Castling) {
     ASSERT_EQ(strcmp("C1", an_dst), 0);
     ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_QUEEN_CASTLE);
 }
+
+TEST(MoveGeneration, MoveGeneration_Black_Castling) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    board.to_move = BLACK;
+    ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H8", B_ROOK), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "A8", B_ROOK), SCE_SUCCESS);
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    int king_side_idx = -1;
+    int queen_side_idx = -1;
+    for (uint i = 0; i < list.count; i++) {
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_KING_CASTLE)) {
+            king_side_idx = i;
+        }
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE)) {
+            queen_side_idx = i;
+        }
+
+    }
+    ASSERT_NE(king_side_idx, -1);
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    // Check if king-side castling is from E8 to G8
+    uint src_idx = list.moves[king_side_idx] SCE_CHESSMOVE_GET_SRC;
+    uint dst_idx = list.moves[king_side_idx] SCE_CHESSMOVE_GET_DST;
+    uint flag = list.moves[king_side_idx] SCE_CHESSMOVE_GET_FLAG;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp("E8", an_src), 0);
+    ASSERT_EQ(strcmp("G8", an_dst), 0);
+    ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_KING_CASTLE);
+
+    // Check if queen-side castling is from E8 to C8
+    ASSERT_NE(queen_side_idx, -1);
+    src_idx = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_SRC;
+    dst_idx = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_DST;
+    flag = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_FLAG;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp("E8", an_src), 0);
+    ASSERT_EQ(strcmp("C8", an_dst), 0);
+    ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_QUEEN_CASTLE);
+}

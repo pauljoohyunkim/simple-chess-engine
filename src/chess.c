@@ -718,10 +718,27 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
             
         } else {
             // Black king
-
             // King-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_BK) {
+                // Check for gap.
+                if (!(occupancy & (king_side_gap_mask UP * 7))) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
+                    const uint king_idx_dst = king_idx_src + 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
 
             // Queen-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_BQ) {
+                // Check for gap.
+                if (!(occupancy & (queen_side_gap_mask UP * 7))) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
+                    const uint king_idx_dst = king_idx_src - 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
         }
     }
 
