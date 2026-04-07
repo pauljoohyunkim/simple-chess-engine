@@ -36,10 +36,12 @@ TEST(MakeMove, MakeMove_White_Queen_Promotion_EnPassant) {
     // Setting en-passant opportunity
     SCE_ChessMove move = (SCE_AN_To_Idx("D7") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("D5") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+    ASSERT_EQ(board.en_passant_idx, SCE_AN_To_Idx("D6"));
     
     // En passant
     move = (SCE_AN_To_Idx("E5") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("D6") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+    ASSERT_EQ(board.en_passant_idx, -1);
 
     // Some blunder by rook
     move = (SCE_AN_To_Idx("H8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("H3") SCE_CHESSMOVE_SET_DST);

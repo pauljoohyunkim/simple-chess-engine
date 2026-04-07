@@ -1550,12 +1550,14 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
             default:
                 break;
         }
-
-
     }
     
     // Since successful, switch to_move
     ptr_board->to_move = ptr_board->to_move == WHITE ? BLACK : WHITE;
+    // For non double-push move, unset en passant square
+    if (flag != SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH) {
+        ptr_board->en_passant_idx = UNASSIGNED;
+    }
     return SCE_SUCCESS;
 }
 
