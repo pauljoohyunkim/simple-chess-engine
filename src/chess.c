@@ -1472,27 +1472,31 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
                 captured_piece_type = piece_type;
             }
         }
+
+        if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
+            uint64_t captured_piece = ptr_board->to_move == WHITE ? (1ULL << (ptr_board->en_passant_idx - CHESSBOARD_DIMENSION)) : (1ULL << (ptr_board->en_passant_idx + CHESSBOARD_DIMENSION));
+            for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+                // Determine en passant victim piece type
+                if (captured_piece & ptr_board->bitboards[piece_type]) {
+                    captured_piece_type = piece_type;
+                    break;
+                }
+            }
+        } else {
+            for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+                // Determine captured piece type
+                if (dst & ptr_board->bitboards[piece_type]) {
+                    captured_piece_type = piece_type;
+                }
+            }
+
+        }
+
         // Sanity check
         if (moving_piece_type == UNASSIGNED) return SCE_FAILURE;
-        if (captured_piece_type == UNASSIGNED) {
-            if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
-                // Set captured_piece_type to en passant square.
-                uint64_t captured_piece = ptr_board->to_move == WHITE ? (1ULL << (ptr_board->en_passant_idx - 8U)) : (1ULL << (ptr_board->en_passant_idx + 8U));
-                for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
-                    // Determine en passant victim piece type
-                    // TODO: Should be en_passant_idx -/+ 8
-                    if (captured_piece & ptr_board->bitboards[piece_type]) {
-                        captured_piece_type = piece_type;
-                        break;
-                    }
-                }
-                if (captured_piece_type == UNASSIGNED) {
-                    // Even after checking en passant square is empty -> Error!
-                    return SCE_FAILURE;
-                }
-            } else if (flag & SCE_CHESSMOVE_FLAG_CAPTURE) {
-                return SCE_FAILURE;
-            }
+        if ((flag & SCE_CHESSMOVE_FLAG_CAPTURE) && (captured_piece_type == UNASSIGNED)) {
+            // Flag said the piece would capture something, but it was a big fat lie!
+            return SCE_FAILURE;
         }
     }
 
