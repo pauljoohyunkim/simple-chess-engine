@@ -1,32 +1,7 @@
 #include <gtest/gtest.h>
 #include "../include/chess.h"
 #include "../include/dev.h"
-
-#define BOARD_CLEAR_SETUP(board) \
-    SCE_Chessboard board; \
-    SCE_Chessboard_clear(&board);
-
-
-#define BOARD_SETUP(board, precpt_tbl) \
-    SCE_PieceMovementPrecomputationTable precpt_tbl; \
-    SCE_PieceMovementPrecompute(&precpt_tbl); \
-    SCE_Chessboard board; \
-    SCE_Chessboard_reset(&board);
-
-#define MOVE_LIST_SETUP(list, n_moves) \
-    SCE_ChessMoveList list; \
-    list.count = 0; \
-    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS); \
-    uint n_moves[N_TYPES_PIECES] = { 0 }; \
-    for (unsigned int i = 0; i < list.count; i++) { \
-        print_move_to_AN(list.moves[i]); \
-        uint64_t src = 1ULL << (list.moves[i] SCE_CHESSMOVE_GET_SRC); \
-        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) { \
-            if (src & board.bitboards[piece_type]) { \
-                n_moves[piece_type]++; \
-            } \
-        } \
-    }
+#include "setup.h"
 
 TEST(ChessBoard, AN_To_Bitboard) {
     ASSERT_EQ(1ULL << 0U, SCE_AN_To_Bitboard("A1"));
@@ -692,20 +667,4 @@ TEST(MakeMove, MakeMove_Initial) {
     ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("E4"));
     // En passant square set
     ASSERT_TRUE(board.en_passant_idx & SCE_AN_To_Idx("E3"));
-}
-
-TEST(MakeMove, MakeMove_Endgame1_WhitePawn_Promote_To_Knight) {
-    BOARD_CLEAR_SETUP(board);
-
-    SCE_PieceMovementPrecomputationTable precpt_tbl;
-    SCE_PieceMovementPrecompute(&precpt_tbl);
-
-    ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
-    ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
-    ASSERT_EQ(place_piece_on_board(&board, "A7", W_PAWN), SCE_SUCCESS);
-
-    const SCE_ChessMove move = (SCE_AN_To_Idx("A7") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("A8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION SCE_CHESSMOVE_SET_FLAG);
-    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
-
-    ASSERT_TRUE(board.bitboards[W_KNIGHT] & SCE_AN_To_Bitboard("A8"));
 }

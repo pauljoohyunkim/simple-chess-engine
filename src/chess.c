@@ -1467,13 +1467,31 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
             if (src & ptr_board->bitboards[piece_type]) {
                 moving_piece_type = piece_type;
             }
+            // Determine captured piece type
             if (dst & ptr_board->bitboards[piece_type]) {
                 captured_piece_type = piece_type;
             }
         }
         // Sanity check
         if (moving_piece_type == UNASSIGNED) return SCE_FAILURE;
-        if (captured_piece_type == UNASSIGNED && (flag & SCE_CHESSMOVE_FLAG_CAPTURE)) return SCE_FAILURE;
+        if (captured_piece_type == UNASSIGNED) {
+            if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
+                // Set captured_piece_type to en passant square.
+                for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+                    // Determine en passant victim piece type
+                    if ((1ULL << ptr_board->en_passant_idx) & ptr_board->bitboards[piece_type]) {
+                        captured_piece_type = piece_type;
+                        break;
+                    }
+                }
+                if (captured_piece_type == UNASSIGNED) {
+                    // Even after checking en passant square is empty -> Error!
+                    return SCE_FAILURE;
+                }
+            } else if (flag & SCE_CHESSMOVE_FLAG_CAPTURE) {
+                return SCE_FAILURE;
+            }
+        }
     }
 
     {
@@ -1501,13 +1519,35 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
         if (flag == SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH) {
             ptr_board->en_passant_idx = ptr_board->to_move == WHITE ? src_idx - 8U : src_idx + 8U;
         }
+        
         // 2. Promotion
-        if (flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION || flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE) {
-            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
-            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT] ^= dst;
+        switch (flag) {
+            case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE:
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT] ^= dst;
+                break;
+            case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_BISHOP : B_BISHOP] ^= dst;
+                break;
+            case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= dst;
+                break;
+            case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_QUEEN : B_QUEEN] ^= dst;
+                break;
+            default:
+                break;
         }
-        // TODO: Implement other promotions
         // 3. Castling
+
+        // 4. En passant
 
     }
     
