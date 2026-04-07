@@ -1477,10 +1477,11 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
         if (captured_piece_type == UNASSIGNED) {
             if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
                 // Set captured_piece_type to en passant square.
+                uint64_t captured_piece = ptr_board->to_move == WHITE ? (1ULL << (ptr_board->en_passant_idx - 8U)) : (1ULL << (ptr_board->en_passant_idx + 8U));
                 for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
                     // Determine en passant victim piece type
                     // TODO: Should be en_passant_idx -/+ 8
-                    if ((1ULL << (ptr_board->en_passant_idx)) & ptr_board->bitboards[piece_type]) {
+                    if (captured_piece & ptr_board->bitboards[piece_type]) {
                         captured_piece_type = piece_type;
                         break;
                     }
@@ -1518,7 +1519,7 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
         switch (flag) {
             // 1. Pawn Double Push: en passant square
             case SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH:
-                ptr_board->en_passant_idx = ptr_board->to_move == WHITE ? src_idx - 8U : src_idx + 8U;
+                ptr_board->en_passant_idx = ptr_board->to_move == WHITE ? src_idx + 8U : src_idx - 8U;
                 break;
             // 2. Promotion
             case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
