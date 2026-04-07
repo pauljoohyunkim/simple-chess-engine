@@ -16,6 +16,7 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
 static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
 
@@ -62,6 +63,7 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
 
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
+    ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -90,6 +92,7 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
 
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
+    ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -233,6 +236,7 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
     RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_precomputation_tbl), "King moves table generation failed!");
     RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(ptr_precomputation_tbl), "Pawn moves/attacks table generation failed!");
     RETURN_IF_SCE_FAILURE(SCE_Rays_Precompute(ptr_precomputation_tbl), "Pawn moves/attacks table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_CastlingMask_Precompute(ptr_precomputation_tbl), "Castling mask table generation failed!");
 
     return SCE_SUCCESS;
 }
@@ -560,6 +564,25 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
     return SCE_SUCCESS;
 }
 
+static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+
+    for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
+        ptr_precomputation_tbl->castling_mask[i] = 15U;
+    }
+
+    // TODO: Specify nontrivial values for rooks/kings
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("A1")] &= ~SCE_CASTLING_RIGHTS_WQ;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("H1")] &= ~SCE_CASTLING_RIGHTS_WK;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("E1")] &= ~(SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ);
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("A8")] &= ~SCE_CASTLING_RIGHTS_BQ;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("H8")] &= ~SCE_CASTLING_RIGHTS_BK;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("E8")] &= ~(SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ);
+
+
+    return SCE_SUCCESS;
+}
+
 static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
     if (ptr_movelist == NULL) return SCE_FAILURE;
     if (ptr_movelist->count == N_MAX_MOVES - 1U) { 
@@ -635,6 +658,7 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
     const uint piece_types[] = { W_KING, B_KING };
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
     const uint moving_piece_type = ptr_board->to_move == WHITE ? W_KING : B_KING;
@@ -660,6 +684,61 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
 
             // Remove from the king_moves.
             king_moves &= ~(1ULL << king_idx_dst);
+        }
+
+
+        // 00000110 (from A to H) = 0b01100000
+        uint64_t king_side_gap_mask = 0x60ULL;
+        // 01110000 (from A to H) = 0b1110
+        uint64_t queen_side_gap_mask = 0x0EULL;
+        // Castling
+        if (moving_piece_type == W_KING) {
+            // White king
+            // King-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_WK) {
+                // Check for gap.
+                if (!(occupancy & king_side_gap_mask)) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
+                    const uint king_idx_dst = king_idx_src + 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
+
+            // Queen-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_WQ) {
+                // Check for gap.
+                if (!(occupancy & queen_side_gap_mask)) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
+                    const uint king_idx_dst = king_idx_src - 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
+            
+        } else {
+            // Black king
+            // King-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_BK) {
+                // Check for gap.
+                if (!(occupancy & (king_side_gap_mask UP * 7))) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
+                    const uint king_idx_dst = king_idx_src + 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
+
+            // Queen-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_BQ) {
+                // Check for gap.
+                if (!(occupancy & (queen_side_gap_mask UP * 7))) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
+                    const uint king_idx_dst = king_idx_src - 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
         }
     }
 
@@ -1274,9 +1353,9 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
     return false;
 }
 
-uint64_t SCE_AN_To_Bitboard(const char* an) {
+int SCE_AN_To_Idx(const char* an) {
     if (an == NULL || strlen(an) != 2) {
-        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
+        fprintf(stderr, "\033[31m[-] Invalid parameter in converting from AN\033[0m\n");
         return 0U;
     }
 
@@ -1290,18 +1369,33 @@ uint64_t SCE_AN_To_Bitboard(const char* an) {
     } else if ('A' <= file_char && file_char <= 'H') {
         file_n = (uint) file_char - 'A';
     } else {
-        fprintf(stderr, "\033[31m[-] Invalid parameter (file) in SCE_AN_To_Bitboard\033[0m\n");
-        return 0U;
+        fprintf(stderr, "\033[31m[-] Invalid parameter (file) in converting from AN\033[0m\n");
+        return -1;
     }
 
     if ('1' <= rank_char && rank_char <= '8') {
         rank_n = (uint) rank_char - '1';
     } else {
-        fprintf(stderr, "\033[31m[-] Invalid parameter (rank) in SCE_AN_To_Bitboard\033[0m\n");
+        fprintf(stderr, "\033[31m[-] Invalid parameter (rank) in converting from AN\033[0m\n");
+        return -1;
+    }
+
+    return rank_n * 8 + file_n;
+}
+
+uint64_t SCE_AN_To_Bitboard(const char* an) {
+    if (an == NULL || strlen(an) != 2) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
         return 0U;
     }
 
-    return 1ULL << (rank_n * 8) << file_n;
+    int idx = SCE_AN_To_Idx(an);
+    if (idx == -1) {
+        fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
+        return 0U;
+    }
+
+    return 1ULL << (uint) idx;
 }
 
 int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {

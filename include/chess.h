@@ -83,10 +83,15 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE (14U)
 #define SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE (15U)
 
+#define SCE_CASTLING_RIGHTS_WK (1U << 0)
+#define SCE_CASTLING_RIGHTS_WQ (1U << 1)
+#define SCE_CASTLING_RIGHTS_BK (1U << 2)
+#define SCE_CASTLING_RIGHTS_BQ (1U << 3)
+
 typedef struct {
     unsigned int captured_piece;
     int en_passant_square;
-    uint16_t castling_right;
+    uint8_t castling_right;
     unsigned int half_move_clock;       // 50-move rule
     uint64_t zobrist_hash;              // TODO: Repetition detection
 } SCE_UndoState;
@@ -109,11 +114,11 @@ typedef struct {
     uint64_t bitboards[N_TYPES_PIECES];
     int en_passant_idx;
     PieceColor to_move;
+    uint8_t castling_rights;
     SCE_ChessMoveList moves;
     SCE_UndoState undo_states[N_MAX_MOVES];
 } SCE_Chessboard;
 
-// 3584 bytes
 typedef struct {
     // Leapers
     uint64_t knight_moves[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
@@ -123,6 +128,9 @@ typedef struct {
 
     // Sliders: Queen, Rook, Bishop
     uint64_t rays[8][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+
+    // Castling Rights
+    uint8_t castling_mask[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
 } SCE_PieceMovementPrecomputationTable;
 
 /**
@@ -193,6 +201,14 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
  * @return false The square is not under attack or error. If there is an error, there will be error message output to STDERR.
  */
 bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl, const uint64_t square, const PieceColor attacked_by);
+
+/**
+ * @brief Converts algebraic notation for a square to index
+ * 
+ * @param an Two-letter string, from "A1" to "H8"
+ * @return unsigned int index for bitboard, or -1 for error.
+ */
+int SCE_AN_To_Idx(const char* an);
 
 /**
  * @brief Converts algebraic notation for a square to bitboard
