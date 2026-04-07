@@ -571,7 +571,6 @@ static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* con
         ptr_precomputation_tbl->castling_mask[i] = 15U;
     }
 
-    // TODO: Specify nontrivial values for rooks/kings
     ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("A1")] &= ~SCE_CASTLING_RIGHTS_WQ;
     ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("H1")] &= ~SCE_CASTLING_RIGHTS_WK;
     ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("E1")] &= ~(SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ);
@@ -745,7 +744,6 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     return SCE_SUCCESS;
 }
 
-// TODO: Slider capture flag
 static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
@@ -765,7 +763,6 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
     }
 
     for (uint i = 0U; i < sizeof(piece_types)/sizeof(piece_types[0]); i++) {
-        // TODO: Implement logic here.
         const uint moving_piece_type = piece_types[i];
         const PieceColor moving_piece_color = (moving_piece_type >= W_PAWN && moving_piece_type <= W_KING) ? WHITE : BLACK;
 
@@ -1069,7 +1066,6 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
         uint64_t single_push = (ptr_board->bitboards[W_PAWN] UP) & ~occupancy;
 
         // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
-        // TODO: Need to set En passant square!
         const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 2U);
         uint64_t double_push = (filtered UP) & ~occupancy;
 
@@ -1179,7 +1175,6 @@ static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
         uint64_t single_push = (ptr_board->bitboards[B_PAWN] DOWN) & ~occupancy;
 
         // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
-        // TODO: Need to set En passant square!
         const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 5U);
         uint64_t double_push = (filtered DOWN) & ~occupancy;
 
