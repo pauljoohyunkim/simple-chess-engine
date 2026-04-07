@@ -682,3 +682,14 @@ TEST(MoveGeneration, MoveGeneration_Black_Castling) {
     ASSERT_EQ(strcmp("C8", an_dst), 0);
     ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_QUEEN_CASTLE);
 }
+
+TEST(MakeMove, MakeMove_Initial) {
+    BOARD_SETUP(board, precpt_tbl)
+
+    const SCE_ChessMove move = (SCE_AN_To_Idx("E2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("E4"));
+    ASSERT_TRUE(board.en_passant_idx & SCE_AN_To_Idx("E3"));
+    // TODO: Check en passant square
+}

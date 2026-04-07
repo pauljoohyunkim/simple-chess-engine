@@ -89,9 +89,9 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CASTLING_RIGHTS_BQ (1U << 3)
 
 typedef struct {
-    unsigned int captured_piece;
+    int captured_piece;
     int en_passant_square;
-    uint8_t castling_right;
+    uint8_t castling_rights;
     unsigned int half_move_clock;       // 50-move rule
     uint64_t zobrist_hash;              // TODO: Repetition detection
 } SCE_UndoState;
@@ -115,6 +115,7 @@ typedef struct {
     int en_passant_idx;
     PieceColor to_move;
     uint8_t castling_rights;
+    unsigned int half_move_clock;
     SCE_ChessMoveList moves;
     SCE_UndoState undo_states[N_MAX_MOVES];
 } SCE_Chessboard;
@@ -226,6 +227,18 @@ uint64_t SCE_AN_To_Bitboard(const char* an);
  * @return int 1 for success, 0 for failure
  */
 int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
+
+/**
+ * @brief Attempt to make move. Note that this does not check for pseudo legal moves, hence for human input, must be verified if it is a pseudo legal move.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @param move 
+ * @return int 1 for success, 0 for failure.
+ * 
+ * In the case of failure, the attempted move will be reverted back.
+ */
+int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move);
 
 /**
  * @brief Generates legal moves

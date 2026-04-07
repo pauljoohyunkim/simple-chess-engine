@@ -1441,6 +1441,79 @@ int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
     return SCE_SUCCESS;
 }
 
+int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move) {
+    if (ptr_board == NULL || ptr_precomputation_table == NULL) return SCE_FAILURE;
+
+    const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
+    const uint64_t src = (1ULL << src_idx);
+    const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
+    const uint64_t dst = (1ULL << dst_idx);
+    const uint flag = move SCE_CHESSMOVE_GET_FLAG;
+    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
+    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
+    
+    // Check if src piece is to move.
+    if ((ptr_board->to_move == WHITE && !(src & occupancy_w)) || (ptr_board->to_move == BLACK && !(src & occupancy_b))) return SCE_FAILURE;
+
+    // Check if dst piece is the same color as the moving piece. If so, this is not allowed.
+    if ((ptr_board->to_move == WHITE && (dst & occupancy_w)) || (ptr_board->to_move == BLACK && (dst & occupancy_b))) return SCE_FAILURE;
+
+    int moving_piece_type = UNASSIGNED;
+    int captured_piece_type = UNASSIGNED;
+    {
+        // There is a guarantee that one of the piece types will be set here from the src check.
+        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+            // Determine moving piece type
+            if (src & ptr_board->bitboards[piece_type]) {
+                moving_piece_type = piece_type;
+            }
+            if (dst & ptr_board->bitboards[piece_type]) {
+                captured_piece_type = piece_type;
+            }
+        }
+        // Sanity check
+        if (moving_piece_type == UNASSIGNED) return SCE_FAILURE;
+        if (captured_piece_type == UNASSIGNED && (flag & SCE_CHESSMOVE_FLAG_CAPTURE)) return SCE_FAILURE;
+    }
+
+    {
+        // Journalling
+        ptr_board->undo_states[ptr_board->moves.count].captured_piece = captured_piece_type;
+        ptr_board->undo_states[ptr_board->moves.count].en_passant_square = ptr_board->en_passant_idx;
+        ptr_board->undo_states[ptr_board->moves.count].castling_rights = ptr_board->castling_rights;
+        ptr_board->undo_states[ptr_board->moves.count].half_move_clock = ptr_board->half_move_clock;
+        // This automatically increments the count
+        // TODO: Check for success.
+        SCE_AddToMoveList(move, &ptr_board->moves);
+    }
+
+    {
+        // Execution
+
+        // Standard move
+        ptr_board->bitboards[moving_piece_type] ^= src | dst;
+        if (captured_piece_type != UNASSIGNED) {
+            ptr_board->bitboards[captured_piece_type] ^= dst;
+        }
+
+        // Flag handle
+        // 1. Pawn Double Push: en passant square
+        if (flag == SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH) {
+            ptr_board->en_passant_idx = ptr_board->to_move == WHITE ? src_idx - 8U : src_idx + 8U;
+        }
+        // 2. Promotion
+        if (flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE || flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE) {
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT] ^= dst;
+        }
+        // TODO: Implement other promotions
+        // 3. Castling
+
+    }
+    
+    return SCE_SUCCESS;
+}
+
 int SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     // TODO: Implement this
     RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Could not generate pseudolegal moves.\n");
