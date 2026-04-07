@@ -1502,7 +1502,7 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
             ptr_board->en_passant_idx = ptr_board->to_move == WHITE ? src_idx - 8U : src_idx + 8U;
         }
         // 2. Promotion
-        if (flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE || flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE) {
+        if (flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION || flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE) {
             ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
             ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT] ^= dst;
         }
