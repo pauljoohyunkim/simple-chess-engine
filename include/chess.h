@@ -114,6 +114,7 @@ typedef struct {
     uint64_t bitboards[N_TYPES_PIECES];
     int en_passant_idx;
     PieceColor to_move;
+    uint8_t castling_rights;
     SCE_ChessMoveList moves;
     SCE_UndoState undo_states[N_MAX_MOVES];
 } SCE_Chessboard;

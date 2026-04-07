@@ -63,6 +63,7 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
 
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
+    ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -91,6 +92,7 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
 
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
+    ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -570,12 +572,12 @@ static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* con
     }
 
     // TODO: Specify nontrivial values for rooks/kings
-    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("A1"))] &= ~SCE_CASTLING_RIGHTS_WQ;
-    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("H1"))] &= ~SCE_CASTLING_RIGHTS_WK;
-    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("E1"))] &= ~(SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ);
-    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("A8"))] &= ~SCE_CASTLING_RIGHTS_BQ;
-    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("H8"))] &= ~SCE_CASTLING_RIGHTS_BK;
-    ptr_precomputation_tbl->castling_mask[COUNT_TRAILING_ZEROS(SCE_AN_To_Bitboard("E8"))] &= ~(SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ);
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("A1")] &= ~SCE_CASTLING_RIGHTS_WQ;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("H1")] &= ~SCE_CASTLING_RIGHTS_WK;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("E1")] &= ~(SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ);
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("A8")] &= ~SCE_CASTLING_RIGHTS_BQ;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("H8")] &= ~SCE_CASTLING_RIGHTS_BK;
+    ptr_precomputation_tbl->castling_mask[SCE_AN_To_Idx("E8")] &= ~(SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ);
 
 
     return SCE_SUCCESS;
@@ -656,6 +658,7 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_FAILURE;
 
     const uint piece_types[] = { W_KING, B_KING };
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
     const uint moving_piece_type = ptr_board->to_move == WHITE ? W_KING : B_KING;
@@ -681,6 +684,44 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
 
             // Remove from the king_moves.
             king_moves &= ~(1ULL << king_idx_dst);
+        }
+
+
+        // 00000110 (from A to H) = 0b01100000
+        uint64_t king_side_gap_mask = 0x60ULL;
+        // 01110000 (from A to H) = 0b1110
+        uint64_t queen_side_gap_mask = 0x0EULL;
+        // Castling
+        if (moving_piece_type == W_KING) {
+            // White king
+            // King-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_WK) {
+                // Check for gap.
+                if (!(occupancy & king_side_gap_mask)) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
+                    const uint king_idx_dst = king_idx_src + 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
+
+            // Queen-side
+            if (ptr_board->castling_rights & SCE_CASTLING_RIGHTS_WQ) {
+                // Check for gap.
+                if (!(occupancy & queen_side_gap_mask)) {
+                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
+                    const uint king_idx_dst = king_idx_src - 2U;
+                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                    SCE_AddToMoveList(move, ptr_movelist);
+                }
+            }
+            
+        } else {
+            // Black king
+
+            // King-side
+
+            // Queen-side
         }
     }
 
