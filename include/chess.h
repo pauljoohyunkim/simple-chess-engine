@@ -136,25 +136,25 @@ typedef struct {
  * @brief Clear out the move list
  * 
  * @param ptr_list Pointer to the SCE_ChessMoveList struct.
- * @return int 1 for success, 0 for failure
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-int SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list);
+SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list);
 
 /**
  * @brief Clear out the board with zeros.
  * 
  * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @return int 1 for success, 0 for failure
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
+SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
 
 /**
  * @brief Reset the board to a initial setup.
  * 
  * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @return int 1 for success, 0 for failure
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
+SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
 
 /**
  * @brief Returns the bitboard of occupancy information.
@@ -177,17 +177,17 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Chessboard* const ptr_board, c
  * @brief Print the board to console.
  * 
  * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @return int 1 for success, 0 for failure
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color);
+SCE_Return SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color);
 
 /**
  * @brief Fill the movement precomputation table.
  * 
  * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
- * @return int 1 for success, 0 for failure
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 /**
  * @brief Checks if the square is under attack by certain color.
@@ -205,7 +205,7 @@ bool SCE_IsSquareAttacked(SCE_Chessboard* const ptr_board, const SCE_PieceMoveme
  * @brief Converts algebraic notation for a square to index
  * 
  * @param an Two-letter string, from "A1" to "H8"
- * @return unsigned int index for bitboard, or -1 for error.
+ * @return int index for bitboard, or -1 for error.
  */
 int SCE_AN_To_Idx(const char* an);
 
@@ -222,9 +222,9 @@ uint64_t SCE_AN_To_Bitboard(const char* an);
  * 
  * @param an_out Char array. Needs at least three spaces (for null terminator)
  * @param bitboard uin64_t representation of board. Only single bit must be set.
- * @return int 1 for success, 0 for failure
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
+SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
 
 /**
  * @brief Attempt to make move. Note that this does not check for pseudo legal moves, hence for human input, must be verified if it is a pseudo legal move.
@@ -253,9 +253,9 @@ SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrec
  * @param ptr_movelist List of moves
  * @param ptr_board Pointer to the SCE_Chessboard struct.
  * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
- * @return int 1 for success, 0 for failure.
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-int SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 #ifdef __cplusplus
 }
