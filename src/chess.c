@@ -1523,7 +1523,7 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
         switch (flag) {
             // 1. Pawn Double Push: en passant square
             case SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH:
-                ptr_board->en_passant_idx = ptr_board->to_move == WHITE ? src_idx + 8U : src_idx - 8U;
+                ptr_board->en_passant_idx = ptr_board->to_move == WHITE ? src_idx + CHESSBOARD_DIMENSION : src_idx - CHESSBOARD_DIMENSION;
                 break;
             // 2. Promotion
             case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
@@ -1546,7 +1546,25 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_QUEEN : B_QUEEN] ^= dst;
                 break;
-        // 3. TODO: Castling
+        // 3. Castling
+            case SCE_CHESSMOVE_FLAG_KING_CASTLE:
+                {
+                    const uint rook_idx_src = dst_idx + 1U;
+                    const uint rook_idx_dst = dst_idx - 1U;
+                    const uint64_t rook_src = (1ULL << rook_idx_src);
+                    const uint64_t rook_dst = (1ULL << rook_idx_dst);
+                    ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+                }
+                break;
+            case SCE_CHESSMOVE_FLAG_QUEEN_CASTLE:
+                {
+                    const uint rook_idx_src = dst_idx - 2U;
+                    const uint rook_idx_dst = dst_idx + 1U;
+                    const uint64_t rook_src = (1ULL << rook_idx_src);
+                    const uint64_t rook_dst = (1ULL << rook_idx_dst);
+                    ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+                }
+                break;
         // 4. En passant
             case SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE:
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? B_PAWN : W_PAWN] ^= (1ULL << ptr_board->en_passant_idx);
@@ -1562,6 +1580,8 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
     if (flag != SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH) {
         ptr_board->en_passant_idx = UNASSIGNED;
     }
+    // Update castling right
+    ptr_board->castling_rights &= ptr_precomputation_table->castling_mask[src_idx] & ptr_precomputation_table->castling_mask[dst_idx];
     return SCE_SUCCESS;
 }
 
