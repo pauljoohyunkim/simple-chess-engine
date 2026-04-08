@@ -21,11 +21,11 @@ void print_as_board(const uint64_t val) {
 }
 
 int place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, uint piece_type) {
-    if (ptr_board == NULL || an == NULL || piece_type >= N_TYPES_PIECES) return SCE_FAILURE;
+    if (ptr_board == NULL || an == NULL || piece_type >= N_TYPES_PIECES) return SCE_INVALID_PARAM;
 
     // Get bitboard form of algebraic notation
     const uint64_t loc = SCE_AN_To_Bitboard(an);
-    if (loc == 0) return SCE_FAILURE;
+    if (loc == 0) return SCE_INTERNAL_ERROR;
 
     // Empty out the specific loc.
     for (uint i = 0; i < N_TYPES_PIECES; i++) {
@@ -94,7 +94,7 @@ int print_move_to_AN(const SCE_ChessMove move) {
             printf("QUEEN_PROMO_CAPTURE ");
             break;
         default:
-            return SCE_FAILURE;
+            return SCE_INVALID_MOVE;
     }
 
     printf("\n");

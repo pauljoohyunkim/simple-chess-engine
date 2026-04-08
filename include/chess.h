@@ -232,11 +232,20 @@ int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
  * @param ptr_board Pointer to the SCE_Chessboard struct.
  * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
  * @param move 
- * @return int 1 for success, 0 for failure.
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
  * 
  * In the case of failure, the attempted move will be reverted back.
  */
-int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move);
+SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move);
+
+/**
+ * @brief Unmake move.
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ptr_precomputation_table Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
+ */
+SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table);
 
 /**
  * @brief Generates legal moves

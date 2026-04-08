@@ -13,8 +13,6 @@ typedef enum {
     SCE_SUCCESS = 1
 } SCE_Return;
 
-#define SCE_FAILURE -1
-
 #ifdef __cplusplus
 }
 #endif

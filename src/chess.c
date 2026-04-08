@@ -160,7 +160,7 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
             for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
                 if (ptr_board->bitboards[piece_type] & pos) {
                     // Check exclusive ownership of square.
-                    if (piece_in_square != UNASSIGNED) return SCE_FAILURE;
+                    if (piece_in_square != UNASSIGNED) return SCE_INVALID_BOARD_STATE;
 
                     piece_in_square = (int) piece_type;
                 }
@@ -226,7 +226,7 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
 }
 
 int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
-    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+    if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     // Empty the table.
     memset(ptr_precomputation_tbl, 0, sizeof(SCE_PieceMovementPrecomputationTable));
@@ -1449,7 +1449,7 @@ int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
     return SCE_SUCCESS;
 }
 
-int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move) {
+SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move) {
     if (ptr_board == NULL || ptr_precomputation_table == NULL) return SCE_INVALID_PARAM;
 
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
@@ -1594,6 +1594,12 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
     }
     // Update castling right
     ptr_board->castling_rights &= ptr_precomputation_table->castling_mask[src_idx] & ptr_precomputation_table->castling_mask[dst_idx];
+    return SCE_SUCCESS;
+}
+
+SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table) {
+    if (ptr_board == NULL || ptr_precomputation_table == NULL) return SCE_INVALID_PARAM;
+
     return SCE_SUCCESS;
 }
 
