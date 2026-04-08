@@ -586,7 +586,15 @@ static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
     if (ptr_movelist == NULL) return SCE_INVALID_PARAM;
     if (ptr_movelist->count == N_MAX_MOVES - 1U) { 
         fprintf(stderr, "Adding to move list failure: MoveList full.\n");
-        return SCE_INVALID_PARAM;
+        return SCE_INTERNAL_ERROR;
+    }
+
+    {
+        // Check if src and dst are the same.
+        uint src_idx = move SCE_CHESSMOVE_GET_SRC;
+        uint dst_idx = move SCE_CHESSMOVE_GET_DST;
+
+        if (src_idx == dst_idx) return SCE_INVALID_MOVE;
     }
 
     // TODO: Validate move.
