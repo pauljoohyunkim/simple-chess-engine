@@ -131,3 +131,29 @@ TEST(MakeMove, Castling_Queenside) {
     ASSERT_TRUE(board.bitboards[B_KING] & SCE_AN_To_Bitboard("C8"));
     ASSERT_TRUE(board.bitboards[B_ROOK] & SCE_AN_To_Bitboard("D8"));
 }
+
+TEST(MakeMove, FoolsMate) {
+    BOARD_SETUP(board, precpt_tbl)
+
+    // W: F2 -> F3
+    SCE_ChessMove move = (SCE_AN_To_Idx("F2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F3") SCE_CHESSMOVE_SET_DST);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
+    // B: E7 -> E5
+    move = (SCE_AN_To_Idx("E7") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E5") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
+    // W: G2 -> G4
+    move = (SCE_AN_To_Idx("G2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
+    // Mate by B: D8 -> E4
+    move = (SCE_AN_To_Idx("D8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("H4") SCE_CHESSMOVE_SET_DST);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
+    // White king is under attack
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("E1"), BLACK));
+
+    // No escape square for white king
+    ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F2"), BLACK));
+}
