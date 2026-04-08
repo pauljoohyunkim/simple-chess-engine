@@ -595,9 +595,9 @@ static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
         uint dst_idx = move SCE_CHESSMOVE_GET_DST;
 
         if (src_idx == dst_idx) return SCE_INVALID_MOVE;
+        if (src_idx >= 64 || dst_idx >= 64) return SCE_INVALID_MOVE;
     }
 
-    // TODO: Validate move.
     ptr_movelist->moves[ptr_movelist->count] = move;
     ptr_movelist->count++;
 
