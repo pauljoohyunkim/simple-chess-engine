@@ -1513,12 +1513,20 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
 
     {
         // Execution
+        // 1. Capture
+        // 2. Move
+        // 3. Flag action
+        if (flag & SCE_CHESSMOVE_FLAG_CAPTURE) {
+            if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
+                uint64_t captured_piece = ptr_board->to_move == WHITE ? (1ULL << (ptr_board->en_passant_idx - CHESSBOARD_DIMENSION)) : (1ULL << (ptr_board->en_passant_idx + CHESSBOARD_DIMENSION));
+                ptr_board->bitboards[captured_piece_type] ^= captured_piece;
+            } else {
+                ptr_board->bitboards[captured_piece_type] ^= dst;
+            }
+        }
 
         // Standard move
         ptr_board->bitboards[moving_piece_type] ^= src | dst;
-        if (captured_piece_type != UNASSIGNED) {
-            ptr_board->bitboards[captured_piece_type] ^= dst;
-        }
         
         switch (flag) {
             // 1. Pawn Double Push: en passant square
@@ -1546,7 +1554,7 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_QUEEN : B_QUEEN] ^= dst;
                 break;
-        // 3. Castling
+            // 3. Castling
             case SCE_CHESSMOVE_FLAG_KING_CASTLE:
                 {
                     const uint rook_idx_src = dst_idx + 1U;
@@ -1564,10 +1572,6 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
                     const uint64_t rook_dst = (1ULL << rook_idx_dst);
                     ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
                 }
-                break;
-        // 4. En passant
-            case SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE:
-                ptr_board->bitboards[ptr_board->to_move == WHITE ? B_PAWN : W_PAWN] ^= (1ULL << ptr_board->en_passant_idx);
                 break;
             default:
                 break;
