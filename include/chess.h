@@ -7,9 +7,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
-
-#define SCE_SUCCESS 1
-#define SCE_FAILURE 0
+#include "return_code.h"
 
 #define CHESSBOARD_DIMENSION 8U
 
