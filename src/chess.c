@@ -64,6 +64,7 @@ SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
+    ptr_board->half_move_clock = 0U;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;

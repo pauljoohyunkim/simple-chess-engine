@@ -175,11 +175,11 @@ TEST(MakeMove, EnPassant_DiscoveredCheck) {
     SCE_ChessMove move = (SCE_AN_To_Idx("C2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
 
-    SCE_Chessboard_print(&board, WHITE);
+    debug_print_board(&board);
 
     // En passant
     move = (SCE_AN_To_Idx("D4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C3") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_INVALID_MOVE);
 
-    SCE_Chessboard_print(&board, WHITE);
+    debug_print_board(&board);
 }
