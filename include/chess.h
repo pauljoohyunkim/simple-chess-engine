@@ -87,6 +87,7 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CASTLING_RIGHTS_BQ (1U << 3)
 
 typedef struct {
+    unsigned int moving_piece;
     int captured_piece;
     int en_passant_square;
     uint8_t castling_rights;

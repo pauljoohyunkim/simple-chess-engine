@@ -1510,6 +1510,7 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
 
     {
         // Journalling
+        ptr_board->undo_states[ptr_board->history.count].moving_piece = moving_piece_type;
         ptr_board->undo_states[ptr_board->history.count].captured_piece =  captured_piece_type;
         ptr_board->undo_states[ptr_board->history.count].en_passant_square = ptr_board->en_passant_idx;
         ptr_board->undo_states[ptr_board->history.count].castling_rights = ptr_board->castling_rights;
@@ -1602,9 +1603,83 @@ SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrec
     if (ptr_board->history.count == 0U) return SCE_MOVELIST_EMPTY;
 
     // Index to latest move/undo state
-    uint move_idx = ptr_board->history.count - 1U;
-    //uint src_idx = ptr_board->history.moves[move_idx];
+    const uint move_idx = ptr_board->history.count - 1U;
+    const uint src_idx = ptr_board->history.moves[move_idx] SCE_CHESSMOVE_GET_SRC;
+    const uint64_t src = 1ULL << src_idx;
+    const uint dst_idx = ptr_board->history.moves[move_idx] SCE_CHESSMOVE_GET_DST;
+    const uint64_t dst = 1ULL << dst_idx;
+    const uint flag = ptr_board->history.moves[move_idx] SCE_CHESSMOVE_GET_FLAG;
+    const uint moving_piece = ptr_board->undo_states[move_idx].moving_piece;
+    const int captured_piece = ptr_board->undo_states[move_idx].captured_piece;
 
+    ptr_board->en_passant_idx = ptr_board->undo_states[move_idx].en_passant_square;
+    ptr_board->to_move = ptr_board->to_move == WHITE ? BLACK : WHITE;
+    ptr_board->castling_rights = ptr_board->undo_states[move_idx].castling_rights;
+    ptr_board->half_move_clock = ptr_board->undo_states[move_idx].half_move_clock;
+
+    // Restoration
+    // 1. Flag action
+    // 2. Move
+    // 3. Capture
+    switch (flag) {
+        // 1. Pawn Double Push: en passant square
+        case SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH:
+            break;
+        // 2. Promotion
+        case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT] ^= dst;
+            break;
+        case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_BISHOP : B_BISHOP] ^= dst;
+            break;
+        case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= dst;
+            break;
+        case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_QUEEN : B_QUEEN] ^= dst;
+            break;
+        // 3. Castling
+        case SCE_CHESSMOVE_FLAG_KING_CASTLE:
+            {
+                const uint rook_idx_src = dst_idx + 1U;
+                const uint rook_idx_dst = dst_idx - 1U;
+                const uint64_t rook_src = (1ULL << rook_idx_src);
+                const uint64_t rook_dst = (1ULL << rook_idx_dst);
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+            }
+            break;
+        case SCE_CHESSMOVE_FLAG_QUEEN_CASTLE:
+            {
+                const uint rook_idx_src = dst_idx - 2U;
+                const uint rook_idx_dst = dst_idx + 1U;
+                const uint64_t rook_src = (1ULL << rook_idx_src);
+                const uint64_t rook_dst = (1ULL << rook_idx_dst);
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+            }
+            break;
+        default:
+            break;
+    }
+
+    
+    // Standard undo-move
+    ptr_board->bitboards[moving_piece] ^= src | dst;
+
+    if (captured_piece != UNASSIGNED) {
+        if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
+            ptr_board->bitboards[captured_piece] ^= ptr_board->to_move == WHITE ? (1ULL << (dst_idx - CHESSBOARD_DIMENSION)) : (1ULL << (dst_idx + CHESSBOARD_DIMENSION));
+        } else {
+            ptr_board->bitboards[captured_piece] ^= dst;
+        }
+    }
 
 
     // Decrement move count at the end.
