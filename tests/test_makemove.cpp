@@ -157,3 +157,29 @@ TEST(MakeMove, FoolsMate) {
     // No escape square for white king
     ASSERT_TRUE(SCE_IsSquareAttacked(&board, &precpt_tbl, SCE_AN_To_Bitboard("F2"), BLACK));
 }
+
+TEST(MakeMove, EnPassant_DiscoveredCheck) {
+    BOARD_CLEAR_SETUP(board);
+
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D8", B_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D1", W_ROOK), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "D4", B_PAWN), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "C2", W_PAWN), SCE_SUCCESS);
+    board.to_move = WHITE;
+
+    // Double push by white pawn
+    SCE_ChessMove move = (SCE_AN_To_Idx("C2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
+    SCE_Chessboard_print(&board, WHITE);
+
+    // En passant
+    move = (SCE_AN_To_Idx("D4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C3") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_INVALID_MOVE);
+
+    SCE_Chessboard_print(&board, WHITE);
+}

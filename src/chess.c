@@ -1595,6 +1595,14 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
     }
     // Update castling right
     ptr_board->castling_rights &= ptr_precomputation_table->castling_mask[src_idx] & ptr_precomputation_table->castling_mask[dst_idx];
+
+    // Final check: is previous king in check?
+    const uint64_t prev_king_square = ptr_board->bitboards[ptr_board->to_move == WHITE ? B_KING : W_KING];
+    if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_table, prev_king_square, ptr_board->to_move)) {
+        RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "King is in check, but could not unmake.");
+        return SCE_INVALID_MOVE;
+    }
+    
     return SCE_SUCCESS;
 }
 
