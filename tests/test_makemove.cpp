@@ -62,7 +62,7 @@ TEST(MakeMove, MakeMove_White_Queen_Promotion_EnPassant) {
     ASSERT_TRUE(board.bitboards[W_QUEEN] & SCE_AN_To_Bitboard("D8"));
 }
 
-TEST(MakeMove, Castling_Kingside) {
+TEST(MakeMove, White_Castling_Kingside_Black_Castling_Queenside) {
     BOARD_CLEAR_SETUP(board);
 
     SCE_PieceMovementPrecomputationTable precpt_tbl;
@@ -88,7 +88,7 @@ TEST(MakeMove, Castling_Kingside) {
 
     debug_print_board(&board);
 
-    move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WK);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WQ);
@@ -97,11 +97,11 @@ TEST(MakeMove, Castling_Kingside) {
 
     ASSERT_TRUE(board.bitboards[W_KING] & SCE_AN_To_Bitboard("G1"));
     ASSERT_TRUE(board.bitboards[W_ROOK] & SCE_AN_To_Bitboard("F1"));
-    ASSERT_TRUE(board.bitboards[B_KING] & SCE_AN_To_Bitboard("G8"));
-    ASSERT_TRUE(board.bitboards[B_ROOK] & SCE_AN_To_Bitboard("F8"));
+    ASSERT_TRUE(board.bitboards[B_KING] & SCE_AN_To_Bitboard("C8"));
+    ASSERT_TRUE(board.bitboards[B_ROOK] & SCE_AN_To_Bitboard("D8"));
 }
 
-TEST(MakeMove, Castling_Queenside) {
+TEST(MakeMove, Black_Castling_Kingside_White_Castling_Queenside) {
     BOARD_CLEAR_SETUP(board);
 
     SCE_PieceMovementPrecomputationTable precpt_tbl;
@@ -125,7 +125,7 @@ TEST(MakeMove, Castling_Queenside) {
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BK);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BQ);
 
-    move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WK);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WQ);
@@ -134,8 +134,8 @@ TEST(MakeMove, Castling_Queenside) {
 
     ASSERT_TRUE(board.bitboards[W_KING] & SCE_AN_To_Bitboard("C1"));
     ASSERT_TRUE(board.bitboards[W_ROOK] & SCE_AN_To_Bitboard("D1"));
-    ASSERT_TRUE(board.bitboards[B_KING] & SCE_AN_To_Bitboard("C8"));
-    ASSERT_TRUE(board.bitboards[B_ROOK] & SCE_AN_To_Bitboard("D8"));
+    ASSERT_TRUE(board.bitboards[B_KING] & SCE_AN_To_Bitboard("G8"));
+    ASSERT_TRUE(board.bitboards[B_ROOK] & SCE_AN_To_Bitboard("F8"));
 }
 
 TEST(MakeMove, FoolsMate) {
