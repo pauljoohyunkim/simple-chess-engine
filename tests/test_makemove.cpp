@@ -76,6 +76,8 @@ TEST(MakeMove, Castling_Kingside) {
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
     board.to_move = WHITE;
 
+    debug_print_board(&board);
+
     // Castle king side.
     SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
@@ -83,6 +85,8 @@ TEST(MakeMove, Castling_Kingside) {
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WQ);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BK);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BQ);
+
+    debug_print_board(&board);
 
     move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
@@ -110,6 +114,8 @@ TEST(MakeMove, Castling_Queenside) {
     ASSERT_EQ(place_piece_on_board(&board, "H1", W_ROOK), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
     board.to_move = WHITE;
+
+    debug_print_board(&board);
 
     // Castle queen side.
     SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);

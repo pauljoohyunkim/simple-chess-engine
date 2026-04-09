@@ -1510,6 +1510,15 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
     }
 
     {
+        // Castling pre-journal check: If king is under attack, castling is not allowed.
+        if ((flag == SCE_CHESSMOVE_FLAG_KING_CASTLE || flag == SCE_CHESSMOVE_FLAG_QUEEN_CASTLE) && (moving_piece_type == W_KING || moving_piece_type == B_KING)) {
+            if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_table, src, ptr_board->to_move == WHITE ? BLACK : WHITE)) {
+                return SCE_INVALID_MOVE;
+            }
+        }
+    }
+
+    {
         // Journalling
         ptr_board->undo_states[ptr_board->history.count].moving_piece = moving_piece_type;
         ptr_board->undo_states[ptr_board->history.count].captured_piece =  captured_piece_type;
@@ -1518,7 +1527,7 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
         ptr_board->undo_states[ptr_board->history.count].half_move_clock = ptr_board->half_move_clock;
         // This automatically increments the count
         // TODO: Check for success.
-        SCE_AddToMoveList(move, &ptr_board->history);
+        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ptr_board->history), "Adding to list failed!");
     }
 
     {
@@ -1597,11 +1606,21 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
     // Update castling right
     ptr_board->castling_rights &= ptr_precomputation_table->castling_mask[src_idx] & ptr_precomputation_table->castling_mask[dst_idx];
 
-    // Final check: is previous king in check?
+    // Final Checks:
+    // 1. Is previous king in check?
     const uint64_t prev_king_square = ptr_board->bitboards[ptr_board->to_move == WHITE ? B_KING : W_KING];
     if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_table, prev_king_square, ptr_board->to_move)) {
         RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "King is in check, but could not unmake.");
         return SCE_INVALID_MOVE;
+    }
+    // 2. For castling, is through square under attack?
+    if (flag == SCE_CHESSMOVE_FLAG_KING_CASTLE || flag == SCE_CHESSMOVE_FLAG_QUEEN_CASTLE) {
+        const uint through_idx = flag == SCE_CHESSMOVE_FLAG_KING_CASTLE ? src_idx + 1U : src_idx - 1U;
+        const uint64_t through = (1ULL << through_idx);
+        if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_table, through, ptr_board->to_move)) {
+            RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "King is in check, but could not unmake.");
+            return SCE_INVALID_MOVE;
+        }
     }
     
     return SCE_SUCCESS;
