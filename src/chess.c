@@ -12,19 +12,19 @@ typedef unsigned int uint;
 
 
 // Static functions for generating components of precomputation table.
-static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
-static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
+static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
 
-static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
 #ifdef __GNUC__
 #define COUNT_SET_BITS __builtin_popcountll
@@ -46,7 +46,7 @@ static uint count_set_bits(uint64_t n) {
 }
 #endif
 
-int SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
+SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     if (ptr_list == NULL) return SCE_INVALID_PARAM;
 
     memset(ptr_list, 0, sizeof(SCE_ChessMoveList));
@@ -54,7 +54,7 @@ int SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     return SCE_SUCCESS;
 }
 
-int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
+SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < N_TYPES_PIECES; i++) {
@@ -64,12 +64,13 @@ int SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
-    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
+    ptr_board->half_move_clock = 0U;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
 
-int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
+SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return SCE_INVALID_PARAM;
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ptr_board), "Error when clearing board!");
@@ -93,7 +94,7 @@ int SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
-    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
@@ -128,7 +129,7 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Chessboard* const ptr_board, c
     return occupancy;
 }
 
-int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
+SCE_Return SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
     if (ptr_board == NULL) return SCE_INVALID_PARAM;
     if (color != WHITE && color != BLACK) return SCE_INVALID_PARAM;
 
@@ -160,7 +161,7 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
             for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
                 if (ptr_board->bitboards[piece_type] & pos) {
                     // Check exclusive ownership of square.
-                    if (piece_in_square != UNASSIGNED) return SCE_FAILURE;
+                    if (piece_in_square != UNASSIGNED) return SCE_INVALID_BOARD_STATE;
 
                     piece_in_square = (int) piece_type;
                 }
@@ -225,8 +226,8 @@ int SCE_Chessboard_print(SCE_Chessboard* const ptr_board, PieceColor color) {
     return SCE_SUCCESS;
 }
 
-int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
-    if (ptr_precomputation_tbl == NULL) return SCE_FAILURE;
+SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+    if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     // Empty the table.
     memset(ptr_precomputation_tbl, 0, sizeof(SCE_PieceMovementPrecomputationTable));
@@ -245,7 +246,7 @@ int SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_
 #define UP << 8U
 #define LEFT >> 1U
 #define RIGHT << 1U
-static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -313,7 +314,7 @@ static int SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr
     return SCE_SUCCESS;
 }
 
-static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -382,7 +383,7 @@ static int SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
     return SCE_SUCCESS;
 }
 
-static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -466,7 +467,7 @@ static int SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
 
 }
 
-static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -564,7 +565,7 @@ static int SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_p
     return SCE_SUCCESS;
 }
 
-static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -582,7 +583,7 @@ static int SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* con
     return SCE_SUCCESS;
 }
 
-static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
+static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
     if (ptr_movelist == NULL) return SCE_INVALID_PARAM;
     if (ptr_movelist->count == N_MAX_MOVES - 1U) { 
         fprintf(stderr, "Adding to move list failure: MoveList full.\n");
@@ -605,7 +606,7 @@ static int SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
 }
 
 // Generate moves that the piece can physically move to without pins or checks.
-static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     // 1. Generate pseudolegal moves for knights
@@ -623,7 +624,7 @@ static int SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
     return SCE_SUCCESS;
 }
 
-static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     const uint piece_types[] = { W_KNIGHT, B_KNIGHT };
@@ -661,7 +662,7 @@ static int SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
     return SCE_SUCCESS;
 }
 
-static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     const uint piece_types[] = { W_KING, B_KING };
@@ -752,7 +753,7 @@ static int SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_moveli
     return SCE_SUCCESS;
 }
 
-static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
@@ -1056,7 +1057,7 @@ static int SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_move
     return SCE_SUCCESS;
 }
 
-static int SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     // Four cases:
@@ -1433,7 +1434,7 @@ uint64_t SCE_AN_To_Bitboard(const char* an) {
     return 1ULL << (uint) idx;
 }
 
-int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
+SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
     if (an_out == NULL || COUNT_SET_BITS(bitboard) != 1) {
         return SCE_INVALID_PARAM;
     }
@@ -1449,7 +1450,7 @@ int SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
     return SCE_SUCCESS;
 }
 
-int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move) {
+SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move) {
     if (ptr_board == NULL || ptr_precomputation_table == NULL) return SCE_INVALID_PARAM;
 
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
@@ -1509,14 +1510,24 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
     }
 
     {
+        // Castling pre-journal check: If king is under attack, castling is not allowed.
+        if ((flag == SCE_CHESSMOVE_FLAG_KING_CASTLE || flag == SCE_CHESSMOVE_FLAG_QUEEN_CASTLE) && (moving_piece_type == W_KING || moving_piece_type == B_KING)) {
+            if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_table, src, ptr_board->to_move == WHITE ? BLACK : WHITE)) {
+                return SCE_INVALID_MOVE;
+            }
+        }
+    }
+
+    {
         // Journalling
-        ptr_board->undo_states[ptr_board->moves.count].captured_piece =  captured_piece_type;
-        ptr_board->undo_states[ptr_board->moves.count].en_passant_square = ptr_board->en_passant_idx;
-        ptr_board->undo_states[ptr_board->moves.count].castling_rights = ptr_board->castling_rights;
-        ptr_board->undo_states[ptr_board->moves.count].half_move_clock = ptr_board->half_move_clock;
+        ptr_board->undo_states[ptr_board->history.count].moving_piece = moving_piece_type;
+        ptr_board->undo_states[ptr_board->history.count].captured_piece =  captured_piece_type;
+        ptr_board->undo_states[ptr_board->history.count].en_passant_square = ptr_board->en_passant_idx;
+        ptr_board->undo_states[ptr_board->history.count].castling_rights = ptr_board->castling_rights;
+        ptr_board->undo_states[ptr_board->history.count].half_move_clock = ptr_board->half_move_clock;
         // This automatically increments the count
         // TODO: Check for success.
-        SCE_AddToMoveList(move, &ptr_board->moves);
+        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ptr_board->history), "Adding to list failed!");
     }
 
     {
@@ -1594,10 +1605,117 @@ int SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputatio
     }
     // Update castling right
     ptr_board->castling_rights &= ptr_precomputation_table->castling_mask[src_idx] & ptr_precomputation_table->castling_mask[dst_idx];
+
+    // Final Checks:
+    // 1. Is previous king in check?
+    const uint64_t prev_king_square = ptr_board->bitboards[ptr_board->to_move == WHITE ? B_KING : W_KING];
+    if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_table, prev_king_square, ptr_board->to_move)) {
+        RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "King is in check, but could not unmake.");
+        return SCE_INVALID_MOVE;
+    }
+    // 2. For castling, is through square under attack?
+    if (flag == SCE_CHESSMOVE_FLAG_KING_CASTLE || flag == SCE_CHESSMOVE_FLAG_QUEEN_CASTLE) {
+        const uint through_idx = flag == SCE_CHESSMOVE_FLAG_KING_CASTLE ? src_idx + 1U : src_idx - 1U;
+        const uint64_t through = (1ULL << through_idx);
+        if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_table, through, ptr_board->to_move)) {
+            RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "King is in check, but could not unmake.");
+            return SCE_INVALID_MOVE;
+        }
+    }
+    
     return SCE_SUCCESS;
 }
 
-int SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table) {
+    if (ptr_board == NULL || ptr_precomputation_table == NULL) return SCE_INVALID_PARAM;
+    if (ptr_board->history.count == 0U) return SCE_MOVELIST_EMPTY;
+
+    // Index to latest move/undo state
+    const uint move_idx = ptr_board->history.count - 1U;
+    const uint src_idx = ptr_board->history.moves[move_idx] SCE_CHESSMOVE_GET_SRC;
+    const uint64_t src = 1ULL << src_idx;
+    const uint dst_idx = ptr_board->history.moves[move_idx] SCE_CHESSMOVE_GET_DST;
+    const uint64_t dst = 1ULL << dst_idx;
+    const uint flag = ptr_board->history.moves[move_idx] SCE_CHESSMOVE_GET_FLAG;
+    const uint moving_piece = ptr_board->undo_states[move_idx].moving_piece;
+    const int captured_piece = ptr_board->undo_states[move_idx].captured_piece;
+
+    ptr_board->en_passant_idx = ptr_board->undo_states[move_idx].en_passant_square;
+    ptr_board->to_move = ptr_board->to_move == WHITE ? BLACK : WHITE;
+    ptr_board->castling_rights = ptr_board->undo_states[move_idx].castling_rights;
+    ptr_board->half_move_clock = ptr_board->undo_states[move_idx].half_move_clock;
+
+    // Restoration
+    // 1. Flag action
+    // 2. Move
+    // 3. Capture
+    switch (flag) {
+        // 1. Pawn Double Push: en passant square
+        case SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH:
+            break;
+        // 2. Promotion
+        case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT] ^= dst;
+            break;
+        case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_BISHOP : B_BISHOP] ^= dst;
+            break;
+        case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= dst;
+            break;
+        case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
+        case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
+            ptr_board->bitboards[ptr_board->to_move == WHITE ? W_QUEEN : B_QUEEN] ^= dst;
+            break;
+        // 3. Castling
+        case SCE_CHESSMOVE_FLAG_KING_CASTLE:
+            {
+                const uint rook_idx_src = dst_idx + 1U;
+                const uint rook_idx_dst = dst_idx - 1U;
+                const uint64_t rook_src = (1ULL << rook_idx_src);
+                const uint64_t rook_dst = (1ULL << rook_idx_dst);
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+            }
+            break;
+        case SCE_CHESSMOVE_FLAG_QUEEN_CASTLE:
+            {
+                const uint rook_idx_src = dst_idx - 2U;
+                const uint rook_idx_dst = dst_idx + 1U;
+                const uint64_t rook_src = (1ULL << rook_idx_src);
+                const uint64_t rook_dst = (1ULL << rook_idx_dst);
+                ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+            }
+            break;
+        default:
+            break;
+    }
+
+    
+    // Standard undo-move
+    ptr_board->bitboards[moving_piece] ^= src | dst;
+
+    if (captured_piece != UNASSIGNED) {
+        if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
+            ptr_board->bitboards[captured_piece] ^= ptr_board->to_move == WHITE ? (1ULL << (dst_idx - CHESSBOARD_DIMENSION)) : (1ULL << (dst_idx + CHESSBOARD_DIMENSION));
+        } else {
+            ptr_board->bitboards[captured_piece] ^= dst;
+        }
+    }
+
+
+    // Decrement move count at the end.
+    ptr_board->history.count--;
+    return SCE_SUCCESS;
+}
+
+SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     // TODO: Implement this
     RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Could not generate pseudolegal moves.\n");
     return SCE_SUCCESS;
