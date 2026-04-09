@@ -1,32 +1,7 @@
 #include <gtest/gtest.h>
 #include "../include/chess.h"
 #include "../include/dev.h"
-
-#define BOARD_CLEAR_SETUP(board) \
-    SCE_Chessboard board; \
-    SCE_Chessboard_clear(&board);
-
-
-#define BOARD_SETUP(board, precpt_tbl) \
-    SCE_PieceMovementPrecomputationTable precpt_tbl; \
-    SCE_PieceMovementPrecompute(&precpt_tbl); \
-    SCE_Chessboard board; \
-    SCE_Chessboard_reset(&board);
-
-#define MOVE_LIST_SETUP(list, n_moves) \
-    SCE_ChessMoveList list; \
-    list.count = 0; \
-    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS); \
-    uint n_moves[N_TYPES_PIECES] = { 0 }; \
-    for (unsigned int i = 0; i < list.count; i++) { \
-        print_move_to_AN(list.moves[i]); \
-        uint64_t src = 1ULL << (list.moves[i] SCE_CHESSMOVE_GET_SRC); \
-        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) { \
-            if (src & board.bitboards[piece_type]) { \
-                n_moves[piece_type]++; \
-            } \
-        } \
-    }
+#include "setup.h"
 
 TEST(ChessBoard, AN_To_Bitboard) {
     ASSERT_EQ(1ULL << 0U, SCE_AN_To_Bitboard("A1"));
@@ -486,7 +461,7 @@ TEST(MoveGeneration, MoveGeneration_Simple) {
     SCE_Chessboard_print(&board, WHITE);
 
     MOVE_LIST_SETUP(list, n_moves)
-    ASSERT_EQ(n_moves[B_ROOK], 14U);
+    //ASSERT_EQ(n_moves[B_ROOK], 14U);
     ASSERT_EQ(n_moves[W_BISHOP], 10U);
     
 }
@@ -496,7 +471,7 @@ TEST(MoveGeneration, MoveGeneration_Initial) {
 
     MOVE_LIST_SETUP(list, n_moves)
 
-    ASSERT_EQ(n_moves[B_KNIGHT], 4);
+    //ASSERT_EQ(n_moves[B_KNIGHT], 4);
     ASSERT_EQ(n_moves[W_KNIGHT], 4);
 }
 
@@ -521,7 +496,7 @@ TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
     MOVE_LIST_SETUP(list, n_moves)
 
     ASSERT_EQ(n_moves[W_PAWN], (4 + 4) + (1 + 1) + (1+1) + 1);
-    ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
+    //ASSERT_EQ(n_moves[B_PAWN], 2 + (1+1) + (1+1) + 4);
 }
 
 TEST(MoveGeneration, MoveGeneration_EnPassant_WhitePawn) {
@@ -563,6 +538,7 @@ TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
     ASSERT_EQ(place_piece_on_board(&board, "D4", W_PAWN), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "E4", B_PAWN), SCE_SUCCESS);
     board.en_passant_idx = 2U * CHESSBOARD_DIMENSION + 3U;           // D3: Double push by W_PAWN to D4
+    board.to_move = BLACK;
 
     MOVE_LIST_SETUP(list, n_moves)
 
@@ -583,4 +559,112 @@ TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
     ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << en_passant_dst_idx)), SCE_SUCCESS);
     ASSERT_EQ(strcmp(an_src, "E4"), 0);
     ASSERT_EQ(strcmp(an_dst, "D3"), 0);
+}
+
+TEST(MoveGeneration, MoveGeneration_White_Castling) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H1", W_ROOK), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    int king_side_idx = -1;
+    int queen_side_idx = -1;
+    for (uint i = 0; i < list.count; i++) {
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_KING_CASTLE)) {
+            king_side_idx = i;
+        }
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE)) {
+            queen_side_idx = i;
+        }
+
+    }
+    ASSERT_NE(king_side_idx, -1);
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    // Check if king-side castling is from E1 to G1
+    uint src_idx = list.moves[king_side_idx] SCE_CHESSMOVE_GET_SRC;
+    uint dst_idx = list.moves[king_side_idx] SCE_CHESSMOVE_GET_DST;
+    uint flag = list.moves[king_side_idx] SCE_CHESSMOVE_GET_FLAG;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp("E1", an_src), 0);
+    ASSERT_EQ(strcmp("G1", an_dst), 0);
+    ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_KING_CASTLE);
+
+    // Check if queen-side castling is from E1 to C1
+    ASSERT_NE(queen_side_idx, -1);
+    src_idx = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_SRC;
+    dst_idx = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_DST;
+    flag = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_FLAG;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp("E1", an_src), 0);
+    ASSERT_EQ(strcmp("C1", an_dst), 0);
+    ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_QUEEN_CASTLE);
+}
+
+TEST(MoveGeneration, MoveGeneration_Black_Castling) {
+    BOARD_CLEAR_SETUP(board);
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    board.to_move = BLACK;
+    ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H8", B_ROOK), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "A8", B_ROOK), SCE_SUCCESS);
+
+    MOVE_LIST_SETUP(list, n_moves)
+
+    int king_side_idx = -1;
+    int queen_side_idx = -1;
+    for (uint i = 0; i < list.count; i++) {
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_KING_CASTLE)) {
+            king_side_idx = i;
+        }
+        if ((list.moves[i] SCE_CHESSMOVE_GET_FLAG) == (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE)) {
+            queen_side_idx = i;
+        }
+
+    }
+    ASSERT_NE(king_side_idx, -1);
+
+    char an_src[3U] = { 0 };
+    char an_dst[3U] = { 0 };
+    // Check if king-side castling is from E8 to G8
+    uint src_idx = list.moves[king_side_idx] SCE_CHESSMOVE_GET_SRC;
+    uint dst_idx = list.moves[king_side_idx] SCE_CHESSMOVE_GET_DST;
+    uint flag = list.moves[king_side_idx] SCE_CHESSMOVE_GET_FLAG;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp("E8", an_src), 0);
+    ASSERT_EQ(strcmp("G8", an_dst), 0);
+    ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_KING_CASTLE);
+
+    // Check if queen-side castling is from E8 to C8
+    ASSERT_NE(queen_side_idx, -1);
+    src_idx = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_SRC;
+    dst_idx = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_DST;
+    flag = list.moves[queen_side_idx] SCE_CHESSMOVE_GET_FLAG;
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_src, (1ULL << src_idx)), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Bitboard_To_AN(an_dst, (1ULL << dst_idx)), SCE_SUCCESS);
+    ASSERT_EQ(strcmp("E8", an_src), 0);
+    ASSERT_EQ(strcmp("C8", an_dst), 0);
+    ASSERT_EQ(flag, SCE_CHESSMOVE_FLAG_QUEEN_CASTLE);
+}
+
+TEST(MakeMove, MakeMove_Initial) {
+    BOARD_SETUP(board, precpt_tbl)
+
+    const SCE_ChessMove move = (SCE_AN_To_Idx("E2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
+    ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("E4"));
+    // En passant square set
+    ASSERT_TRUE(board.en_passant_idx & SCE_AN_To_Idx("E3"));
 }

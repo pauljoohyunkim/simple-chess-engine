@@ -20,12 +20,12 @@ void print_as_board(const uint64_t val) {
     printf("\n");
 }
 
-int place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, uint piece_type) {
-    if (ptr_board == NULL || an == NULL || piece_type >= N_TYPES_PIECES) return SCE_FAILURE;
+SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, uint piece_type) {
+    if (ptr_board == NULL || an == NULL || piece_type >= N_TYPES_PIECES) return SCE_INVALID_PARAM;
 
     // Get bitboard form of algebraic notation
     const uint64_t loc = SCE_AN_To_Bitboard(an);
-    if (loc == 0) return SCE_FAILURE;
+    if (loc == 0) return SCE_INTERNAL_ERROR;
 
     // Empty out the specific loc.
     for (uint i = 0; i < N_TYPES_PIECES; i++) {
@@ -37,7 +37,7 @@ int place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an,
     return SCE_SUCCESS;
 }
 
-int print_move_to_AN(const SCE_ChessMove move) {
+SCE_Return print_move_to_AN(const SCE_ChessMove move) {
     const uint64_t src = 1ULL << (move SCE_CHESSMOVE_GET_SRC);
     const uint64_t dst = 1ULL << (move SCE_CHESSMOVE_GET_DST);
     const uint flag = move SCE_CHESSMOVE_GET_FLAG;
@@ -94,10 +94,29 @@ int print_move_to_AN(const SCE_ChessMove move) {
             printf("QUEEN_PROMO_CAPTURE ");
             break;
         default:
-            return SCE_FAILURE;
+            return SCE_INVALID_MOVE;
     }
 
     printf("\n");
 
     return SCE_SUCCESS;
+}
+
+SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
+    if (ptr_board == NULL) return SCE_INVALID_PARAM;
+
+    SCE_Chessboard_print(ptr_board, WHITE);
+    for (uint i = 0U; i < ptr_board->history.count; i++) {
+        printf("Move: \n");
+        print_move_to_AN(ptr_board->history.moves[i]);
+        const SCE_UndoState* state = &ptr_board->undo_states[i];
+        printf("UndoState:\n");
+        printf("(MP, CP, EP, CastleR, HalfMoveClock, Hash): (%d, %d, %d, %d, %d, %d)\n",
+            state->moving_piece,
+            state->captured_piece,
+            state->en_passant_square,
+            state->castling_rights,
+            state->half_move_clock,
+            state->zobrist_hash);
+    }
 }
