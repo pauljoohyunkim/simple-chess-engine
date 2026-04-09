@@ -111,7 +111,7 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
         print_move_to_AN(ptr_board->history.moves[i]);
         const SCE_UndoState* state = &ptr_board->undo_states[i];
         printf("UndoState:\n");
-        printf("(MP, CP, EP, CastleR, HalfMoveClock, Hash): (%d, %d, %d, %d, %d, %d)\n",
+        printf("(MP, CP, EP, CastleR, HalfMoveClock, Hash): (%d, %d, %d, %d, %d, %ld)\n",
             state->moving_piece,
             state->captured_piece,
             state->en_passant_square,
@@ -119,4 +119,6 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
             state->half_move_clock,
             state->zobrist_hash);
     }
+
+    return SCE_SUCCESS;
 }
