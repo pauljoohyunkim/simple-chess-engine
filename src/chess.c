@@ -64,7 +64,7 @@ SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
-    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
@@ -93,7 +93,7 @@ SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
-    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->moves), "Error when clearing chess move list");
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
@@ -1510,13 +1510,13 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
 
     {
         // Journalling
-        ptr_board->undo_states[ptr_board->moves.count].captured_piece =  captured_piece_type;
-        ptr_board->undo_states[ptr_board->moves.count].en_passant_square = ptr_board->en_passant_idx;
-        ptr_board->undo_states[ptr_board->moves.count].castling_rights = ptr_board->castling_rights;
-        ptr_board->undo_states[ptr_board->moves.count].half_move_clock = ptr_board->half_move_clock;
+        ptr_board->undo_states[ptr_board->history.count].captured_piece =  captured_piece_type;
+        ptr_board->undo_states[ptr_board->history.count].en_passant_square = ptr_board->en_passant_idx;
+        ptr_board->undo_states[ptr_board->history.count].castling_rights = ptr_board->castling_rights;
+        ptr_board->undo_states[ptr_board->history.count].half_move_clock = ptr_board->half_move_clock;
         // This automatically increments the count
         // TODO: Check for success.
-        SCE_AddToMoveList(move, &ptr_board->moves);
+        SCE_AddToMoveList(move, &ptr_board->history);
     }
 
     {
@@ -1599,7 +1599,16 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
 
 SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table) {
     if (ptr_board == NULL || ptr_precomputation_table == NULL) return SCE_INVALID_PARAM;
+    if (ptr_board->history.count == 0U) return SCE_MOVELIST_EMPTY;
 
+    // Index to latest move/undo state
+    uint move_idx = ptr_board->history.count - 1U;
+    //uint src_idx = ptr_board->history.moves[move_idx];
+
+
+
+    // Decrement move count at the end.
+    ptr_board->history.count--;
     return SCE_SUCCESS;
 }
 
