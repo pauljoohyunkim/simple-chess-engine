@@ -183,3 +183,24 @@ TEST(MakeMove, EnPassant_DiscoveredCheck) {
 
     debug_print_board(&board);
 }
+
+TEST(MakeMove, Castle_Through_Check) {
+    BOARD_CLEAR_SETUP(board);
+
+    SCE_PieceMovementPrecomputationTable precpt_tbl;
+    SCE_PieceMovementPrecompute(&precpt_tbl);
+
+    ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "H1", W_ROOK), SCE_SUCCESS);
+    ASSERT_EQ(place_piece_on_board(&board, "G2", B_BISHOP), SCE_SUCCESS);
+    board.to_move = WHITE;
+
+    debug_print_board(&board);
+
+    // Double push by white pawn
+    SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    //ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_INVALID_MOVE);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_INVALID_MOVE);
+
+    debug_print_board(&board);
+}
