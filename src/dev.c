@@ -143,8 +143,8 @@ uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementP
         if (ret == SCE_SUCCESS) {
             count += perft_count(ptr_board, ptr_precomputation_table, depth-1);
             RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "Could not unmake move after a successful makemove.");
-            memcpy(&board_after, ptr_board, sizeof(SCE_Chessboard));
         }
+        memcpy(&board_after, ptr_board, sizeof(SCE_Chessboard));
         if (memcmp(&board_after, &board_before, sizeof(uint64_t) * N_TYPES_PIECES) != 0) {
             fprintf(stderr, "Depth: %d\n", depth);
             print_move_to_AN(pseudolegal_moves.moves[i]);
