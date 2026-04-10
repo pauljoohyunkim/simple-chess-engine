@@ -3,42 +3,19 @@
 #include "../include/dev.h"
 #include "setup.h"
 
-TEST(PERFT, Initial_Depth_1) {
-    BOARD_SETUP(board, precomputation_table)
+TEST(PERFT, Initial_Depth_1_to_5) {
+    const uint testvector[5U] = { 20, 400, 8902, 197281, 4865609 };
+    for (uint depth = 1U; depth <= 5U; depth++) {
+        BOARD_SETUP(board, precomputation_table)
 
-    const uint count = perft_count(&board, &precomputation_table, 1U);
+        const uint count = perft_count(&board, &precomputation_table, depth);
 
-    ASSERT_EQ(count, 20);
+        ASSERT_EQ(count, testvector[depth-1]);
+    }
+
 }
 
-TEST(PERFT, Initial_Depth_2) {
-    BOARD_SETUP(board, precomputation_table)
 
-    const uint count = perft_count(&board, &precomputation_table, 2U);
-
-    ASSERT_EQ(count, 400);
-}
-
-TEST(PERFT, Initial_Depth_3) {
-    BOARD_SETUP(board, precomputation_table)
-
-    const uint count = perft_count(&board, &precomputation_table, 3U);
-
-    ASSERT_EQ(count, 8902);
-}
-
-TEST(PERFT, Initial_Depth_4) {
-    BOARD_SETUP(board, precomputation_table)
-
-    const uint count = perft_count(&board, &precomputation_table, 4U);
-
-    ASSERT_EQ(count, 197281);
-}
-
-TEST(PERFT, Initial_Depth_5) {
-    BOARD_SETUP(board, precomputation_table)
-
-    const uint count = perft_count(&board, &precomputation_table, 5U);
-
-    ASSERT_EQ(count, 4865609);
-}
+//TEST(PERFT, Kiwipete_Depth_1_to_5) {
+//
+//}
