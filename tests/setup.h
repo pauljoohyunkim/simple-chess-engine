@@ -17,7 +17,7 @@
 #define MOVE_LIST_SETUP(list, n_moves) \
     SCE_ChessMoveList list; \
     list.count = 0; \
-    ASSERT_EQ(SCE_GenerateLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS); \
+    ASSERT_EQ(SCE_GeneratePseudoLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS); \
     uint n_moves[N_TYPES_PIECES] = { 0 }; \
     for (unsigned int i = 0; i < list.count; i++) { \
         print_move_to_AN(list.moves[i]); \
