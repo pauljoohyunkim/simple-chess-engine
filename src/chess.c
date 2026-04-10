@@ -20,7 +20,6 @@ static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTab
 
 static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
 
-static SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
@@ -606,7 +605,7 @@ static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList*
 }
 
 // Generate moves that the piece can physically move to without pins or checks.
-static SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     // 1. Generate pseudolegal moves for knights
@@ -1712,11 +1711,5 @@ SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrec
 
     // Decrement move count at the end.
     ptr_board->history.count--;
-    return SCE_SUCCESS;
-}
-
-SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
-    // TODO: Implement this
-    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(ptr_movelist, ptr_board, ptr_precomputation_tbl), "Could not generate pseudolegal moves.\n");
     return SCE_SUCCESS;
 }

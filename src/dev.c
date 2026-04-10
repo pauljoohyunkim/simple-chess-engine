@@ -122,3 +122,14 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
 
     return SCE_SUCCESS;
 }
+
+uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const uint depth) {
+    if (ptr_board == NULL || ptr_precomputation_table == NULL) return 0U;
+
+    uint count = 0U;
+    for (uint ply = 0U; ply < depth; ply++) {
+        
+    }
+
+    return count;
+}
