@@ -26,6 +26,8 @@ extern "C" {
 
 #define N_TYPES_PIECES 12U
 
+#define UNASSIGNED (-1)
+
 #define PAWN_INITIAL_ROW (0xFFULL)
 #define KNIGHT_INITIAL_ROW ((1ULL << 6U) ^ (1ULL << 1U))
 #define BISHOP_INITIAL_ROW ((1ULL << 5U) ^ (1ULL << 2U))
