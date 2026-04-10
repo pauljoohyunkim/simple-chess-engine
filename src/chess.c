@@ -5,7 +5,6 @@
 #include "chess.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if ((x) <= 0) { fprintf(stderr, "%s\n", msg); return SCE_INTERNAL_ERROR; } } while (0);
-#define UNASSIGNED (-1)
 
 #define MIN(x, y) ((x) > (y) ? (y) : (x))
 
