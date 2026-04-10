@@ -1227,7 +1227,7 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
 
             const SCE_ChessMove move = (((pawn_idx_dst + 7U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
-            if (pawn_idx_dst >= CHESSBOARD_DIMENSION * 2) {
+            if (pawn_idx_dst >= CHESSBOARD_DIMENSION) {
                 // Normal push
                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
             } else {
@@ -1246,7 +1246,7 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
 
             const SCE_ChessMove move = (((pawn_idx_dst + 9U) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST)) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
-            if (pawn_idx_dst >= CHESSBOARD_DIMENSION * 2) {
+            if (pawn_idx_dst >= CHESSBOARD_DIMENSION) {
                 // Normal push
                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
             } else {
