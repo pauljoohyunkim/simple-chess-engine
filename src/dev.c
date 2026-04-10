@@ -2,6 +2,8 @@
 #include "dev.h"
 #include "chess.h"
 
+#define RETURN_IF_SCE_FAILURE(x, msg) do { if ((x) <= 0) { fprintf(stderr, "%s\n", msg); return SCE_INTERNAL_ERROR; } } while (0);
+
 typedef unsigned int uint;
 
 void print_as_board(const uint64_t val) {
@@ -125,10 +127,19 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
 
 uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const uint depth) {
     if (ptr_board == NULL || ptr_precomputation_table == NULL) return 0U;
+    if (depth == 0U) return 1U;
 
     uint count = 0U;
-    for (uint ply = 0U; ply < depth; ply++) {
-        
+    SCE_ChessMoveList pseudolegal_moves;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&pseudolegal_moves), "Could not clear move list.");
+    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ptr_board, ptr_precomputation_table), "Could not clear move list.");
+    for (uint i = 0U; i < pseudolegal_moves.count; i++) {
+        // For each move, try making the move. If successful, recursively call the function.
+        const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, pseudolegal_moves.moves[i]);
+        if (ret == SCE_SUCCESS) {
+            count += perft_count(ptr_board, ptr_precomputation_table, depth-1);
+            RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "Could not unmake move after a successful makemove.");
+        }
     }
 
     return count;
