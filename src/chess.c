@@ -626,7 +626,6 @@ SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
 static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
-    const uint piece_types[] = { W_KNIGHT, B_KNIGHT };
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
     const uint moving_piece_type = ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT;
@@ -664,7 +663,6 @@ static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
 static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
     if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
-    const uint piece_types[] = { W_KING, B_KING };
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
@@ -1064,7 +1062,6 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
     // 2. Double Push (At rank 2, 7)
     // 3. Capture (Seriously why can't these guys capture ahead)
 
-    const uint pawn_types[] = { W_PAWN, B_PAWN };
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ptr_board);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ptr_board, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ptr_board, BLACK);
