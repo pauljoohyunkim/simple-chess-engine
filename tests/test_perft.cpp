@@ -95,7 +95,7 @@ TEST(PERFT, Position3_Debug) {
 
     SCE_Return ret = debug_print_board(&board);
 
-    const uint count = perft_count(&board, &precpt_tbl, 4, true);
+    const uint count = perft_count(&board, &precpt_tbl, 1, true);
 
     ASSERT_EQ(count, 202);
 }

@@ -143,7 +143,7 @@ uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementP
             count += add_count;
             RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "Could not unmake move after a successful makemove.");
         }
-        if (root) {
+        if (root && ret == SCE_SUCCESS) {
             printf("\n");
             print_move_to_AN(pseudolegal_moves.moves[i]);
             printf("%d\n", add_count);
