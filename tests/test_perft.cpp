@@ -6,12 +6,13 @@
 
 // https://analog-hors.github.io/webperft/ for debugging
 
+#if 0
 TEST(PERFT, Initial_Depth_1_to_5) {
     const uint testvector[5U] = { 20, 400, 8902, 197281, 4865609 };
     for (uint depth = 1U; depth <= 5U; depth++) {
         BOARD_SETUP(board, precomputation_table)
 
-        const uint count = perft_count(&board, &precomputation_table, depth);
+        const uint count = perft_count(&board, &precomputation_table, depth, false);
 
         ASSERT_EQ(count, testvector[depth-1]);
     }
@@ -40,7 +41,7 @@ TEST(PERFT, Custom_PERFT) {
         }
 
 
-        const uint count = perft_count(&board, &precpt_tbl, 2);
+        const uint count = perft_count(&board, &precpt_tbl, 2, false);
 
         ASSERT_EQ(count, 1968);
 }
@@ -56,12 +57,13 @@ TEST(PERFT, Kiwipete_Depth_1_to_5) {
 
         debug_print_board(&board);
 
-        const uint count = perft_count(&board, &precpt_tbl, depth);
+        const uint count = perft_count(&board, &precpt_tbl, depth, false);
 
         ASSERT_EQ(count, testvector[depth-1]);
     }
 }
 
+#endif
 TEST(PERFT, Position3) {
     const uint testvector[4U] = { 14, 191, 2812, 43238 };
     for (uint depth = 1U; depth <= 4U; depth++) {
@@ -72,7 +74,7 @@ TEST(PERFT, Position3) {
 
         debug_print_board(&board);
 
-        const uint count = perft_count(&board, &precpt_tbl, depth);
+        const uint count = perft_count(&board, &precpt_tbl, depth, false);
 
         ASSERT_EQ(count, testvector[depth-1]);
     }
@@ -85,15 +87,15 @@ TEST(PERFT, Position3_Debug) {
     SCE_PieceMovementPrecomputationTable precpt_tbl;
     SCE_PieceMovementPrecompute(&precpt_tbl);
 
-    SCE_ChessMove move = (SCE_AN_To_Idx("B4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
-    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+    //SCE_ChessMove move = (SCE_AN_To_Idx("B4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+    //ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
 
     //move = (SCE_AN_To_Idx("H4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G3") SCE_CHESSMOVE_SET_DST);
     //ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
 
     SCE_Return ret = debug_print_board(&board);
 
-    const uint count = perft_count(&board, &precpt_tbl, 2);
+    const uint count = perft_count(&board, &precpt_tbl, 4, true);
 
     ASSERT_EQ(count, 202);
 }

@@ -126,7 +126,7 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
     return SCE_SUCCESS;
 }
 
-uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const uint depth) {
+uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const uint depth, const bool root) {
     if (ptr_board == NULL || ptr_precomputation_table == NULL) return 0U;
     if (depth == 0U) return 1U;
 
@@ -137,9 +137,16 @@ uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementP
     for (uint i = 0U; i < pseudolegal_moves.count; i++) {
         // For each move, try making the move. If successful, recursively call the function.
         const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, pseudolegal_moves.moves[i]);
+        uint add_count;
         if (ret == SCE_SUCCESS) {
-            count += perft_count(ptr_board, ptr_precomputation_table, depth-1);
+            add_count = perft_count(ptr_board, ptr_precomputation_table, depth-1, false);
+            count += add_count;
             RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "Could not unmake move after a successful makemove.");
+        }
+        if (root) {
+            printf("\n");
+            print_move_to_AN(pseudolegal_moves.moves[i]);
+            printf("%d\n", add_count);
         }
         //print_move_to_AN(pseudolegal_moves.moves[i]);
     }
