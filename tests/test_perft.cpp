@@ -80,22 +80,24 @@ TEST(PERFT, Position3) {
     }
 }
 
-// Position 3 + B4F4
+// Position 3 + e2e4 + f4f3 + {a5a4, a5a6, b4a4, b4b1, b4b2, b4b3, b4c4, g2g4}
+// Position 3 + g2g4 + ...
+// Position 3 + b4b* + ...
 TEST(PERFT, Position3_Debug) {
     SCE_Chessboard board;
     ASSERT_EQ(SCE_Chessboard_FEN_setup(&board, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"), SCE_SUCCESS);
     SCE_PieceMovementPrecomputationTable precpt_tbl;
     SCE_PieceMovementPrecompute(&precpt_tbl);
 
-    //SCE_ChessMove move = (SCE_AN_To_Idx("B4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
-    //ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+    SCE_ChessMove move = (SCE_AN_To_Idx("E2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
 
-    //move = (SCE_AN_To_Idx("H4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G3") SCE_CHESSMOVE_SET_DST);
-    //ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+    move = (SCE_AN_To_Idx("F4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F3") SCE_CHESSMOVE_SET_DST);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
 
     SCE_Return ret = debug_print_board(&board);
 
-    const uint count = perft_count(&board, &precpt_tbl, 1, true);
+    const uint count = perft_count(&board, &precpt_tbl, 2, true);
 
-    ASSERT_EQ(count, 202);
+    ASSERT_EQ(count, 174);
 }
