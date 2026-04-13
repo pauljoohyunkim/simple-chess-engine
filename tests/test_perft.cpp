@@ -6,7 +6,6 @@
 
 // https://analog-hors.github.io/webperft/ for debugging
 
-#if 0
 TEST(PERFT, Initial_Depth_1_to_5) {
     const uint testvector[5U] = { 20, 400, 8902, 197281, 4865609 };
     for (uint depth = 1U; depth <= 5U; depth++) {
@@ -63,7 +62,6 @@ TEST(PERFT, Kiwipete_Depth_1_to_5) {
     }
 }
 
-#endif
 TEST(PERFT, Position3) {
     const uint testvector[4U] = { 14, 191, 2812, 43238 };
     for (uint depth = 1U; depth <= 4U; depth++) {
@@ -80,6 +78,7 @@ TEST(PERFT, Position3) {
     }
 }
 
+/*
 // Position 3 + e2e4 + f4f3 + {a5a4, a5a6, b4a4, b4b1, b4b2, b4b3, b4c4, g2g4}
 // Position 3 + g2g4 + ...
 // Position 3 + b4b* + ...
@@ -95,9 +94,13 @@ TEST(PERFT, Position3_Debug) {
     move = (SCE_AN_To_Idx("F4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F3") SCE_CHESSMOVE_SET_DST);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
 
+    move = (SCE_AN_To_Idx("A5") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("A4") SCE_CHESSMOVE_SET_DST);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+
     SCE_Return ret = debug_print_board(&board);
 
-    const uint count = perft_count(&board, &precpt_tbl, 2, true);
+    const uint count = perft_count(&board, &precpt_tbl, 1, true);
 
-    ASSERT_EQ(count, 174);
+    ASSERT_EQ(count, 17);
 }
+*/
