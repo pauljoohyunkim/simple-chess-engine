@@ -126,11 +126,11 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
     return SCE_SUCCESS;
 }
 
-uint perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const uint depth, const bool root) {
+unsigned long long perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const uint depth, const bool root) {
     if (ptr_board == NULL || ptr_precomputation_table == NULL) return 0U;
     if (depth == 0U) return 1U;
 
-    uint count = 0U;
+    unsigned long long count = 0U;
     SCE_ChessMoveList pseudolegal_moves;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&pseudolegal_moves), "Could not clear move list.");
     RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ptr_board, ptr_precomputation_table), "Could not clear move list.");
