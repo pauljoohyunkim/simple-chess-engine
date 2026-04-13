@@ -46,9 +46,10 @@ TEST(PERFT, Custom_PERFT) {
 }
 
 
-TEST(PERFT, Kiwipete_Depth_1_to_5) {
-    const uint testvector[5U] = { 48, 2039, 97862, 4085603, 193690690 };
-    for (uint depth = 1U; depth <= 5U; depth++) {
+TEST(PERFT, Kiwipete_Depth_1_to_5_or_6) {
+    const uint testvector[] = { 48, 2039, 97862, 4085603, 193690690 };
+    //const uint testvector[] = { 48, 2039, 97862, 4085603, 193690690, 8031647685 };
+    for (uint depth = 1U; depth <= sizeof(testvector)/sizeof(testvector[0]); depth++) {
         SCE_Chessboard board;
         ASSERT_EQ(SCE_Chessboard_FEN_setup(&board, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
         SCE_PieceMovementPrecomputationTable precpt_tbl;
