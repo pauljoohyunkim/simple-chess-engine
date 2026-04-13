@@ -1618,6 +1618,12 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
             return SCE_INVALID_MOVE;
         }
     }
+    // 3. Update half-move clock
+    if (moving_piece_type == W_PAWN || moving_piece_type == B_PAWN || captured_piece_type != UNASSIGNED) {
+        ptr_board->half_move_clock = 0U;
+    } else {
+        ptr_board->half_move_clock++;
+    }
     
     return SCE_SUCCESS;
 }
