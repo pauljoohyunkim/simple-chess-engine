@@ -117,6 +117,7 @@ typedef struct {
     PieceColor to_move;
     uint8_t castling_rights;
     unsigned int half_move_clock;
+    uint64_t zobrist_hash;
     SCE_ChessMoveList history;
     SCE_UndoState undo_states[N_MAX_MOVES];
 } SCE_Chessboard;

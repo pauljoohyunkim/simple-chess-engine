@@ -66,6 +66,7 @@ SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     ptr_board->half_move_clock = 0U;
+    ptr_board->zobrist_hash = 0U;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -95,6 +96,8 @@ SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     ptr_board->en_passant_idx = UNASSIGNED;
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
+    ptr_board->half_move_clock = 0U;
+    ptr_board->zobrist_hash = 0U;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -1600,11 +1603,13 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
         ptr_board->undo_states[ptr_board->history.count].en_passant_square = ptr_board->en_passant_idx;
         ptr_board->undo_states[ptr_board->history.count].castling_rights = ptr_board->castling_rights;
         ptr_board->undo_states[ptr_board->history.count].half_move_clock = ptr_board->half_move_clock;
+        ptr_board->undo_states[ptr_board->history.count].zobrist_hash = ptr_board->zobrist_hash;
         // This automatically increments the count
         // TODO: Check for success.
         RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ptr_board->history), "Adding to list failed!");
     }
 
+    const int old_en_passant_idx = ptr_board->en_passant_idx;
     {
         // Execution
         // 1. Capture
@@ -1614,14 +1619,27 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
             if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
                 uint64_t captured_piece = ptr_board->to_move == WHITE ? (1ULL << (ptr_board->en_passant_idx - CHESSBOARD_DIMENSION)) : (1ULL << (ptr_board->en_passant_idx + CHESSBOARD_DIMENSION));
                 ptr_board->bitboards[captured_piece_type] ^= captured_piece;
+
+                // Zobrist: Captured piece
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[captured_piece_type][COUNT_TRAILING_ZEROS(captured_piece)];
             } else {
                 ptr_board->bitboards[captured_piece_type] ^= dst;
+
+                // Zobrist: Captured piece
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[captured_piece_type][dst_idx];
             }
         }
 
         // Standard move
         ptr_board->bitboards[moving_piece_type] ^= src | dst;
-        
+
+        {
+            // Zobrist: Source piece move
+            ptr_board->zobrist_hash ^= ptr_table->piece_key[moving_piece_type][src_idx];
+            ptr_board->zobrist_hash ^= ptr_table->piece_key[moving_piece_type][dst_idx];
+        }
+
+
         switch (flag) {
             // 1. Pawn Double Push: en passant square
             case SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH:
@@ -1674,12 +1692,35 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
     
     // Since successful, switch to_move
     ptr_board->to_move = ptr_board->to_move == WHITE ? BLACK : WHITE;
+    
+    // Zobrist: Side
+    ptr_board->zobrist_hash ^= ptr_table->side_key;
+
     // For non double-push move, unset en passant square
     if (flag != SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH) {
         ptr_board->en_passant_idx = UNASSIGNED;
     }
+
+    // Zobrist: En passant
+    if (old_en_passant_idx == UNASSIGNED) {
+        ptr_board->zobrist_hash ^= ptr_table->en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
+    } else {
+        ptr_board->zobrist_hash ^= ptr_table->en_passant_keys[old_en_passant_idx % CHESSBOARD_DIMENSION];
+    }
+    if (ptr_board->en_passant_idx == UNASSIGNED) {
+        ptr_board->zobrist_hash ^= ptr_table->en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
+    } else {
+        ptr_board->zobrist_hash ^= ptr_table->en_passant_keys[ptr_board->en_passant_idx % CHESSBOARD_DIMENSION];
+    }
+
+
     // Update castling right
+    const uint8_t old_castling_rights = ptr_board->castling_rights;
     ptr_board->castling_rights &= ptr_precomputation_table->castling_mask[src_idx] & ptr_precomputation_table->castling_mask[dst_idx];
+    
+    // Zobrist: Castling
+    ptr_board->zobrist_hash ^= ptr_table->castling_keys[old_castling_rights];
+    ptr_board->zobrist_hash ^= ptr_table->castling_keys[ptr_board->castling_rights];
 
     // Final Checks:
     // 1. Is previous king in check?
