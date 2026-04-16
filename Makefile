@@ -16,7 +16,9 @@ SRC=src
 TESTS=tests
 HTML=html
 SRCS=$(wildcard $(SRC)/*.c)
-OBJS=$(patsubst $(SRC)/%.c,$(OBJ)/%.o, $(SRCS))
+EVAL_SRCS = $(wildcard $(SRC)/eval/*.c)
+OBJS = $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS)) \
+       $(patsubst $(SRC)/eval/%.c, $(OBJ)/eval_%.o, $(EVAL_SRCS))
 TEST_SRCS=$(wildcard $(TESTS)/*.cpp)
 TEST_OBJS=$(patsubst $(TESTS)/%.cpp,$(OBJ)/%.o, $(TEST_SRCS))
 DEPS=$(OBJS:.o=.d)
@@ -37,6 +39,11 @@ $(BIN)/sce_play: $(OBJS)
 
 $(OBJ)/test_%.o: $(TESTS)/test_%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+
+$(OBJ)/eval_%.o: $(SRC)/eval/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@

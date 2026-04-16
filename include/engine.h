@@ -7,7 +7,7 @@ extern "C" {
 
 #include "chess.h"
 
-typedef SCE_Return (*SCE_Eval)(SCE_Chessboard* const);
+typedef int (*SCE_Eval)(SCE_Chessboard* const);
 
 typedef struct {
     SCE_Eval eval_function;
