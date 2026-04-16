@@ -677,9 +677,9 @@ TEST(Zobrist, ZobristHash) {
     SCE_ZobristTable z_table_2;
     ASSERT_EQ(SCE_ZobristTable_init(&z_table_2, NULL), SCE_SUCCESS);
 
-    for (unsigned int piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
-        for (unsigned int idx = 0U; idx < 64U; idx++) {
-            ASSERT_NE(z_table_1.zobrist_layers[piece_type][idx], z_table_2.zobrist_layers[piece_type][idx]);
-        }
+    for (unsigned int i = 0U; i < sizeof(SCE_ZobristTable) / sizeof(uint64_t); i++) {
+        const uint64_t x = *((uint64_t*) &z_table_1 + i);
+        const uint64_t y = *((uint64_t*) &z_table_2 + i);
+        ASSERT_NE(x, y);
     }
 }

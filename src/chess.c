@@ -11,6 +11,7 @@
 
 typedef unsigned int uint;
 
+static uint64_t xorshift(uint64_t x);
 
 // Static functions for generating components of precomputation table.
 static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
@@ -99,19 +100,42 @@ SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     return SCE_SUCCESS;
 }
 
+static uint64_t xorshift(uint64_t x) {
+    x ^= x << 13U;
+    x ^= x >> 17U;
+    x ^= x << 5U;
+    return x;
+}
+
 SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64_t* const ptr_seed) {
     if (ptr_table == NULL) return SCE_INVALID_PARAM;
     if (ptr_seed == NULL) srand(time(NULL));
 
     uint64_t x = ptr_seed == NULL ? rand() : (*ptr_seed);
+
+    // Piece keys
     for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
         for (uint idx = 0U; idx < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; idx++) {
-            x ^= x << 13U;
-            x ^= x >> 17U;
-            x ^= x << 5U;
-            ptr_table->zobrist_layers[piece_type][idx] = x;
+            x = xorshift(x);
+            ptr_table->piece_key[piece_type][idx] = x;
         }
     }
+
+    // Castling rights
+    for (uint i = 0U; i < 16U; i++) {
+        x = xorshift(x);
+        ptr_table->castling_keys[i] = x;
+    }
+
+    // En passant
+    for (uint i = 0U; i < 9U; i++) {
+        x = xorshift(x);
+        ptr_table->en_passant_keys[i] = x;
+    }
+
+    // Side key
+    x = xorshift(x);
+    ptr_table->side_key = x;
 
     return SCE_SUCCESS;
 }

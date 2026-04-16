@@ -122,7 +122,10 @@ typedef struct {
 } SCE_Chessboard;
 
 typedef struct {
-    uint64_t zobrist_layers[N_TYPES_PIECES][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    uint64_t piece_key[N_TYPES_PIECES][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    uint64_t castling_keys[16U];
+    uint64_t en_passant_keys[9U];
+    uint64_t side_key;
 } SCE_ZobristTable;
 
 typedef struct {
