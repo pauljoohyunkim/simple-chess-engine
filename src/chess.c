@@ -1650,21 +1650,33 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
             case SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE:
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT] ^= dst;
+
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_KNIGHT : B_KNIGHT][dst_idx];
                 break;
             case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
             case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_BISHOP : B_BISHOP] ^= dst;
+
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_BISHOP : B_BISHOP][dst_idx];
                 break;
             case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
             case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= dst;
+
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK][dst_idx];
                 break;
             case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
             case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN] ^= dst;
                 ptr_board->bitboards[ptr_board->to_move == WHITE ? W_QUEEN : B_QUEEN] ^= dst;
+
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
+                ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_QUEEN : B_QUEEN][dst_idx];
                 break;
             // 3. Castling
             case SCE_CHESSMOVE_FLAG_KING_CASTLE:
@@ -1674,6 +1686,9 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
                     const uint64_t rook_src = (1ULL << rook_idx_src);
                     const uint64_t rook_dst = (1ULL << rook_idx_dst);
                     ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+
+                    ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_src];
+                    ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_dst];
                 }
                 break;
             case SCE_CHESSMOVE_FLAG_QUEEN_CASTLE:
@@ -1683,6 +1698,9 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
                     const uint64_t rook_src = (1ULL << rook_idx_src);
                     const uint64_t rook_dst = (1ULL << rook_idx_dst);
                     ptr_board->bitboards[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
+
+                    ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_src];
+                    ptr_board->zobrist_hash ^= ptr_table->piece_key[ptr_board->to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_dst];
                 }
                 break;
             default:
