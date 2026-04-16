@@ -1784,6 +1784,7 @@ SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrec
     ptr_board->to_move = ptr_board->to_move == WHITE ? BLACK : WHITE;
     ptr_board->castling_rights = ptr_board->undo_states[move_idx].castling_rights;
     ptr_board->half_move_clock = ptr_board->undo_states[move_idx].half_move_clock;
+    ptr_board->zobrist_hash = ptr_board->undo_states[move_idx].zobrist_hash;
 
     // Restoration
     // 1. Flag action

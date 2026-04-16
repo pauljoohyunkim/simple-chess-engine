@@ -137,6 +137,10 @@ unsigned long long perft_count(const SCE_Chessboard* const ptr_board, const SCE_
     for (uint i = 0U; i < pseudolegal_moves.count; i++) {
         // For each move, try making the move. If successful, recursively call the function.
         const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, ptr_table, pseudolegal_moves.moves[i]);
+        //const uint64_t zobrist_hash = SCE_Chessboard_ComputeZobristHash(ptr_board, ptr_table);
+        //if (zobrist_hash != ptr_board->zobrist_hash) {
+        //    return SCE_INTERNAL_ERROR;
+        //}
         uint add_count;
         if (ret == SCE_SUCCESS) {
             add_count = perft_count(ptr_board, ptr_precomputation_table, ptr_table, depth-1, false);

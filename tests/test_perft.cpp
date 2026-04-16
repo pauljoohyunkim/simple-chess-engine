@@ -62,6 +62,8 @@ TEST(PERFT, Kiwipete_Depth_1_to_5_or_6) {
         SCE_ZobristTable zobrist_table;
         SCE_ZobristTable_init(&zobrist_table, NULL);
 
+        board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&board, &zobrist_table);
+
         debug_print_board(&board);
 
         const ull count = perft_count(&board, &precpt_tbl, &zobrist_table, depth, false);
@@ -80,6 +82,8 @@ TEST(PERFT, Position3) {
 
         SCE_ZobristTable zobrist_table;
         SCE_ZobristTable_init(&zobrist_table, NULL);
+
+        board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&board, &zobrist_table);
 
         debug_print_board(&board);
 

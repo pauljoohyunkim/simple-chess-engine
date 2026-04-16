@@ -14,7 +14,8 @@
     SCE_Chessboard board; \
     SCE_Chessboard_reset(&board); \
     SCE_ZobristTable zobrist_table; \
-    SCE_ZobristTable_init(&zobrist_table, NULL);
+    SCE_ZobristTable_init(&zobrist_table, NULL); \
+    board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&board, &zobrist_table);
 
 #define MOVE_LIST_SETUP(list, n_moves) \
     SCE_ChessMoveList list; \
