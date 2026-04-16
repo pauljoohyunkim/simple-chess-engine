@@ -126,8 +126,8 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
     return SCE_SUCCESS;
 }
 
-unsigned long long perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const uint depth, const bool root) {
-    if (ptr_board == NULL || ptr_precomputation_table == NULL) return 0U;
+unsigned long long perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ZobristTable* const ptr_table, const uint depth, const bool root) {
+    if (ptr_board == NULL || ptr_precomputation_table == NULL || ptr_table == NULL) return 0U;
     if (depth == 0U) return 1U;
 
     unsigned long long count = 0U;
@@ -136,10 +136,14 @@ unsigned long long perft_count(const SCE_Chessboard* const ptr_board, const SCE_
     RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ptr_board, ptr_precomputation_table), "Could not clear move list.");
     for (uint i = 0U; i < pseudolegal_moves.count; i++) {
         // For each move, try making the move. If successful, recursively call the function.
-        const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, pseudolegal_moves.moves[i]);
+        const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, ptr_table, pseudolegal_moves.moves[i]);
+        //const uint64_t zobrist_hash = SCE_Chessboard_ComputeZobristHash(ptr_board, ptr_table);
+        //if (zobrist_hash != ptr_board->zobrist_hash) {
+        //    return SCE_INTERNAL_ERROR;
+        //}
         uint add_count;
         if (ret == SCE_SUCCESS) {
-            add_count = perft_count(ptr_board, ptr_precomputation_table, depth-1, false);
+            add_count = perft_count(ptr_board, ptr_precomputation_table, ptr_table, depth-1, false);
             count += add_count;
             RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "Could not unmake move after a successful makemove.");
         }

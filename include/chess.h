@@ -117,9 +117,17 @@ typedef struct {
     PieceColor to_move;
     uint8_t castling_rights;
     unsigned int half_move_clock;
+    uint64_t zobrist_hash;
     SCE_ChessMoveList history;
     SCE_UndoState undo_states[N_MAX_MOVES];
 } SCE_Chessboard;
+
+typedef struct {
+    uint64_t piece_key[N_TYPES_PIECES][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+    uint64_t castling_keys[16U];
+    uint64_t en_passant_keys[9U];
+    uint64_t side_key;
+} SCE_ZobristTable;
 
 typedef struct {
     // Leapers
@@ -158,6 +166,24 @@ SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
+
+/**
+ * @brief Initialize a table to be used for Zobrist hashing.
+ * 
+ * @param ptr_table Pointer to the SCE_ZobristTable struct.
+ * @param seed Pointer to seed value for random number generation. NULL for randomly picked seed.
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
+ */
+SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64_t* const ptr_seed);
+
+/**
+ * @brief Compute the Zobrist hash of the current board. Requires Zobrist table to be precomputed by SCE_ZobristTable_init
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ptr_table Pointer to the SCE_ZobristTable struct.
+ * @return uint64_t Zobrist hash of the board if successful, or 0 for failure.
+ */
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Chessboard* const ptr_board, SCE_ZobristTable* const ptr_table);
 
 /**
  * @brief Returns the bitboard of occupancy information.
@@ -249,7 +275,7 @@ SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
  * 
  * In the case of failure, the attempted move will be reverted back.
  */
-SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move);
+SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ZobristTable* const ptr_table, const SCE_ChessMove move);
 
 /**
  * @brief Unmake move.
