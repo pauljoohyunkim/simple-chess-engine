@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 #include "chess.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if ((x) <= 0) { fprintf(stderr, "%s\n", msg); return SCE_INTERNAL_ERROR; } } while (0);
@@ -94,6 +95,23 @@ SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
     ptr_board->to_move = WHITE;
     ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
+
+    return SCE_SUCCESS;
+}
+
+SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64_t* const ptr_seed) {
+    if (ptr_table == NULL) return SCE_INVALID_PARAM;
+    if (ptr_seed == NULL) srand(time(NULL));
+
+    uint64_t x = ptr_seed == NULL ? rand() : (*ptr_seed);
+    for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+        for (uint idx = 0U; idx < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; idx++) {
+            x ^= x << 13U;
+            x ^= x >> 17U;
+            x ^= x << 5U;
+            ptr_table->zobrist_layers[piece_type][idx] = x;
+        }
+    }
 
     return SCE_SUCCESS;
 }

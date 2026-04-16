@@ -668,3 +668,18 @@ TEST(MakeMove, MakeMove_Initial) {
     // En passant square set
     ASSERT_TRUE(board.en_passant_idx & SCE_AN_To_Idx("E3"));
 }
+
+TEST(Zobrist, ZobristHash) {
+    SCE_ZobristTable z_table_1;
+    uint64_t seed = 1U;
+    ASSERT_EQ(SCE_ZobristTable_init(&z_table_1, &seed), SCE_SUCCESS);
+
+    SCE_ZobristTable z_table_2;
+    ASSERT_EQ(SCE_ZobristTable_init(&z_table_2, NULL), SCE_SUCCESS);
+
+    for (unsigned int piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+        for (unsigned int idx = 0U; idx < 64U; idx++) {
+            ASSERT_NE(z_table_1.zobrist_layers[piece_type][idx], z_table_2.zobrist_layers[piece_type][idx]);
+        }
+    }
+}

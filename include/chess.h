@@ -122,6 +122,10 @@ typedef struct {
 } SCE_Chessboard;
 
 typedef struct {
+    uint64_t zobrist_layers[N_TYPES_PIECES][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
+} SCE_ZobristTable;
+
+typedef struct {
     // Leapers
     uint64_t knight_moves[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
     uint64_t king_moves[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
@@ -158,6 +162,15 @@ SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
+
+/**
+ * @brief Initialize a table to be used for Zobrist hashing.
+ * 
+ * @param ptr_table Pointer to the SCE_ZobristTable struct.
+ * @param seed Pointer to seed value for random number generation. NULL for randomly picked seed.
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
+ */
+SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64_t* const ptr_seed);
 
 /**
  * @brief Returns the bitboard of occupancy information.
