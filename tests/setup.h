@@ -8,11 +8,13 @@
     SCE_Chessboard_clear(&board);
 
 
-#define BOARD_SETUP(board, precpt_tbl) \
+#define BOARD_SETUP(board, precpt_tbl, zobrist_table) \
     SCE_PieceMovementPrecomputationTable precpt_tbl; \
     SCE_PieceMovementPrecompute(&precpt_tbl); \
     SCE_Chessboard board; \
-    SCE_Chessboard_reset(&board);
+    SCE_Chessboard_reset(&board); \
+    SCE_ZobristTable zobrist_table; \
+    SCE_ZobristTable_init(&zobrist_table, NULL);
 
 #define MOVE_LIST_SETUP(list, n_moves) \
     SCE_ChessMoveList list; \

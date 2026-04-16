@@ -1525,8 +1525,8 @@ SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move) {
-    if (ptr_board == NULL || ptr_precomputation_table == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ZobristTable* const ptr_table, const SCE_ChessMove move) {
+    if (ptr_board == NULL || ptr_precomputation_table == NULL || ptr_table == NULL) return SCE_INVALID_PARAM;
 
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint64_t src = (1ULL << src_idx);

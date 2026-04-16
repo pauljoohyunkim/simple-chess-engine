@@ -274,7 +274,7 @@ SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
  * 
  * In the case of failure, the attempted move will be reverted back.
  */
-SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ChessMove move);
+SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ZobristTable* const ptr_table, const SCE_ChessMove move);
 
 /**
  * @brief Unmake move.

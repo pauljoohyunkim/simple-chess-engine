@@ -204,7 +204,7 @@ TEST(ChessBoard, Bitboard_To_AN) {
 }
 
 TEST(ChessBoard, Initial_Setup) {
-    BOARD_SETUP(board, precpt_tbl);
+    BOARD_SETUP(board, precpt_tbl, zobrist_table);
 
     // White pieces
     ASSERT_TRUE(board.bitboards[W_ROOK] & SCE_AN_To_Bitboard("A1"));
@@ -467,7 +467,7 @@ TEST(MoveGeneration, MoveGeneration_Simple) {
 }
 
 TEST(MoveGeneration, MoveGeneration_Initial) {
-    BOARD_SETUP(board, precpt_tbl)
+    BOARD_SETUP(board, precpt_tbl, zobrist_table)
 
     MOVE_LIST_SETUP(list, n_moves)
 
@@ -659,10 +659,10 @@ TEST(MoveGeneration, MoveGeneration_Black_Castling) {
 }
 
 TEST(MakeMove, MakeMove_Initial) {
-    BOARD_SETUP(board, precpt_tbl)
+    BOARD_SETUP(board, precpt_tbl, zobrist_table)
 
     const SCE_ChessMove move = (SCE_AN_To_Idx("E2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
-    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
+    ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, &zobrist_table, move), SCE_SUCCESS);
 
     ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("E4"));
     // En passant square set
@@ -685,7 +685,7 @@ TEST(Zobrist, ZobristHash) {
 }
 
 TEST(Zobrist, InitialHash) {
-    BOARD_SETUP(board, precpt_tbl)
+    BOARD_SETUP(board, precpt_tbl, zobrist_table)
 
     SCE_ZobristTable z_table;
     uint64_t seed = 1U;

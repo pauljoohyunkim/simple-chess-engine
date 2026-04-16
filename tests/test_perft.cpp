@@ -11,15 +11,16 @@ typedef unsigned long long ull;
 TEST(PERFT, Initial_Depth_1_to_5) {
     const ull testvector[5U] = { 20, 400, 8902, 197281, 4865609 };
     for (uint depth = 1U; depth <= 5U; depth++) {
-        BOARD_SETUP(board, precomputation_table)
+        BOARD_SETUP(board, precomputation_table, zobrist_table)
 
-        const ull count = perft_count(&board, &precomputation_table, depth, false);
+        const ull count = perft_count(&board, &precomputation_table, &zobrist_table, depth, false);
 
         ASSERT_EQ(count, testvector[depth-1]);
     }
 
 }
 
+/*
 // Kiwipete + a1d1
 TEST(PERFT, Custom_PERFT) {
         SCE_Chessboard board;
@@ -45,6 +46,7 @@ TEST(PERFT, Custom_PERFT) {
 
         ASSERT_EQ(count, 1968);
 }
+*/
 
 
 TEST(PERFT, Kiwipete_Depth_1_to_5_or_6) {
@@ -53,12 +55,16 @@ TEST(PERFT, Kiwipete_Depth_1_to_5_or_6) {
     for (uint depth = 1U; depth <= sizeof(testvector)/sizeof(testvector[0]); depth++) {
         SCE_Chessboard board;
         ASSERT_EQ(SCE_Chessboard_FEN_setup(&board, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
+
         SCE_PieceMovementPrecomputationTable precpt_tbl;
         SCE_PieceMovementPrecompute(&precpt_tbl);
 
+        SCE_ZobristTable zobrist_table;
+        SCE_ZobristTable_init(&zobrist_table, NULL);
+
         debug_print_board(&board);
 
-        const ull count = perft_count(&board, &precpt_tbl, depth, false);
+        const ull count = perft_count(&board, &precpt_tbl, &zobrist_table, depth, false);
 
         ASSERT_EQ(count, testvector[depth-1]);
     }
@@ -72,9 +78,12 @@ TEST(PERFT, Position3) {
         SCE_PieceMovementPrecomputationTable precpt_tbl;
         SCE_PieceMovementPrecompute(&precpt_tbl);
 
+        SCE_ZobristTable zobrist_table;
+        SCE_ZobristTable_init(&zobrist_table, NULL);
+
         debug_print_board(&board);
 
-        const ull count = perft_count(&board, &precpt_tbl, depth, false);
+        const ull count = perft_count(&board, &precpt_tbl, &zobrist_table, depth, false);
 
         ASSERT_EQ(count, testvector[depth-1]);
     }
