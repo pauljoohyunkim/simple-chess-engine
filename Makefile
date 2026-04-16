@@ -20,7 +20,9 @@ EVAL_SRCS = $(wildcard $(SRC)/eval/*.c)
 OBJS = $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS)) \
        $(patsubst $(SRC)/eval/%.c, $(OBJ)/eval_%.o, $(EVAL_SRCS))
 TEST_SRCS=$(wildcard $(TESTS)/*.cpp)
-TEST_OBJS=$(patsubst $(TESTS)/%.cpp,$(OBJ)/%.o, $(TEST_SRCS))
+TEST_EVAL_SRCS=$(wildcard $(TESTS)/eval/*.cpp)
+TEST_OBJS=$(patsubst $(TESTS)/%.cpp,$(OBJ)/%.o, $(TEST_SRCS)) \
+		  $(patsubst $(TESTS)/eval/%.c, $(OBJ)/eval_%.o, $(TEST_EVAL_SRCS))
 DEPS=$(OBJS:.o=.d)
 
 .PHONY: all bin doc clean test
