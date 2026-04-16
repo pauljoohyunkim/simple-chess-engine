@@ -683,3 +683,13 @@ TEST(Zobrist, ZobristHash) {
         ASSERT_NE(x, y);
     }
 }
+
+TEST(Zobrist, InitialHash) {
+    BOARD_SETUP(board, precpt_tbl)
+
+    SCE_ZobristTable z_table;
+    uint64_t seed = 1U;
+    ASSERT_EQ(SCE_ZobristTable_init(&z_table, &seed), SCE_SUCCESS);
+
+    ASSERT_NE(SCE_Chessboard_ComputeZobristHash(&board, &z_table), 0U);
+}

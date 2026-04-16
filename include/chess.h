@@ -176,6 +176,15 @@ SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
 SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64_t* const ptr_seed);
 
 /**
+ * @brief Compute the Zobrist hash of the current board. Requires Zobrist table to be precomputed by SCE_ZobristTable_init
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ptr_table Pointer to the SCE_ZobristTable struct.
+ * @return uint64_t Zobrist hash of the board if successful, or 0 for failure.
+ */
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Chessboard* const ptr_board, SCE_ZobristTable* const ptr_table);
+
+/**
  * @brief Returns the bitboard of occupancy information.
  * 
  * @param ptr_board Pointer to the SCE_Chessboard struct.

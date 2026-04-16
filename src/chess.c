@@ -140,6 +140,43 @@ SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64
     return SCE_SUCCESS;
 }
 
+#define SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY (8U)
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Chessboard* const ptr_board, SCE_ZobristTable* const ptr_table) {
+    if (ptr_board == NULL || ptr_table == NULL) return SCE_INVALID_PARAM;
+
+    uint64_t hash = 0U;
+
+    // Board
+    for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+        // Find the pieces.
+        uint64_t pieces = ptr_board->bitboards[piece_type];
+        while (pieces) {
+            // Get index of pieces one by one.
+            const uint idx = COUNT_TRAILING_ZEROS(pieces);
+            hash ^= ptr_table->piece_key[piece_type][idx];
+            pieces &= ~(1ULL << idx);
+        }
+    }
+
+    // Castling
+    hash ^= ptr_table->castling_keys[ptr_board->castling_rights];
+
+    // En passant
+    if (ptr_board->en_passant_idx == UNASSIGNED) {
+        hash ^= ptr_table->en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
+    } else {
+        const uint col_idx = ptr_board->en_passant_idx % 8U;
+        hash ^= ptr_table->en_passant_keys[col_idx];
+    }
+
+    // Side
+    if (ptr_board->to_move == BLACK) {
+        hash ^= ptr_table->side_key;
+    }
+
+    return hash;
+}
+
 uint64_t SCE_Chessboard_Occupancy(const SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return 0U;
 
