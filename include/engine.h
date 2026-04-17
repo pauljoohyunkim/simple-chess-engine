@@ -5,10 +5,14 @@
 extern "C" {
 #endif
 
+#include <limits.h>
 #include <stdlib.h>
 #include "chess.h"
 
 typedef int (*SCE_Eval)(const SCE_Chessboard* const);
+
+#define SCE_ALPHA_INITIAL INT_MIN
+#define SCE_BETA_INITIAL INT_MAX
 
 // Alpha: Upper, Beta: Lower
 typedef enum {
