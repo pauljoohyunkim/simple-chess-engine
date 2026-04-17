@@ -33,8 +33,8 @@ int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                 SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
                                 SCE_ZobristTable *const ptr_table,
                                 const unsigned int depth,
-                                const int alpha,
-                                const int beta) {
+                                int alpha,
+                                int beta) {
     if (depth == 0) {
         return ptr_engine->eval_function(ptr_board);
     }
@@ -49,5 +49,22 @@ int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
     assert(ret == SCE_SUCCESS);
 
-    return 0;
+    // TODO: MVV-LVA Guessing and sorting
+
+    // TODO: Check if king is in check or stalemate.
+    // Iterating through moves
+    for (uint i = 0U; i < moves.count; i++) {
+        ret = SCE_MakeMove(ptr_board, ptr_precomputation_tbl, ptr_table, moves.moves[i]);
+        assert(ret == SCE_SUCCESS);
+
+        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, depth-1, -beta, -alpha);
+
+        ret = SCE_UnmakeMove(ptr_board, ptr_precomputation_tbl);
+        assert(ret == SCE_SUCCESS);
+
+        if (score >= beta) return beta;
+        if (score > alpha) alpha = score;
+    }
+
+    return alpha;
 }

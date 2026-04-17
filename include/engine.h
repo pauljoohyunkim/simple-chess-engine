@@ -76,8 +76,8 @@ int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                 SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
                                 SCE_ZobristTable *const ptr_table,
                                 const unsigned int depth,
-                                const int alpha,
-                                const int beta);
+                                int alpha,
+                                int beta);
 
 #ifdef __cplusplus
 }
