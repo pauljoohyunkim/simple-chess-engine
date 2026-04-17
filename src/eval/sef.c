@@ -26,7 +26,7 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
 static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
 
-int SCE_Eval_SimplifiedEvaluationFunction(SCE_Chessboard* const ptr_board) {
+int SCE_Eval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board) {
     int centipawns = 0;
     
     // Compute the material sum.

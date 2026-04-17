@@ -286,6 +286,18 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
  */
 SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table);
 
+/**
+ * @brief Generate all legal moves from current position.
+ * 
+ * @param ptr_movelist List of moves
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
+ * 
+ * In the case of failure, the attempted move will be reverted back.
+ */
+SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ZobristTable* const ptr_table);
+
 #ifdef __cplusplus
 }
 #endif

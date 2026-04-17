@@ -1,4 +1,7 @@
+#include <assert.h>
 #include "engine.h"
+
+typedef unsigned int uint;
 
 SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const unsigned int transposition_table_log2_size) {
     if (ptr_engine == NULL || eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
@@ -25,8 +28,26 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
     return SCE_SUCCESS;
 }
 
-int SCE_Engine_EvaluateBoard(const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board) {
-    const int centipawn = ptr_engine->eval_function(ptr_board);
+int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
+                                SCE_Chessboard *const ptr_board,
+                                SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
+                                SCE_ZobristTable *const ptr_table,
+                                const unsigned int depth,
+                                const int alpha,
+                                const int beta) {
+    if (depth == 0) {
+        return ptr_engine->eval_function(ptr_board);
+    }
 
-    return centipawn;
+    // TODO: Zobrist-Transposition-Table Lookup
+
+    // Move generation
+    SCE_ChessMoveList moves;
+    SCE_Return ret;
+    ret = SCE_ChessMoveList_clear(&moves);
+    assert(ret == SCE_SUCCESS);
+    ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
+    assert(ret == SCE_SUCCESS);
+
+    return 0;
 }
