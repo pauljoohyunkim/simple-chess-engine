@@ -7,12 +7,13 @@ extern "C" {
 
 #include <limits.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "chess.h"
 
 typedef int (*SCE_Eval)(const SCE_Chessboard* const);
 
-#define SCE_ALPHA_INITIAL INT_MIN
-#define SCE_BETA_INITIAL INT_MAX
+#define SCE_ALPHA_INITIAL (INT_MIN / 2)
+#define SCE_BETA_INITIAL (INT_MAX / 2)
 
 // Alpha: Upper, Beta: Lower
 typedef enum {
@@ -21,13 +22,12 @@ typedef enum {
     SCE_TF_EXACT = 2,
 } SCE_TranspositionFlag;
 
-// TODO: score -> int32, depth -> uint8_t, flag -> uint8_t for total of 16 bytes for CPU cache
 typedef struct {
     uint64_t zobrist_hash;  // If 0, this entry is blank.
-    int score;
+    int32_t score;
     SCE_ChessMove move;     // Best move at current node.
-    unsigned int depth;
-    SCE_TranspositionFlag flag;
+    uint8_t depth;
+    uint8_t flag;
 } SCE_TranspositionTableEntry;
 
 typedef struct {
@@ -38,6 +38,7 @@ typedef struct {
 typedef struct {
     SCE_Eval eval_function;
     SCE_TranspositionTable transposition_table;
+    uint8_t depth;
 } SCE_Engine;
 
 /**
@@ -60,24 +61,18 @@ SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_fun
 SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
 
 /**
- * @brief Outputs evaluation from current perspective
+ * @brief Outputs the best move calculated by engine.
  * 
  * @param ptr_engine Pointer to the SCE_Engine struct.
  * @param ptr_board Pointer to the SCE_Chessboard struct.
  * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
  * @param ptr_table Pointer to the SCE_ZobristTable struct.
- * @param depth Depth (number of plies) of the search
- * @param alpha Maximizer of currently moving piece
- * @param beta Minimizer of currently moving piece
- * @return int 
+ * @return SCE_ChessMove Best move
  */
-int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
-                                SCE_Chessboard *const ptr_board,
-                                SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
-                                SCE_ZobristTable *const ptr_table,
-                                const unsigned int depth,
-                                int alpha,
-                                int beta);
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
+                                           SCE_Chessboard *const ptr_board,
+                                           SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
+                                           SCE_ZobristTable *const ptr_table);
 
 #ifdef __cplusplus
 }

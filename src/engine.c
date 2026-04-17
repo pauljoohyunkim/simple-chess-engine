@@ -3,6 +3,14 @@
 
 typedef unsigned int uint;
 
+static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
+                                       SCE_Chessboard *const ptr_board,
+                                       SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
+                                       SCE_ZobristTable *const ptr_table,
+                                       const unsigned int depth,
+                                       int alpha,
+                                       int beta);
+
 SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const unsigned int transposition_table_log2_size) {
     if (ptr_engine == NULL || eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
 
@@ -28,13 +36,13 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
     return SCE_SUCCESS;
 }
 
-int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
-                                SCE_Chessboard *const ptr_board,
-                                SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
-                                SCE_ZobristTable *const ptr_table,
-                                const unsigned int depth,
-                                int alpha,
-                                int beta) {
+static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
+                                       SCE_Chessboard *const ptr_board,
+                                       SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
+                                       SCE_ZobristTable *const ptr_table,
+                                       const unsigned int depth,
+                                       int alpha,
+                                       int beta) {
     if (depth == 0) {
         return ptr_engine->eval_function(ptr_board);
     }
@@ -67,4 +75,43 @@ int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     }
 
     return alpha;
+}
+
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
+                                           SCE_Chessboard *const ptr_board,
+                                           SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
+                                           SCE_ZobristTable *const ptr_table) {
+    int alpha = SCE_ALPHA_INITIAL;
+    int beta = SCE_BETA_INITIAL;
+    int best_score = SCE_ALPHA_INITIAL;
+    int best_move = UNASSIGNED;
+
+    // Move generation
+    SCE_ChessMoveList moves;
+    SCE_Return ret;
+    ret = SCE_ChessMoveList_clear(&moves);
+    assert(ret == SCE_SUCCESS);
+    ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
+    assert(ret == SCE_SUCCESS);
+
+    for (uint i = 0U; i < moves.count; i++) {
+        ret = SCE_MakeMove(ptr_board, ptr_precomputation_tbl, ptr_table, moves.moves[i]);
+        assert(ret == SCE_SUCCESS);
+        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, ptr_engine->depth-1, -beta, -alpha);
+
+        ret = SCE_UnmakeMove(ptr_board, ptr_precomputation_tbl);
+        assert(ret == SCE_SUCCESS);
+
+        if (score > best_score) {
+            best_score = score;
+            best_move = moves.moves[i];
+        }
+
+        if (score > alpha) {
+            alpha = score;
+        }
+    }
+
+    assert(best_move != UNASSIGNED);
+    return (SCE_ChessMove) best_move;
 }

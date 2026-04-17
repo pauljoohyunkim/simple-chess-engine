@@ -11,7 +11,9 @@ TEST(Engine_SEF, Search) {
     SCE_Engine engine;
     ASSERT_EQ(SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
-    SCE_Engine_AlphaBetaNegamax(&engine, &board, &precomputation_table, &zobrist_table, 1, SCE_ALPHA_INITIAL, SCE_BETA_INITIAL);
+    engine.depth = 6;
+
+    SCE_ChessMove move = SCE_Engine_AlphaBetaBestMove(&engine, &board, &precomputation_table, &zobrist_table);
 
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }

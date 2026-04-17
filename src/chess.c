@@ -1861,6 +1861,7 @@ SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Che
     if (ptr_movelist->count != 0) return SCE_INVALID_PARAM;
 
     SCE_ChessMoveList pseudolegal_moves;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&pseudolegal_moves), "Could not clear move list.");
     RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ptr_board, ptr_precomputation_table), "Could not generate pseudo legal movelist.");
     for (uint i = 0U; i < pseudolegal_moves.count; i++) {
         const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, ptr_table, pseudolegal_moves.moves[i]);
