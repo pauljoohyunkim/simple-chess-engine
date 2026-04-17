@@ -11,6 +11,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        int alpha,
                                        int beta);
 static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
+static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 
 SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const unsigned int transposition_table_log2_size) {
     if (ptr_engine == NULL || eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
@@ -60,6 +61,18 @@ static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint
     return true;
 }
 
+static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash) {
+    if (ptr_engine == NULL || zobrist_hash == 0U) return NULL;
+
+    const uint64_t key = zobrist_hash & (ptr_engine->transposition_table.table_size - 1U);
+
+    if (ptr_engine->transposition_table.entries[key].zobrist_hash) {
+        return &ptr_engine->transposition_table.entries[key];
+    } else {
+        return NULL;
+    }
+}
+
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Chessboard *const ptr_board,
                                        SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
@@ -71,8 +84,26 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         return ptr_engine->eval_function(ptr_board);
     }
 
-    // TODO: Zobrist-Transposition-Table Lookup
+    // Zobrist-Transposition-Table Lookup
+    const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ptr_board->zobrist_hash);
 
+    if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ptr_board->zobrist_hash) {
+        if (depth >= ptr_transposition_entry->depth) {
+            // Useful result.
+            switch (ptr_transposition_entry->flag) {
+                case SCE_TF_EXACT:
+                    return ptr_transposition_entry->score;
+                case SCE_TF_ALPHA:
+                    if (ptr_transposition_entry->score <= alpha) return alpha;
+                    break;
+                case SCE_TF_BETA:
+                    if (ptr_transposition_entry->score >= beta) return beta;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
     const int alpha_original = alpha;
 
