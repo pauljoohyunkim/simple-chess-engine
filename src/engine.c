@@ -72,6 +72,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     }
 
     // TODO: Zobrist-Transposition-Table Lookup
+
+
     const int alpha_original = alpha;
 
     // Move generation
@@ -102,13 +104,14 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
             SCE_Engine_AddTransposition(ptr_engine, ptr_board->zobrist_hash, score, depth, moves.moves[i], SCE_TF_BETA);
             return beta;
         }
-        if (score > alpha) alpha = score;
+        if (score > alpha) { 
+            alpha = score;
+            best_move = moves.moves[i];
+        }
     }
 
-    //SCE_Engine_AddTransposition(ptr_engine, ptr_board->zobrist_hash, alpha, depth, moves.moves[i], SCE_TF_BETA);
-    if (alpha <= alpha_original) {
-
-    }
+    const uint8_t flag = alpha <= alpha_original ? SCE_TF_ALPHA : SCE_TF_EXACT;
+    SCE_Engine_AddTransposition(ptr_engine, ptr_board->zobrist_hash, alpha, depth, best_move == UNASSIGNED ? 0U : (SCE_ChessMove) best_move, flag);
 
     return alpha;
 }
