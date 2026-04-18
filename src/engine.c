@@ -86,7 +86,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
 
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ptr_board->zobrist_hash);
-
     if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ptr_board->zobrist_hash) {
         if (depth >= ptr_transposition_entry->depth) {
             // Useful result.
@@ -122,6 +121,17 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
 
     // TODO: Check if king is in check or stalemate.
     // Iterating through moves
+    /**
+     * Note: To help my understanding of alpha-beta, here is an explanation.
+     * Alpha: score that I can guarantee I can get.
+     * Beta: Score that opponent can guarantee they can get.
+     * 
+     * Example:
+     * 1. Suppose I search for a move, and it evaluates to +5 after searching (This is done recursively, which will be outlined from Step 2). My alpha is +5.
+     * 2. I explore second move,
+     * 2.1. Exploring this move, the opponent has a move that evaluates to +2. The beta is +2 now.
+     * 3. This means if I choose this move, opponent has a move that evaluates to +2. I might as well take the first move.
+     */
     for (uint i = 0U; i < moves.count; i++) {
         ret = SCE_MakeMove(ptr_board, ptr_precomputation_tbl, ptr_table, moves.moves[i]);
         assert(ret == SCE_SUCCESS);
