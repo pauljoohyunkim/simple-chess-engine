@@ -3,6 +3,9 @@
 
 typedef unsigned int uint;
 
+static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
+static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
+static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist);
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Chessboard *const ptr_board,
                                        SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
@@ -10,8 +13,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta);
-static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
-static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 
 SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const unsigned int transposition_table_log2_size) {
     if (ptr_engine == NULL || eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
@@ -71,6 +72,12 @@ static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* cons
     } else {
         return NULL;
     }
+}
+
+static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist) {
+    if (ptr_movelist == NULL) return SCE_INVALID_BOARD_STATE;
+
+    return SCE_SUCCESS;
 }
 
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
