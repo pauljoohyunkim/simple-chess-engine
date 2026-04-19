@@ -1855,3 +1855,21 @@ SCE_Return SCE_UnmakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrec
     ptr_board->history.count--;
     return SCE_SUCCESS;
 }
+
+SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ZobristTable* const ptr_table) {
+    if (ptr_movelist == NULL || ptr_board == NULL || ptr_precomputation_table == NULL || ptr_table == NULL) return SCE_INVALID_PARAM;
+    if (ptr_movelist->count != 0) return SCE_INVALID_PARAM;
+
+    SCE_ChessMoveList pseudolegal_moves;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&pseudolegal_moves), "Could not clear move list.");
+    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ptr_board, ptr_precomputation_table), "Could not generate pseudo legal movelist.");
+    for (uint i = 0U; i < pseudolegal_moves.count; i++) {
+        const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, ptr_table, pseudolegal_moves.moves[i]);
+        if (ret == SCE_SUCCESS) {
+            RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(pseudolegal_moves.moves[i], ptr_movelist), "Could not add move to legal move list.");
+            RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "Could not unmake!");
+        }
+    }
+
+    return SCE_SUCCESS;
+}
