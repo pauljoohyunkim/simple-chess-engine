@@ -13,12 +13,11 @@ int main() {
     // For now, player gets to be white.
     const PieceColor player = WHITE;
 
-    SCE_PieceMovementPrecomputationTable precomputation_table;
-    ret = SCE_PieceMovementPrecompute(&precomputation_table);
-    SCE_Chessboard board;
-    ret = SCE_Chessboard_reset(&board);
-    SCE_ZobristTable zobrist_table;
-    ret = SCE_ZobristTable_init(&zobrist_table, NULL);
+    SCE_Context ctx;
+
+    ret = SCE_PieceMovementPrecompute(&ctx);
+    ret = SCE_Chessboard_reset(&ctx);
+    ret = SCE_ZobristTable_init(&ctx, NULL);
 
     // Chess engine
     SCE_Engine engine;
@@ -35,12 +34,12 @@ int main() {
         SCE_ChessMoveList legal_move_list;
         ret = SCE_ChessMoveList_clear(&legal_move_list);
 
-        ret = SCE_GenerateLegalMoves(&legal_move_list, &board, &precomputation_table, &zobrist_table);
+        ret = SCE_GenerateLegalMoves(&legal_move_list, &ctx);
 
         if (legal_move_list.count == 0) break;
 
-        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&board) / 100);
-        SCE_Chessboard_print(&board, player);
+        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx.board) / 100);
+        SCE_Chessboard_print(&ctx, player);
 
         // Get move from user
         printf("Your move: ");
@@ -77,18 +76,18 @@ int main() {
         printf("\n");
 
         // Making player move.
-        ret = SCE_MakeMove(&board, &precomputation_table, &zobrist_table, move);
-        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&board) / 100);
-        SCE_Chessboard_print(&board, player);
+        ret = SCE_MakeMove(&ctx, move);
+        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx.board) / 100);
+        SCE_Chessboard_print(&ctx, player);
 
         // ------------------------------------------------
         // Now computer's perspective
-        move = SCE_Engine_AlphaBetaBestMove(&engine, &board, &precomputation_table, &zobrist_table);
+        move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
         if (move == UNASSIGNED) {
             printf("Mate!\n");
             break;
         }
-        ret = SCE_MakeMove(&board, &precomputation_table, &zobrist_table, move);
+        ret = SCE_MakeMove(&ctx, move);
         {
             ret = SCE_Bitboard_To_AN(src_an, 1ULL << (move SCE_CHESSMOVE_GET_SRC));
             ret = SCE_Bitboard_To_AN(dst_an, 1ULL << (move SCE_CHESSMOVE_GET_DST));
