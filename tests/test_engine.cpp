@@ -13,7 +13,7 @@ TEST(Engine_SEF, Search) {
 
     engine.depth = 8;
 
-    SCE_ChessMove move = SCE_Engine_AlphaBetaBestMove(&engine, &board, &precomputation_table, &zobrist_table);
+    SCE_ChessMove move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
 
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }
