@@ -144,6 +144,12 @@ typedef struct {
     uint8_t castling_mask[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
 } SCE_PieceMovementPrecomputationTable;
 
+typedef struct {
+    SCE_Chessboard board;
+    SCE_PieceMovementPrecomputationTable precomputation_table;
+    SCE_ZobristTable zobrist_table;
+} SCE_Context;
+
 /**
  * @brief Clear out the move list
  * 
