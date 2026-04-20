@@ -67,9 +67,9 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * @param ptr_board Pointer to the SCE_Chessboard struct.
  * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
  * @param ptr_table Pointer to the SCE_ZobristTable struct.
- * @return SCE_ChessMove Best move
+ * @return int Best move (in which case, can be casted to SCE_ChessMove) or UNASSIGNED (-1)
  */
-SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
+int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
                                            SCE_Chessboard *const ptr_board,
                                            SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
                                            SCE_ZobristTable *const ptr_table);

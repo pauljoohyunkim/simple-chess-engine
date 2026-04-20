@@ -351,7 +351,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     return alpha;
 }
 
-SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
+int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
                                            SCE_Chessboard *const ptr_board,
                                            SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
                                            SCE_ZobristTable *const ptr_table) {
@@ -386,6 +386,5 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
         }
     }
 
-    assert(best_move != UNASSIGNED);
-    return (SCE_ChessMove) best_move;
+    return best_move;
 }

@@ -3,7 +3,7 @@ INCLUDES=-Iinclude
 
 CC=gcc
 CFLAGSEXTRA=
-CFLAGS=-g -Wall -Wextra -O0 -pedantic -MMD -MP $(INCLUDES)
+CFLAGS=-g -Wall -Wextra -O3 -pedantic -MMD -MP $(INCLUDES)
 CFLAGS+=`pkg-config --cflags $(PKG_DEPS)`
 CFLAGS+=$(CFLAGSEXTRA)
 CXX=g++

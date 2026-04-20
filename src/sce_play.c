@@ -1,13 +1,95 @@
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "chess.h"
+#include "eval/sef.h"
+#include "engine.h"
+
+
+#define TT_TABLE_LOG_2_SIZE 20
 
 int main() {
-    SCE_PieceMovementPrecomputationTable precpt_tbl;
-    SCE_PieceMovementPrecompute(&precpt_tbl);
+    SCE_Return ret;
+    // For now, player gets to be white.
+    const PieceColor player = WHITE;
+
+    SCE_PieceMovementPrecomputationTable precomputation_table;
+    ret = SCE_PieceMovementPrecompute(&precomputation_table);
     SCE_Chessboard board;
-    SCE_Chessboard_reset(&board);
-    SCE_Chessboard_print(&board, WHITE);
-    SCE_Chessboard_print(&board, BLACK);
+    ret = SCE_Chessboard_reset(&board);
+    SCE_ZobristTable zobrist_table;
+    ret = SCE_ZobristTable_init(&zobrist_table, NULL);
+
+    // Chess engine
+    SCE_Engine engine;
+    ret = SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
+    engine.depth = 7;
+    
+
+    printf("All moves are to be in \"E2E4\" form\n");
+    
+    while (true) {
+        char input[10] = { 0 };
+        char src_an[3] = { 0 };
+        char dst_an[3] = { 0 };
+        SCE_ChessMoveList legal_move_list;
+        ret = SCE_ChessMoveList_clear(&legal_move_list);
+
+        ret = SCE_GenerateLegalMoves(&legal_move_list, &board, &precomputation_table, &zobrist_table);
+
+        if (legal_move_list.count == 0) break;
+
+        SCE_Chessboard_print(&board, player);
+
+        // Get move from user
+        printf("Your move: ");
+        scanf("%s", input);
+        strncpy(src_an, input, 2);
+        strncpy(dst_an, input+2, 2);
+
+        const int src_idx = SCE_AN_To_Idx(src_an);
+        const int dst_idx = SCE_AN_To_Idx(dst_an);
+
+        if (src_idx == UNASSIGNED || dst_idx == UNASSIGNED) {
+            fprintf(stderr, "Wrong input! Try again\n");
+            continue;
+        }
+        
+        int move = UNASSIGNED;
+        // Check if move is one of the legal moves.
+        for (unsigned int i = 0U; i < legal_move_list.count; i++) {
+            const SCE_ChessMove legal_move = legal_move_list.moves[i];
+            const unsigned int legal_src_idx = legal_move SCE_CHESSMOVE_GET_SRC;
+            const unsigned int legal_dst_idx = legal_move SCE_CHESSMOVE_GET_DST;
+            if (legal_src_idx == src_idx && legal_dst_idx == dst_idx) {
+                move = legal_move;
+                break;
+            }
+        }
+        if (move == UNASSIGNED) {
+            fprintf(stderr, "Not a legal move. Try again\n");
+            continue;
+        }
+
+        // Making player move.
+        ret = SCE_MakeMove(&board, &precomputation_table, &zobrist_table, move);
+
+        // ------------------------------------------------
+        // Now computer's perspective
+        move = SCE_Engine_AlphaBetaBestMove(&engine, &board, &precomputation_table, &zobrist_table);
+        if (move == UNASSIGNED) {
+            printf("Mate!\n");
+            break;
+        }
+        ret = SCE_MakeMove(&board, &precomputation_table, &zobrist_table, move);
+        {
+            ret = SCE_Bitboard_To_AN(src_an, 1ULL << (move SCE_CHESSMOVE_GET_SRC));
+            ret = SCE_Bitboard_To_AN(dst_an, 1ULL << (move SCE_CHESSMOVE_GET_DST));
+            printf("Computer: %s -> %s\n", src_an, dst_an);
+        }
+    }
+
+    printf("End of game!\n");
 
     return 0;
 }
