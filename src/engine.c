@@ -7,6 +7,7 @@ typedef unsigned int uint;
 static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Chessboard* const ptr_board, const int tt_hint_move);
+static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board);
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Chessboard *const ptr_board,
                                        SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
@@ -236,6 +237,22 @@ static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movel
     return SCE_SUCCESS;
 }
 
+static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board) {
+    if (ptr_board == NULL) return false;
+    if (ptr_board->history.count < 2) return false;
+
+    for (int i = ptr_board->history.count - 2; i >= (int)ptr_board->history.count - (int)ptr_board->half_move_clock; i -= 2) {
+        if (ptr_board->undo_states->zobrist_hash == ptr_board->zobrist_hash) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+#define HALF_MOVE_CUTOFF (100)
+#define SCE_EVAL_DRAW (0)
+#define SCE_EVAL_CHECKMATE (-100000)
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Chessboard *const ptr_board,
                                        SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
@@ -243,6 +260,9 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
+    if (ptr_board->half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
+    if (SCE_Engine_DetectRepetition(ptr_board)) return SCE_EVAL_DRAW;
+
     if (depth == 0) {
         return ptr_engine->eval_function(ptr_board);
     }
@@ -272,7 +292,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     const int alpha_original = alpha;
 
     // Move generation
-    // TODO: Deal with best moves.
     int best_move = UNASSIGNED;
 
     SCE_ChessMoveList moves;
@@ -281,12 +300,20 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     assert(ret == SCE_SUCCESS);
     ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
     assert(ret == SCE_SUCCESS);
+    if (moves.count == 0) {
+        // TODO: Check if king is in check or stalemate.
+        const uint64_t king_sq = ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KING : B_KING];
+        if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_tbl, king_sq, ptr_board->to_move == WHITE ? BLACK : WHITE)) {
+            return SCE_EVAL_CHECKMATE + depth;
+        } else {
+            return SCE_EVAL_DRAW;
+        }
+    }
     // MVV-LVA Guessing and sorting
     // TODO: Mailbox array: board->mailbox[idx] = type needs to be implemented.
     ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_board, tt_hint_move);
     assert(ret == SCE_SUCCESS);
 
-    // TODO: Check if king is in check or stalemate.
     // Iterating through moves
     /**
      * Note: To help my understanding of alpha-beta, here is an explanation.
