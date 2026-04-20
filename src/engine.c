@@ -8,6 +8,12 @@ static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Chessboard* const ptr_board, const int tt_hint_move);
 static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board);
+static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
+                                     SCE_Chessboard* const ptr_board,
+                                     SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl,
+                                     SCE_ZobristTable* const ptr_table,
+                                     int alpha,
+                                     int beta);
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Chessboard *const ptr_board,
                                        SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
@@ -250,6 +256,52 @@ static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board) {
     return false;
 }
 
+
+static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
+                                     SCE_Chessboard* const ptr_board,
+                                     SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl,
+                                     SCE_ZobristTable* const ptr_table,
+                                     int alpha,
+                                     int beta) {
+    const int static_eval = ptr_engine->eval_function(ptr_board);
+
+    int best_value = static_eval;
+    if (best_value >= beta) return best_value;
+    if (best_value > alpha) alpha = best_value;
+
+    // Move generation
+    SCE_ChessMoveList moves;
+    SCE_Return ret = SCE_ChessMoveList_clear(&moves);
+    assert(ret == SCE_SUCCESS);
+    ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
+    assert(ret == SCE_SUCCESS);
+
+    // Order moves
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_board, UNASSIGNED);
+    assert(ret == SCE_SUCCESS);
+
+    for (uint i = 0U; i < moves.count; i++) {
+        const SCE_ChessMove move = moves.moves[i];
+        const uint flag = move SCE_CHESSMOVE_GET_FLAG;
+        // Only get moves that are capture.
+        if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && !(flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION)) continue;
+
+        ret = SCE_MakeMove(ptr_board, ptr_precomputation_tbl, ptr_table, move);
+        assert(ret == SCE_SUCCESS);
+
+        int score = -SCE_Engine_QuiesceNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, -beta, -alpha);
+
+        ret = SCE_UnmakeMove(ptr_board, ptr_precomputation_tbl);
+        assert(ret == SCE_SUCCESS);
+
+        if (score >= beta) return score;
+        if (score > best_value) best_value = score;
+        if (score > alpha) alpha = score;
+    }
+
+    return best_value;
+}
+
 #define HALF_MOVE_CUTOFF (100)
 #define SCE_EVAL_DRAW (0)
 #define SCE_EVAL_CHECKMATE (-100000)
@@ -264,7 +316,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     if (SCE_Engine_DetectRepetition(ptr_board)) return SCE_EVAL_DRAW;
 
     if (depth == 0) {
-        return ptr_engine->eval_function(ptr_board);
+        //return ptr_engine->eval_function(ptr_board);
+        return SCE_Engine_QuiesceNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, alpha, beta);
     }
 
     int tt_hint_move = UNASSIGNED;
