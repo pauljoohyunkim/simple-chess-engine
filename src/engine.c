@@ -5,7 +5,7 @@ typedef unsigned int uint;
 
 static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
-static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist);
+static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Chessboard* const ptr_board, const int tt_hint_move);
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Chessboard *const ptr_board,
                                        SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
@@ -74,8 +74,113 @@ static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* cons
     }
 }
 
-static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist) {
+#define MVV_LVA_TT_HINT_MOVE INT_MAX
+#define MVV_LVA_CAPTURE      1000000
+#define MVV_LVA_PROMOTION     500000
+#define PAWN_VALUE 100
+#define KNIGHT_VALUE 320
+#define BISHOP_VALUE 330
+#define ROOK_VALUE 500
+#define QUEEN_VALUE 900
+#define KING_VALUE 100000
+static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE_ChessMove move) {
+    assert(ptr_board != NULL);
+    
+    int score = 0;
+    
+    const uint flag = move SCE_CHESSMOVE_GET_FLAG;
+    const uint64_t moving_piece = 1ULL << (move SCE_CHESSMOVE_GET_SRC);
+    int moving_piece_type = UNASSIGNED;
+    int captured_piece_type = UNASSIGNED;
+    const int piece_values[] = {
+        PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE,
+        PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE
+    };
+
+    if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
+        // This is a capture.
+        score += MVV_LVA_CAPTURE;
+
+        // Determine attacker
+        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+            if (ptr_board->bitboards[piece_type] & moving_piece) {
+                moving_piece_type = piece_type;
+                break;
+            }
+        }
+        
+        // Determine victim
+        // Captured piece depends on the flag
+        if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
+            uint64_t captured_piece = ptr_board->to_move == WHITE ? (1ULL << (ptr_board->en_passant_idx - CHESSBOARD_DIMENSION)) : (1ULL << (ptr_board->en_passant_idx + CHESSBOARD_DIMENSION));
+            for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+                // Determine en passant victim piece type
+                if (captured_piece & ptr_board->bitboards[piece_type]) {
+                    captured_piece_type = piece_type;
+                    break;
+                }
+            }
+        } else {
+            for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+                // Determine captured piece type
+                const uint64_t dst = 1ULL << (move SCE_CHESSMOVE_GET_DST);
+                if (dst & ptr_board->bitboards[piece_type]) {
+                    captured_piece_type = piece_type;
+                }
+            }
+        }
+
+        assert(moving_piece_type != UNASSIGNED);
+        assert(captured_piece_type != UNASSIGNED);
+        //if (moving_piece_type == UNASSIGNED || captured_piece_type == UNASSIGNED) return 0;
+
+        // MVV-LVA scoring
+        const int attacker_value = piece_values[moving_piece_type];
+        const int victim_value = piece_values[captured_piece_type];
+        
+        const int score = (victim_value * 100) - attacker_value + (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION ? MVV_LVA_PROMOTION : 0);
+        return score;
+    } else {
+        // TODO: More exciting move scoring for quiet moves.
+        return 1;
+    }
+}
+
+static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Chessboard* const ptr_board, const int tt_hint_move) {
     if (ptr_movelist == NULL) return SCE_INVALID_BOARD_STATE;
+
+    // Keeps track of how many elements are sorted.
+    uint n_sorted = 0U;
+    int move_scores[N_MAX_MOVES] = { 0 };
+
+    if (tt_hint_move != UNASSIGNED) {
+        // Check if exists, and try first.
+        for (uint i = n_sorted; i < ptr_movelist->count; i++) {
+            if (ptr_movelist->moves[i] == tt_hint_move) {
+                // Swap with the first entry.
+                const SCE_ChessMove temp = ptr_movelist->moves[n_sorted];
+                ptr_movelist->moves[n_sorted] = tt_hint_move;
+                ptr_movelist->moves[i] = temp;
+                move_scores[n_sorted] = INT_MAX;
+                n_sorted++;
+                break;
+            }
+        }
+    }
+
+    // Compute MVV-LVA score.
+    for (uint i = n_sorted; i < ptr_movelist->count; i++) {
+        move_scores[i] = SCE_Engine_ScoreMove(ptr_board, ptr_movelist->moves[i]);
+    }
+
+    // Sort based on score, remembering to update the score array too.
+    while (n_sorted < ptr_movelist->count) {
+        for (uint i = n_sorted; i < ptr_movelist->count; i++) {
+            // TODO
+        }
+        n_sorted++;
+    }
+
 
     return SCE_SUCCESS;
 }
@@ -91,10 +196,12 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         return ptr_engine->eval_function(ptr_board);
     }
 
+    int tt_hint_move = UNASSIGNED;
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ptr_board->zobrist_hash);
     if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ptr_board->zobrist_hash) {
         if (depth >= ptr_transposition_entry->depth) {
+            tt_hint_move = ptr_transposition_entry->move;
             // Useful result.
             switch (ptr_transposition_entry->flag) {
                 case SCE_TF_EXACT:
@@ -122,6 +229,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
     ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
+    assert(ret == SCE_SUCCESS);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_board, tt_hint_move);
     assert(ret == SCE_SUCCESS);
 
     // TODO: MVV-LVA Guessing and sorting
