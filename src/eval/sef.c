@@ -1,22 +1,11 @@
 #include <assert.h>
+#include "eval/pst.h"
 #include "eval/sef.h"
 
 #define COUNT_SET_BITS __builtin_popcountll
 // TODO: Implement fallback
 #define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
 #define COUNT_LEADING_ZEROS(x) __builtin_clzll(x)
-
-// Classic "values" of pieces
-#define PAWN_WEIGHT (100)
-#define KNIGHT_WEIGHT (320)
-#define BISHOP_WEIGHT (330)
-#define ROOK_WEIGHT (500)
-#define QUEEN_WEIGHT (900)
-#define KING_WEIGHT (20000)
-
-// In order: pawn, knight, bishop, rook, queen, and king
-const int piece_weights[] = { PAWN_WEIGHT, KNIGHT_WEIGHT, BISHOP_WEIGHT, ROOK_WEIGHT, QUEEN_WEIGHT, KING_WEIGHT,    // WHITE
-                              PAWN_WEIGHT, KNIGHT_WEIGHT, BISHOP_WEIGHT, ROOK_WEIGHT, QUEEN_WEIGHT, KING_WEIGHT };  // BLACK
 
 typedef unsigned int uint;
 
@@ -59,16 +48,7 @@ int SCE_Eval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board)
 }
 
 static int SCE_Eval_PawnSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
-    const int pst[] = {
-        0,  0,  0,  0,  0,  0,  0,  0,
-        5, 10, 10,-20,-20, 10, 10,  5,
-        5, -5,-10,  0,  0,-10, -5,  5,
-        0,  0,  0, 20, 20,  0,  0,  0,
-        5,  5, 10, 25, 25, 10,  5,  5,
-        10, 10, 20, 30, 30, 20, 10, 10,
-        50, 50, 50, 50, 50, 50, 50, 50,
-        0,  0,  0,  0,  0,  0,  0,  0,
-    };
+    const int* pst = PST[PST_PAWN];
 
     int part_sum = 0;
     uint64_t pieces = ptr_board->bitboards[color == WHITE ? W_PAWN : B_PAWN];
@@ -83,16 +63,7 @@ static int SCE_Eval_PawnSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 }
 
 static int SCE_Eval_KnightSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
-    const int pst[] ={
-        -50,-40,-30,-30,-30,-30,-40,-50,
-        -40,-20,  0,  5,  5,  0,-20,-40,
-        -30,  5, 10, 15, 15, 10,  5,-30,
-        -30,  0, 15, 20, 20, 15,  0,-30,
-        -30,  5, 15, 20, 20, 15,  5,-30,
-        -30,  0, 10, 15, 15, 10,  0,-30,
-        -40,-20,  0,  0,  0,  0,-20,-40,
-        -50,-40,-30,-30,-30,-30,-40,-50,
-    };
+    const int* pst = PST[PST_KNIGHT];
 
     int part_sum = 0;
     uint64_t pieces = ptr_board->bitboards[color == WHITE ? W_KNIGHT : B_KNIGHT];
@@ -107,16 +78,7 @@ static int SCE_Eval_KnightSquareEval(SCE_Chessboard* const ptr_board, PieceColor
 }
 
 static int SCE_Eval_BishopSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
-    const int pst[] ={
-        -20,-10,-10,-10,-10,-10,-10,-20,
-        -10,  5,  0,  0,  0,  0,  5,-10,
-        -10, 10, 10, 10, 10, 10, 10,-10,
-        -10,  0, 10, 10, 10, 10,  0,-10,
-        -10,  5,  5, 10, 10,  5,  5,-10,
-        -10,  0,  5, 10, 10,  5,  0,-10,
-        -10,  0,  0,  0,  0,  0,  0,-10,
-        -20,-10,-10,-10,-10,-10,-10,-20,
-    };
+    const int* pst = PST[PST_BISHOP];
 
     int part_sum = 0;
     uint64_t pieces = ptr_board->bitboards[color == WHITE ? W_BISHOP : B_BISHOP];
@@ -131,16 +93,7 @@ static int SCE_Eval_BishopSquareEval(SCE_Chessboard* const ptr_board, PieceColor
 }
 
 static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
-    const int pst[] = {
-        0,  0,  0,  5,  5,  0,  0,  0
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        5, 10, 10, 10, 10, 10, 10,  5,
-        0,  0,  0,  0,  0,  0,  0,  0,
-    };
+    const int* pst = PST[PST_ROOK];
 
     int part_sum = 0;
     uint64_t pieces = ptr_board->bitboards[color == WHITE ? W_ROOK : B_ROOK];
@@ -155,16 +108,7 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 }
 
 static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
-    const int pst[] = {
-        -20,-10,-10, -5, -5,-10,-10,-20
-        -10,  0,  5,  0,  0,  0,  0,-10,
-        -10,  5,  5,  5,  5,  5,  0,-10,
-        0,  0,  5,  5,  5,  5,  0, -5,
-        -5,  0,  5,  5,  5,  5,  0, -5,
-        -10,  0,  5,  5,  5,  5,  0,-10,
-        -10,  0,  0,  0,  0,  0,  0,-10,
-        -20,-10,-10, -5, -5,-10,-10,-20,
-    };
+    const int* pst = PST[PST_QUEEN];
 
     int part_sum = 0;
     uint64_t pieces = ptr_board->bitboards[color == WHITE ? W_QUEEN : B_QUEEN];
@@ -178,32 +122,9 @@ static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor 
     return part_sum;
 }
 
-#define QUEEN_PHASE_WEIGHT 4
-#define ROOK_PHASE_WEIGHT 2
-#define BISHOP_PHASE_WEIGHT 1
-#define KNIGHT_PHASE_WEIGHT 1
-#define TOTAL_PHASE_WEIGHT 24
 static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
-    const int pst_middle[] = {
-        20, 30, 10,  0,  0, 10, 30, 20,
-        20, 20,  0,  0,  0,  0, 20, 20,
-        -10,-20,-20,-20,-20,-20,-20,-10,
-        -20,-30,-30,-40,-40,-30,-30,-20,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-    };
-    const int pst_end[] = {
-        -50,-30,-30,-30,-30,-30,-30,-50
-        -30,-30,  0,  0,  0,  0,-30,-30,
-        -30,-10, 20, 30, 30, 20,-10,-30,
-        -30,-10, 30, 40, 40, 30,-10,-30,
-        -30,-10, 30, 40, 40, 30,-10,-30,
-        -30,-10, 20, 30, 30, 20,-10,-30,
-        -30,-20,-10,  0,  0,-10,-20,-30,
-        -50,-40,-30,-20,-20,-30,-40,-50,
-    };
+    const int* pst_middle = PST[PST_KING_MIDDLE];
+    const int* pst_end = PST[PST_KING_END];
 
     // (Middle game * phase + End game * (24 - phase)) / 24
     int mg_sum = 0;
@@ -221,6 +142,7 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     phase += ROOK_PHASE_WEIGHT * (COUNT_SET_BITS(ptr_board->bitboards[W_ROOK]) + COUNT_SET_BITS(ptr_board->bitboards[B_ROOK]));
     phase += BISHOP_PHASE_WEIGHT * (COUNT_SET_BITS(ptr_board->bitboards[W_BISHOP]) + COUNT_SET_BITS(ptr_board->bitboards[B_BISHOP]));
     phase += KNIGHT_PHASE_WEIGHT * (COUNT_SET_BITS(ptr_board->bitboards[W_KNIGHT]) + COUNT_SET_BITS(ptr_board->bitboards[B_KNIGHT]));
+    phase = (phase > TOTAL_PHASE_WEIGHT) ? TOTAL_PHASE_WEIGHT : phase;      // Accounting for early promotion
 
     return (mg_sum * phase) + (eg_sum * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
 }
