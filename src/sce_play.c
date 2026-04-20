@@ -39,6 +39,7 @@ int main() {
 
         if (legal_move_list.count == 0) break;
 
+        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&board) / 100);
         SCE_Chessboard_print(&board, player);
 
         // Get move from user
@@ -71,12 +72,14 @@ int main() {
             continue;
         }
         if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
-            printf(" (Capture)");
+            printf("(Capture)");
         }
         printf("\n");
 
         // Making player move.
         ret = SCE_MakeMove(&board, &precomputation_table, &zobrist_table, move);
+        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&board) / 100);
+        SCE_Chessboard_print(&board, player);
 
         // ------------------------------------------------
         // Now computer's perspective
