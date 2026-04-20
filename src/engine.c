@@ -210,9 +210,25 @@ static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movel
 
     // Sort based on score, remembering to update the score array too.
     while (n_sorted < ptr_movelist->count) {
+        int argmax = n_sorted;
         for (uint i = n_sorted; i < ptr_movelist->count; i++) {
-            // TODO
+            if (move_scores[argmax] < move_scores[i]) {
+                argmax = i;
+            }
         }
+        // Swap move
+        {
+            const SCE_ChessMove temp = ptr_movelist->moves[n_sorted];
+            ptr_movelist->moves[n_sorted] = ptr_movelist->moves[argmax];
+            ptr_movelist->moves[argmax] = temp;
+        }
+        // Swap score
+        {
+            const int temp = move_scores[n_sorted];
+            move_scores[n_sorted] = move_scores[argmax];
+            move_scores[argmax] = temp;
+        }
+
         n_sorted++;
     }
 
