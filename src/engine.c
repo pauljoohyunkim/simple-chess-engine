@@ -281,10 +281,10 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     assert(ret == SCE_SUCCESS);
     ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
     assert(ret == SCE_SUCCESS);
+    // MVV-LVA Guessing and sorting
+    // TODO: Mailbox array: board->mailbox[idx] = type needs to be implemented.
     ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_board, tt_hint_move);
     assert(ret == SCE_SUCCESS);
-
-    // TODO: MVV-LVA Guessing and sorting
 
     // TODO: Check if king is in check or stalemate.
     // Iterating through moves
