@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "eval/pst.h"
 #include "engine.h"
 
 typedef unsigned int uint;
@@ -82,14 +83,16 @@ static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* cons
 #define BISHOP_VALUE 330
 #define ROOK_VALUE 500
 #define QUEEN_VALUE 900
-#define KING_VALUE 100000
+#define KING_VALUE 1000
+#define FLIP(x) ((x)^56)
 static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE_ChessMove move) {
     assert(ptr_board != NULL);
     
     int score = 0;
     
     const uint flag = move SCE_CHESSMOVE_GET_FLAG;
-    const uint64_t moving_piece = 1ULL << (move SCE_CHESSMOVE_GET_SRC);
+    const uint moving_piece_idx = move SCE_CHESSMOVE_GET_SRC;
+    const uint64_t moving_piece = 1ULL << moving_piece_idx;
     int moving_piece_type = UNASSIGNED;
     int captured_piece_type = UNASSIGNED;
     const int piece_values[] = {
@@ -97,18 +100,19 @@ static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE
         PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE
     };
 
+    // Determine moving piece/attacker
+    for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
+        if (ptr_board->bitboards[piece_type] & moving_piece) {
+            moving_piece_type = piece_type;
+            break;
+        }
+    }
+    assert(moving_piece_type != UNASSIGNED);
+
     if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
         // This is a capture.
         score += MVV_LVA_CAPTURE;
 
-        // Determine attacker
-        for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
-            if (ptr_board->bitboards[piece_type] & moving_piece) {
-                moving_piece_type = piece_type;
-                break;
-            }
-        }
-        
         // Determine victim
         // Captured piece depends on the flag
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
@@ -130,7 +134,6 @@ static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE
             }
         }
 
-        assert(moving_piece_type != UNASSIGNED);
         assert(captured_piece_type != UNASSIGNED);
         //if (moving_piece_type == UNASSIGNED || captured_piece_type == UNASSIGNED) return 0;
 
@@ -138,11 +141,43 @@ static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE
         const int attacker_value = piece_values[moving_piece_type];
         const int victim_value = piece_values[captured_piece_type];
         
-        const int score = (victim_value * 100) - attacker_value + (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION ? MVV_LVA_PROMOTION : 0);
+        score += (victim_value * 100) - attacker_value + (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION ? MVV_LVA_PROMOTION : 0);
         return score;
     } else {
-        // TODO: More exciting move scoring for quiet moves.
-        return 1;
+        // Determine captured piece type
+        const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
+        const uint src_idx_adjusted = ptr_board->to_move == WHITE ? moving_piece_idx : FLIP(moving_piece_idx);
+        const uint dst_idx_adjusted = ptr_board->to_move == WHITE ? dst_idx : FLIP(dst_idx);
+        int score = (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) ? MVV_LVA_PROMOTION : 0;
+        switch (moving_piece_type) {
+            case W_PAWN:
+            case B_PAWN:
+                return score + PST[PST_PAWN][dst_idx_adjusted] - PST[PST_PAWN][src_idx_adjusted];
+            case W_KNIGHT:
+            case B_KNIGHT:
+                return score + PST[PST_KNIGHT][dst_idx_adjusted] - PST[PST_KNIGHT][src_idx_adjusted];
+            case W_BISHOP:
+            case B_BISHOP:
+                return score + PST[PST_BISHOP][dst_idx_adjusted] - PST[PST_BISHOP][src_idx_adjusted];
+            case W_ROOK:
+            case B_ROOK:
+                return score + PST[PST_ROOK][dst_idx_adjusted] - PST[PST_ROOK][src_idx_adjusted];
+            case W_QUEEN:
+            case B_QUEEN:
+                return score + PST[PST_QUEEN][dst_idx_adjusted] - PST[PST_QUEEN][src_idx_adjusted];
+            case W_KING:
+            case B_KING:
+                {
+                    const int mg_pst = PST[PST_KING_MIDDLE][dst_idx_adjusted] - PST[PST_KING_MIDDLE][src_idx_adjusted];
+                    const int eg_pst = PST[PST_KING_END][dst_idx_adjusted] - PST[PST_KING_END][src_idx_adjusted];
+                    const int phase = SCE_Eval_ComputePhase(ptr_board);
+                    return score + ((mg_pst * phase) + (eg_pst * (TOTAL_PHASE_WEIGHT - phase))) / TOTAL_PHASE_WEIGHT;
+                }
+            default:
+                return 0;
+        }
+
+        return 0;
     }
 }
 

@@ -1,6 +1,7 @@
 #include <assert.h>
 #include "eval/pst.h"
 #include "eval/sef.h"
+#define FLIP(x) ((x)^56)
 
 #define COUNT_SET_BITS __builtin_popcountll
 // TODO: Implement fallback
@@ -55,7 +56,7 @@ static int SCE_Eval_PawnSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     while (pieces) {
         const uint idx = COUNT_TRAILING_ZEROS(pieces);
         const uint64_t piece = (1ULL << idx);
-        part_sum += (color == WHITE ? pst[idx] : -pst[63U-idx]);
+        part_sum += (color == WHITE ? pst[idx] : -pst[FLIP(idx)]);
         pieces &= ~piece;
     }
 
@@ -70,7 +71,7 @@ static int SCE_Eval_KnightSquareEval(SCE_Chessboard* const ptr_board, PieceColor
     while (pieces) {
         const uint idx = COUNT_TRAILING_ZEROS(pieces);
         const uint64_t piece = (1ULL << idx);
-        part_sum += (color == WHITE ? pst[idx] : -pst[63U-idx]);
+        part_sum += (color == WHITE ? pst[idx] : -pst[FLIP(idx)]);
         pieces &= ~piece;
     }
 
@@ -85,7 +86,7 @@ static int SCE_Eval_BishopSquareEval(SCE_Chessboard* const ptr_board, PieceColor
     while (pieces) {
         const uint idx = COUNT_TRAILING_ZEROS(pieces);
         const uint64_t piece = (1ULL << idx);
-        part_sum += (color == WHITE ? pst[idx] : -pst[63U-idx]);
+        part_sum += (color == WHITE ? pst[idx] : -pst[FLIP(idx)]);
         pieces &= ~piece;
     }
 
@@ -100,7 +101,7 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     while (pieces) {
         const uint idx = COUNT_TRAILING_ZEROS(pieces);
         const uint64_t piece = (1ULL << idx);
-        part_sum += (color == WHITE ? pst[idx] : -pst[63U-idx]);
+        part_sum += (color == WHITE ? pst[idx] : -pst[FLIP(idx)]);
         pieces &= ~piece;
     }
 
@@ -115,7 +116,7 @@ static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor 
     while (pieces) {
         const uint idx = COUNT_TRAILING_ZEROS(pieces);
         const uint64_t piece = (1ULL << idx);
-        part_sum += (color == WHITE ? pst[idx] : -pst[63U-idx]);
+        part_sum += (color == WHITE ? pst[idx] : -pst[FLIP(idx)]);
         pieces &= ~piece;
     }
 
@@ -129,21 +130,16 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     // (Middle game * phase + End game * (24 - phase)) / 24
     int mg_sum = 0;
     int eg_sum = 0;
-    int phase = 0;
     uint64_t pieces = ptr_board->bitboards[color == WHITE ? W_KING : B_KING];
     while (pieces) {
         const uint idx = COUNT_TRAILING_ZEROS(pieces);
         const uint64_t piece = (1ULL << idx);
-        mg_sum += (color == WHITE ? pst_middle[idx] : -pst_middle[63U-idx]);
-        eg_sum += (color == WHITE ? pst_end[idx] : -pst_end[63U-idx]);
+        mg_sum += (color == WHITE ? pst_middle[idx] : -pst_middle[FLIP(idx)]);
+        eg_sum += (color == WHITE ? pst_end[idx] : -pst_end[FLIP(idx)]);
         pieces &= ~piece;
     }
-    phase += QUEEN_PHASE_WEIGHT * ((ptr_board->bitboards[W_QUEEN] ? 1 : 0) + (ptr_board->bitboards[B_QUEEN] ? 1 : 0));
-    phase += ROOK_PHASE_WEIGHT * (COUNT_SET_BITS(ptr_board->bitboards[W_ROOK]) + COUNT_SET_BITS(ptr_board->bitboards[B_ROOK]));
-    phase += BISHOP_PHASE_WEIGHT * (COUNT_SET_BITS(ptr_board->bitboards[W_BISHOP]) + COUNT_SET_BITS(ptr_board->bitboards[B_BISHOP]));
-    phase += KNIGHT_PHASE_WEIGHT * (COUNT_SET_BITS(ptr_board->bitboards[W_KNIGHT]) + COUNT_SET_BITS(ptr_board->bitboards[B_KNIGHT]));
-    phase = (phase > TOTAL_PHASE_WEIGHT) ? TOTAL_PHASE_WEIGHT : phase;      // Accounting for early promotion
+    const int phase = SCE_Eval_ComputePhase(ptr_board);
 
-    return (mg_sum * phase) + (eg_sum * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
+    return ((mg_sum * phase) + (eg_sum * (TOTAL_PHASE_WEIGHT - phase))) / TOTAL_PHASE_WEIGHT;
 }
 

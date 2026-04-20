@@ -24,8 +24,8 @@ extern "C" {
 #define TOTAL_PHASE_WEIGHT 24
 
 // In order: pawn, knight, bishop, rook, queen, and king
-const int piece_weights[] = { PAWN_WEIGHT, KNIGHT_WEIGHT, BISHOP_WEIGHT, ROOK_WEIGHT, QUEEN_WEIGHT, KING_WEIGHT,    // WHITE
-                              PAWN_WEIGHT, KNIGHT_WEIGHT, BISHOP_WEIGHT, ROOK_WEIGHT, QUEEN_WEIGHT, KING_WEIGHT };  // BLACK
+static const int piece_weights[] = { PAWN_WEIGHT, KNIGHT_WEIGHT, BISHOP_WEIGHT, ROOK_WEIGHT, QUEEN_WEIGHT, KING_WEIGHT,    // WHITE
+                                     PAWN_WEIGHT, KNIGHT_WEIGHT, BISHOP_WEIGHT, ROOK_WEIGHT, QUEEN_WEIGHT, KING_WEIGHT };  // BLACK
 
 #define PST_PAWN (0U)
 #define PST_KNIGHT (1U)
@@ -34,7 +34,7 @@ const int piece_weights[] = { PAWN_WEIGHT, KNIGHT_WEIGHT, BISHOP_WEIGHT, ROOK_WE
 #define PST_QUEEN (4U)
 #define PST_KING_MIDDLE (5U)
 #define PST_KING_END (6U)
-const int PST[7U][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION] = {
+static const int PST[7U][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION] = {
     {
         0,  0,  0,  0,  0,  0,  0,  0,
         5, 10, 10,-20,-20, 10, 10,  5,
@@ -107,6 +107,7 @@ const int PST[7U][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION] = {
     }
 };
 
+unsigned int SCE_Eval_ComputePhase(const SCE_Chessboard* const ptr_board);
 
 #ifdef __cplusplus
 }
