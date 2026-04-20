@@ -105,14 +105,14 @@ SCE_Return print_move_to_AN(const SCE_ChessMove move) {
     return SCE_SUCCESS;
 }
 
-SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
-    if (ptr_board == NULL) return SCE_INVALID_PARAM;
+SCE_Return debug_print_board(const SCE_Context* const ctx) {
+    if (ctx == NULL) return SCE_INVALID_PARAM;
 
-    if (SCE_Chessboard_print(ptr_board, WHITE) != SCE_SUCCESS) return SCE_INVALID_BOARD_STATE;
-    for (uint i = 0U; i < ptr_board->history.count; i++) {
+    if (SCE_Chessboard_print(ctx, WHITE) != SCE_SUCCESS) return SCE_INVALID_BOARD_STATE;
+    for (uint i = 0U; i < ctx->board.history.count; i++) {
         printf("Move: \n");
-        print_move_to_AN(ptr_board->history.moves[i]);
-        const SCE_UndoState* state = &ptr_board->undo_states[i];
+        print_move_to_AN(ctx->board.history.moves[i]);
+        const SCE_UndoState* state = &ctx->board.undo_states[i];
         printf("UndoState:\n");
         printf("(MP, CP, EP, CastleR, HalfMoveClock, Hash): (%d, %d, %d, %d, %d, %ld)\n",
             state->moving_piece,
@@ -126,26 +126,26 @@ SCE_Return debug_print_board(const SCE_Chessboard* const ptr_board) {
     return SCE_SUCCESS;
 }
 
-unsigned long long perft_count(const SCE_Chessboard* const ptr_board, const SCE_PieceMovementPrecomputationTable* const ptr_precomputation_table, const SCE_ZobristTable* const ptr_table, const uint depth, const bool root) {
-    if (ptr_board == NULL || ptr_precomputation_table == NULL || ptr_table == NULL) return 0U;
+unsigned long long perft_count(const SCE_Context* const ctx, const uint depth, const bool root) {
+    if (ctx == NULL) return 0U;
     if (depth == 0U) return 1U;
 
     unsigned long long count = 0U;
     SCE_ChessMoveList pseudolegal_moves;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&pseudolegal_moves), "Could not clear move list.");
-    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ptr_board, ptr_precomputation_table), "Could not clear move list.");
+    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ctx), "Could not clear move list.");
     for (uint i = 0U; i < pseudolegal_moves.count; i++) {
         // For each move, try making the move. If successful, recursively call the function.
-        const SCE_Return ret = SCE_MakeMove(ptr_board, ptr_precomputation_table, ptr_table, pseudolegal_moves.moves[i]);
+        const SCE_Return ret = SCE_MakeMove(ctx, pseudolegal_moves.moves[i]);
         //const uint64_t zobrist_hash = SCE_Chessboard_ComputeZobristHash(ptr_board, ptr_table);
         //if (zobrist_hash != ptr_board->zobrist_hash) {
         //    return SCE_INTERNAL_ERROR;
         //}
         uint add_count;
         if (ret == SCE_SUCCESS) {
-            add_count = perft_count(ptr_board, ptr_precomputation_table, ptr_table, depth-1, false);
+            add_count = perft_count(ctx, depth-1, false);
             count += add_count;
-            RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ptr_board, ptr_precomputation_table), "Could not unmake move after a successful makemove.");
+            RETURN_IF_SCE_FAILURE(SCE_UnmakeMove(ctx), "Could not unmake move after a successful makemove.");
         }
         if (root && ret == SCE_SUCCESS) {
             printf("\n");

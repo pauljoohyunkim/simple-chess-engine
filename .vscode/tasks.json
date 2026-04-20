@@ -11,12 +11,12 @@
         {
             "label": "Make sce_play (Debug)",
             "type": "shell",
-            "command": "make bin CFLAGSEXTRA=-DDEBUG"
+            "command": "make bin"
         },
         {
             "label": "Unit test",
             "type": "shell",
-            "command": "make test CFLAGSEXTRA=-DDEBUG"
+            "command": "make test"
         },
     ]
 }
