@@ -70,6 +70,10 @@ int main() {
             fprintf(stderr, "Not a legal move. Try again\n");
             continue;
         }
+        if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
+            printf(" (Capture)");
+        }
+        printf("\n");
 
         // Making player move.
         ret = SCE_MakeMove(&board, &precomputation_table, &zobrist_table, move);
@@ -85,7 +89,11 @@ int main() {
         {
             ret = SCE_Bitboard_To_AN(src_an, 1ULL << (move SCE_CHESSMOVE_GET_SRC));
             ret = SCE_Bitboard_To_AN(dst_an, 1ULL << (move SCE_CHESSMOVE_GET_DST));
-            printf("Computer: %s -> %s\n", src_an, dst_an);
+            printf("Computer: %s -> %s", src_an, dst_an);
+            if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
+                printf(" (Capture)");
+            }
+            printf("\n");
         }
     }
 
