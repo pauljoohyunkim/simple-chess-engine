@@ -1574,6 +1574,7 @@ SCE_Return SCE_MakeMove(SCE_Chessboard* const ptr_board, SCE_PieceMovementPrecom
                 // Determine captured piece type
                 if (dst & ptr_board->bitboards[piece_type]) {
                     captured_piece_type = piece_type;
+                    break;
                 }
             }
 
