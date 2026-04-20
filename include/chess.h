@@ -161,36 +161,35 @@ SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list);
 /**
  * @brief Clear out the board with zeros.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board);
+SCE_Return SCE_Chessboard_clear(SCE_Context* const ctx);
 
 /**
  * @brief Reset the board to a initial setup.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board);
+SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx);
 
 /**
  * @brief Initialize a table to be used for Zobrist hashing.
  * 
- * @param ptr_table Pointer to the SCE_ZobristTable struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @param seed Pointer to seed value for random number generation. NULL for randomly picked seed.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64_t* const ptr_seed);
+SCE_Return SCE_ZobristTable_init(SCE_Context* const ctx, const uint64_t* const ptr_seed);
 
 /**
  * @brief Compute the Zobrist hash of the current board. Requires Zobrist table to be precomputed by SCE_ZobristTable_init
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @param ptr_table Pointer to the SCE_ZobristTable struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @return uint64_t Zobrist hash of the board if successful, or 0 for failure.
  */
-uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Chessboard* const ptr_board, SCE_ZobristTable* const ptr_table);
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx);
 
 /**
  * @brief Returns the bitboard of occupancy information.

@@ -55,50 +55,50 @@ SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_Chessboard_clear(SCE_Chessboard* const ptr_board) {
-    if (ptr_board == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_Chessboard_clear(SCE_Context* const ctx) {
+    if (ctx == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < N_TYPES_PIECES; i++) {
-        ptr_board->bitboards[i] = 0U;
+        ctx->board.bitboards[i] = 0U;
     }
 
-    ptr_board->en_passant_idx = UNASSIGNED;
-    ptr_board->to_move = WHITE;
-    ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
-    ptr_board->half_move_clock = 0U;
-    ptr_board->zobrist_hash = 0U;
-    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
+    ctx->board.en_passant_idx = UNASSIGNED;
+    ctx->board.to_move = WHITE;
+    ctx->board.castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
+    ctx->board.half_move_clock = 0U;
+    ctx->board.zobrist_hash = 0U;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ctx->board.history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_Chessboard_reset(SCE_Chessboard* const ptr_board) {
-    if (ptr_board == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
+    if (ctx == NULL) return SCE_INVALID_PARAM;
 
-    RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ptr_board), "Error when clearing board!");
+    RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ctx), "Error when clearing board!");
 
     // White pieces
-    ptr_board->bitboards[W_PAWN] = PAWN_INITIAL_ROW << (8U * 1U);
-    ptr_board->bitboards[W_KNIGHT] = KNIGHT_INITIAL_ROW;
-    ptr_board->bitboards[W_BISHOP] = BISHOP_INITIAL_ROW;
-    ptr_board->bitboards[W_ROOK] = ROOK_INITIAL_ROW;
-    ptr_board->bitboards[W_QUEEN] = QUEEN_INITIAL_ROW;
-    ptr_board->bitboards[W_KING] = KING_INITIAL_ROW;
+    ctx->board.bitboards[W_PAWN] = PAWN_INITIAL_ROW << (8U * 1U);
+    ctx->board.bitboards[W_KNIGHT] = KNIGHT_INITIAL_ROW;
+    ctx->board.bitboards[W_BISHOP] = BISHOP_INITIAL_ROW;
+    ctx->board.bitboards[W_ROOK] = ROOK_INITIAL_ROW;
+    ctx->board.bitboards[W_QUEEN] = QUEEN_INITIAL_ROW;
+    ctx->board.bitboards[W_KING] = KING_INITIAL_ROW;
 
     // Black pieces
-    ptr_board->bitboards[B_PAWN] = PAWN_INITIAL_ROW << (8U * 6U);
-    ptr_board->bitboards[B_KNIGHT] = KNIGHT_INITIAL_ROW << (8U * 7U);
-    ptr_board->bitboards[B_BISHOP] = BISHOP_INITIAL_ROW << (8U * 7U);
-    ptr_board->bitboards[B_ROOK] = ROOK_INITIAL_ROW << (8U * 7U);
-    ptr_board->bitboards[B_QUEEN] = QUEEN_INITIAL_ROW << (8U * 7U);
-    ptr_board->bitboards[B_KING] = KING_INITIAL_ROW << (8U * 7U);
+    ctx->board.bitboards[B_PAWN] = PAWN_INITIAL_ROW << (8U * 6U);
+    ctx->board.bitboards[B_KNIGHT] = KNIGHT_INITIAL_ROW << (8U * 7U);
+    ctx->board.bitboards[B_BISHOP] = BISHOP_INITIAL_ROW << (8U * 7U);
+    ctx->board.bitboards[B_ROOK] = ROOK_INITIAL_ROW << (8U * 7U);
+    ctx->board.bitboards[B_QUEEN] = QUEEN_INITIAL_ROW << (8U * 7U);
+    ctx->board.bitboards[B_KING] = KING_INITIAL_ROW << (8U * 7U);
 
-    ptr_board->en_passant_idx = UNASSIGNED;
-    ptr_board->to_move = WHITE;
-    ptr_board->castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
-    ptr_board->half_move_clock = 0U;
-    ptr_board->zobrist_hash = 0U;
-    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ptr_board->history), "Error when clearing chess move list");
+    ctx->board.en_passant_idx = UNASSIGNED;
+    ctx->board.to_move = WHITE;
+    ctx->board.castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
+    ctx->board.half_move_clock = 0U;
+    ctx->board.zobrist_hash = 0U;
+    RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ctx->board.history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
 }
@@ -110,71 +110,71 @@ static uint64_t xorshift(uint64_t x) {
     return x;
 }
 
-SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_table, const uint64_t* const ptr_seed) {
-    if (ptr_table == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_ZobristTable_init(SCE_Context* const ctx, const uint64_t* const ptr_seed) {
+    if (ctx == NULL) return SCE_INVALID_PARAM;
     if (ptr_seed == NULL) srand(time(NULL));
 
-    uint64_t x = ptr_seed == NULL ? rand() : (*ptr_seed);
+    uint64_t x = ptr_seed == NULL ? (uint64_t) rand() : (*ptr_seed);
 
     // Piece keys
     for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
         for (uint idx = 0U; idx < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; idx++) {
             x = xorshift(x);
-            ptr_table->piece_key[piece_type][idx] = x;
+            ctx->zobrist_table.piece_key[piece_type][idx] = x;
         }
     }
 
     // Castling rights
     for (uint i = 0U; i < 16U; i++) {
         x = xorshift(x);
-        ptr_table->castling_keys[i] = x;
+        ctx->zobrist_table.castling_keys[i] = x;
     }
 
     // En passant
     for (uint i = 0U; i < 9U; i++) {
         x = xorshift(x);
-        ptr_table->en_passant_keys[i] = x;
+        ctx->zobrist_table.en_passant_keys[i] = x;
     }
 
     // Side key
     x = xorshift(x);
-    ptr_table->side_key = x;
+    ctx->zobrist_table.side_key = x;
 
     return SCE_SUCCESS;
 }
 
 #define SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY (8U)
-uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Chessboard* const ptr_board, SCE_ZobristTable* const ptr_table) {
-    if (ptr_board == NULL || ptr_table == NULL) return SCE_INVALID_PARAM;
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx) {
+    if (ctx == NULL) return SCE_INVALID_PARAM;
 
     uint64_t hash = 0U;
 
     // Board
     for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
         // Find the pieces.
-        uint64_t pieces = ptr_board->bitboards[piece_type];
+        uint64_t pieces = ctx->board.bitboards[piece_type];
         while (pieces) {
             // Get index of pieces one by one.
             const uint idx = COUNT_TRAILING_ZEROS(pieces);
-            hash ^= ptr_table->piece_key[piece_type][idx];
+            hash ^= ctx->zobrist_table.piece_key[piece_type][idx];
             pieces &= ~(1ULL << idx);
         }
     }
 
     // Castling
-    hash ^= ptr_table->castling_keys[ptr_board->castling_rights];
+    hash ^= ctx->zobrist_table.castling_keys[ctx->board.castling_rights];
 
     // En passant
-    if (ptr_board->en_passant_idx == UNASSIGNED) {
-        hash ^= ptr_table->en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
+    if (ctx->board.en_passant_idx == UNASSIGNED) {
+        hash ^= ctx->zobrist_table.en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
     } else {
-        const uint col_idx = ptr_board->en_passant_idx % 8U;
-        hash ^= ptr_table->en_passant_keys[col_idx];
+        const uint col_idx = ctx->board.en_passant_idx % 8U;
+        hash ^= ctx->zobrist_table.en_passant_keys[col_idx];
     }
 
     // Side
-    if (ptr_board->to_move == BLACK) {
-        hash ^= ptr_table->side_key;
+    if (ctx->board.to_move == BLACK) {
+        hash ^= ctx->zobrist_table.side_key;
     }
 
     return hash;
