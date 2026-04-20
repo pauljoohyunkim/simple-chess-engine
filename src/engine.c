@@ -242,7 +242,7 @@ static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board) {
     if (ptr_board->history.count < 2) return false;
 
     for (int i = ptr_board->history.count - 2; i >= (int)ptr_board->history.count - (int)ptr_board->half_move_clock; i -= 2) {
-        if (ptr_board->undo_states->zobrist_hash == ptr_board->zobrist_hash) {
+        if (ptr_board->undo_states[i].zobrist_hash == ptr_board->zobrist_hash) {
             return true;
         }
     }
