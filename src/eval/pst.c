@@ -1,10 +1,6 @@
+#include "helper.h"
 #include "chess.h"
 #include "eval/pst.h"
-
-#define COUNT_SET_BITS __builtin_popcountll
-// TODO: Implement fallback
-#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
-#define COUNT_LEADING_ZEROS(x) __builtin_clzll(x)
 
 unsigned int SCE_Eval_ComputePhase(const SCE_Chessboard* const ptr_board) {
     unsigned int phase = 0;

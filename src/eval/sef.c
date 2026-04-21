@@ -1,12 +1,8 @@
 #include <assert.h>
+#include "helper.h"
 #include "eval/pst.h"
 #include "eval/sef.h"
 #define FLIP(x) ((x)^56)
-
-#define COUNT_SET_BITS __builtin_popcountll
-// TODO: Implement fallback
-#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
-#define COUNT_LEADING_ZEROS(x) __builtin_clzll(x)
 
 typedef unsigned int uint;
 

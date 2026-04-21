@@ -5,7 +5,6 @@
 #include "eval/sef.h"
 #include "engine.h"
 
-
 #define TT_TABLE_LOG_2_SIZE 20
 
 int main() {

@@ -116,6 +116,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
 
                 const uint idx = 8 * row + col;
                 ctx->board.bitboards[piece_type] ^= (1ULL << idx);
+                ctx->board.mailbox[idx] = piece_type;
                 col++;
             } else if (isdigit(c)) {
                 const uint shift = c - '0';
