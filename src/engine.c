@@ -9,15 +9,11 @@ static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* cons
 static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Chessboard* const ptr_board, const int tt_hint_move);
 static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board);
 static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
-                                     SCE_Chessboard* const ptr_board,
-                                     SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl,
-                                     SCE_ZobristTable* const ptr_table,
+                                     SCE_Context* const ctx,
                                      int alpha,
                                      int beta);
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
-                                       SCE_Chessboard *const ptr_board,
-                                       SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
-                                       SCE_ZobristTable *const ptr_table,
+                                       SCE_Context* const ctx,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta);
@@ -258,12 +254,10 @@ static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board) {
 
 
 static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
-                                     SCE_Chessboard* const ptr_board,
-                                     SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl,
-                                     SCE_ZobristTable* const ptr_table,
+                                     SCE_Context* const ctx,
                                      int alpha,
                                      int beta) {
-    const int static_eval = ptr_engine->eval_function(ptr_board);
+    const int static_eval = ptr_engine->eval_function(&ctx->board);
 
     int best_value = static_eval;
     if (best_value >= beta) return best_value;
@@ -273,11 +267,11 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
     SCE_ChessMoveList moves;
     SCE_Return ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
+    ret = SCE_GenerateLegalMoves(&moves, ctx);
     assert(ret == SCE_SUCCESS);
 
     // Order moves
-    ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_board, UNASSIGNED);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, UNASSIGNED);
     assert(ret == SCE_SUCCESS);
 
     for (uint i = 0U; i < moves.count; i++) {
@@ -286,12 +280,12 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
         // Only get moves that are capture.
         if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && !(flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION)) continue;
 
-        ret = SCE_MakeMove(ptr_board, ptr_precomputation_tbl, ptr_table, move);
+        ret = SCE_MakeMove(ctx, move);
         assert(ret == SCE_SUCCESS);
 
-        int score = -SCE_Engine_QuiesceNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, -beta, -alpha);
+        int score = -SCE_Engine_QuiesceNegamax(ptr_engine, ctx, -beta, -alpha);
 
-        ret = SCE_UnmakeMove(ptr_board, ptr_precomputation_tbl);
+        ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
 
         if (score >= beta) return score;
@@ -306,24 +300,22 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
 #define SCE_EVAL_DRAW (0)
 #define SCE_EVAL_CHECKMATE (-100000)
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
-                                       SCE_Chessboard *const ptr_board,
-                                       SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
-                                       SCE_ZobristTable *const ptr_table,
+                                       SCE_Context* const ctx,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
-    if (ptr_board->half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
-    if (SCE_Engine_DetectRepetition(ptr_board)) return SCE_EVAL_DRAW;
+    if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
+    if (SCE_Engine_DetectRepetition(&ctx->board)) return SCE_EVAL_DRAW;
 
     if (depth == 0) {
         //return ptr_engine->eval_function(ptr_board);
-        return SCE_Engine_QuiesceNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, alpha, beta);
+        return SCE_Engine_QuiesceNegamax(ptr_engine, ctx, alpha, beta);
     }
 
     int tt_hint_move = UNASSIGNED;
     // Zobrist-Transposition-Table Lookup
-    const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ptr_board->zobrist_hash);
-    if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ptr_board->zobrist_hash) {
+    const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
+    if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
         if (depth >= ptr_transposition_entry->depth) {
             tt_hint_move = ptr_transposition_entry->move;
             // Useful result.
@@ -351,20 +343,21 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     SCE_Return ret;
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
+    ret = SCE_GenerateLegalMoves(&moves, ctx);
     assert(ret == SCE_SUCCESS);
     if (moves.count == 0) {
         // TODO: Check if king is in check or stalemate.
-        const uint64_t king_sq = ptr_board->bitboards[ptr_board->to_move == WHITE ? W_KING : B_KING];
-        if (SCE_IsSquareAttacked(ptr_board, ptr_precomputation_tbl, king_sq, ptr_board->to_move == WHITE ? BLACK : WHITE)) {
-            return SCE_EVAL_CHECKMATE + depth;
+        const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
+        if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
+            const int ply = ptr_engine->depth - depth;
+            return SCE_EVAL_CHECKMATE + ply;
         } else {
             return SCE_EVAL_DRAW;
         }
     }
     // MVV-LVA Guessing and sorting
     // TODO: Mailbox array: board->mailbox[idx] = type needs to be implemented.
-    ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_board, tt_hint_move);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, tt_hint_move);
     assert(ret == SCE_SUCCESS);
 
     // Iterating through moves
@@ -380,16 +373,16 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
      * 3. This means if I choose this move, opponent has a move that evaluates to +2. I might as well take the first move.
      */
     for (uint i = 0U; i < moves.count; i++) {
-        ret = SCE_MakeMove(ptr_board, ptr_precomputation_tbl, ptr_table, moves.moves[i]);
+        ret = SCE_MakeMove(ctx, moves.moves[i]);
         assert(ret == SCE_SUCCESS);
 
-        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, depth-1, -beta, -alpha);
+        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, depth-1, -beta, -alpha);
 
-        ret = SCE_UnmakeMove(ptr_board, ptr_precomputation_tbl);
+        ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
 
         if (score >= beta) { 
-            SCE_Engine_AddTransposition(ptr_engine, ptr_board->zobrist_hash, score, depth, moves.moves[i], SCE_TF_BETA);
+            SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, moves.moves[i], SCE_TF_BETA);
             return beta;
         }
         if (score > alpha) { 
@@ -399,15 +392,12 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     }
 
     const uint8_t flag = alpha <= alpha_original ? SCE_TF_ALPHA : SCE_TF_EXACT;
-    SCE_Engine_AddTransposition(ptr_engine, ptr_board->zobrist_hash, alpha, depth, best_move == UNASSIGNED ? 0U : (SCE_ChessMove) best_move, flag);
+    SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha, depth, best_move == UNASSIGNED ? 0U : (SCE_ChessMove) best_move, flag);
 
     return alpha;
 }
 
-int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
-                                           SCE_Chessboard *const ptr_board,
-                                           SCE_PieceMovementPrecomputationTable *const ptr_precomputation_tbl,
-                                           SCE_ZobristTable *const ptr_table) {
+int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx) {
     int alpha = SCE_ALPHA_INITIAL;
     int beta = SCE_BETA_INITIAL;
     int best_score = SCE_ALPHA_INITIAL;
@@ -418,15 +408,17 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine,
     SCE_Return ret;
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GenerateLegalMoves(&moves, ptr_board, ptr_precomputation_tbl, ptr_table);
+    ret = SCE_GenerateLegalMoves(&moves, ctx);
+    assert(ret == SCE_SUCCESS);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, best_move);
     assert(ret == SCE_SUCCESS);
 
     for (uint i = 0U; i < moves.count; i++) {
-        ret = SCE_MakeMove(ptr_board, ptr_precomputation_tbl, ptr_table, moves.moves[i]);
+        ret = SCE_MakeMove(ctx, moves.moves[i]);
         assert(ret == SCE_SUCCESS);
-        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ptr_board, ptr_precomputation_tbl, ptr_table, ptr_engine->depth-1, -beta, -alpha);
+        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_engine->depth-1, -beta, -alpha);
 
-        ret = SCE_UnmakeMove(ptr_board, ptr_precomputation_tbl);
+        ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
 
         if (score > best_score) {

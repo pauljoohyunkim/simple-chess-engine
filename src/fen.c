@@ -20,8 +20,8 @@ static uint count_occurence(const char* const str, const char c);
 
 // Maximum FEN string is 92 including null terminator.
 #define FEN_STRING_MAX_LEN (92U)
-SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char* const fen) {
-    if (ptr_board == NULL || fen == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fen) {
+    if (ctx == NULL || fen == NULL) return SCE_INVALID_PARAM;
     size_t fen_len = strlen(fen);
     if (fen_len >= FEN_STRING_MAX_LEN) return SCE_INVALID_PARAM;
 
@@ -59,8 +59,8 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char*
     
     const char* fullmove_number = indexer;
 
-    RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ptr_board), "Clearing board failure!");
-    ptr_board->castling_rights = 0U;
+    RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ctx), "Clearing board failure!");
+    ctx->board.castling_rights = 0U;
 
     uint row = 7U;
     uint col = 0U;
@@ -115,7 +115,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char*
                 if (col >= CHESSBOARD_DIMENSION) return SCE_INVALID_PARAM;
 
                 const uint idx = 8 * row + col;
-                ptr_board->bitboards[piece_type] ^= (1ULL << idx);
+                ctx->board.bitboards[piece_type] ^= (1ULL << idx);
                 col++;
             } else if (isdigit(c)) {
                 const uint shift = c - '0';
@@ -141,10 +141,10 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char*
 
         switch (active_color_str[0]) {
             case 'w':
-                ptr_board->to_move = WHITE;
+                ctx->board.to_move = WHITE;
                 break;
             case 'b':
-                ptr_board->to_move = BLACK;
+                ctx->board.to_move = BLACK;
                 break;
             default:
                 return SCE_INVALID_PARAM;
@@ -163,16 +163,16 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char*
 
                 switch (c) {
                     case 'K':
-                        ptr_board->castling_rights |= SCE_CASTLING_RIGHTS_WK;
+                        ctx->board.castling_rights |= SCE_CASTLING_RIGHTS_WK;
                         break;
                     case 'Q':
-                        ptr_board->castling_rights |= SCE_CASTLING_RIGHTS_WQ;
+                        ctx->board.castling_rights |= SCE_CASTLING_RIGHTS_WQ;
                         break;
                     case 'k':
-                        ptr_board->castling_rights |= SCE_CASTLING_RIGHTS_BK;
+                        ctx->board.castling_rights |= SCE_CASTLING_RIGHTS_BK;
                         break;
                     case 'q':
-                        ptr_board->castling_rights |= SCE_CASTLING_RIGHTS_BQ;
+                        ctx->board.castling_rights |= SCE_CASTLING_RIGHTS_BQ;
                         break;
                     default:
                         return SCE_INVALID_PARAM;
@@ -180,7 +180,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char*
             }
         } else {
             // No piece has castling rights.
-            ptr_board->castling_rights = 0U;
+            ctx->board.castling_rights = 0U;
         }
 
         fen_step = FEN_STEP_EN_PASSANT_TARGET_SQUARE;
@@ -192,12 +192,12 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char*
         
         if (len == 1U) {
             if (en_passant_target_square_str[0] != '-') return SCE_INVALID_PARAM;
-            ptr_board->en_passant_idx = UNASSIGNED;
+            ctx->board.en_passant_idx = UNASSIGNED;
         }
         if (len == 2U) {
             // Error is handled automatically as -1 is "UNASSIGNED"
             const int idx = SCE_AN_To_Idx(en_passant_target_square_str);
-            ptr_board->en_passant_idx = idx;
+            ctx->board.en_passant_idx = idx;
         }
         fen_step = FEN_STEP_HALFMOVE_CLOCK;
     }
@@ -211,7 +211,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char*
             if (!isdigit(halfmove_clock_str[i])) return SCE_INVALID_PARAM;
         }
 
-        ptr_board->half_move_clock = atoi(halfmove_clock_str);
+        ctx->board.half_move_clock = atoi(halfmove_clock_str);
         fen_step = FEN_STEP_FULLMOVE_NUMBER;
     }
 
