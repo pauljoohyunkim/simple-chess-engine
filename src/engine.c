@@ -103,13 +103,7 @@ static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE
         PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE
     };
 
-    // Determine moving piece/attacker
-    for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
-        if (ptr_board->bitboards[piece_type] & moving_piece) {
-            moving_piece_type = piece_type;
-            break;
-        }
-    }
+    moving_piece_type = ptr_board->mailbox[moving_piece_idx];
     assert(moving_piece_type != UNASSIGNED);
 
     if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
@@ -119,22 +113,11 @@ static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE
         // Determine victim
         // Captured piece depends on the flag
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
-            uint64_t captured_piece = ptr_board->to_move == WHITE ? (1ULL << (ptr_board->en_passant_idx - CHESSBOARD_DIMENSION)) : (1ULL << (ptr_board->en_passant_idx + CHESSBOARD_DIMENSION));
-            for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
-                // Determine en passant victim piece type
-                if (captured_piece & ptr_board->bitboards[piece_type]) {
-                    captured_piece_type = piece_type;
-                    break;
-                }
-            }
+            const uint captured_piece_idx = ptr_board->to_move == WHITE ? (ptr_board->en_passant_idx - CHESSBOARD_DIMENSION) : (ptr_board->en_passant_idx + CHESSBOARD_DIMENSION);
+            captured_piece_type = ptr_board->mailbox[captured_piece_idx];
         } else {
-            for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
-                // Determine captured piece type
-                const uint64_t dst = 1ULL << (move SCE_CHESSMOVE_GET_DST);
-                if (dst & ptr_board->bitboards[piece_type]) {
-                    captured_piece_type = piece_type;
-                }
-            }
+            const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
+            captured_piece_type = ptr_board->mailbox[dst_idx];
         }
 
         assert(captured_piece_type != UNASSIGNED);
