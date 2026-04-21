@@ -264,7 +264,6 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
         // Only get moves that are capture.
         //print_move_to_AN(move);
         assert((flag & SCE_CHESSMOVE_FLAG_CAPTURE) || (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION));
-        //if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && !(flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION)) continue;
 
         ret = SCE_MakeMove(ctx, move);
         if (ret != SCE_SUCCESS) {

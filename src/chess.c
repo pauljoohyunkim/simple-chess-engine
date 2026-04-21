@@ -899,7 +899,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                 case B_ROOK:
                 case W_QUEEN:
                 case B_QUEEN:
-                    if (blockers_idx[NORTH]) {
+                    if (blockers[NORTH]) {
                         uint blocker_idx = blockers_idx[NORTH];
                         uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         // Check color
@@ -914,7 +914,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                         max_shifts[NORTH] = (CHESSBOARD_DIMENSION - 1U - piece_row);
                     }
 
-                    if (blockers_idx[EAST]) {
+                    if (blockers[EAST]) {
                         uint blocker_idx = blockers_idx[EAST];
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
                         // Check color
@@ -929,7 +929,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                         max_shifts[EAST] = (CHESSBOARD_DIMENSION - 1U - piece_col);
                     }
 
-                    if (blockers_idx[SOUTH]) {
+                    if (blockers[SOUTH]) {
                         uint blocker_idx = blockers_idx[SOUTH];
                         uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         // Check color
@@ -944,7 +944,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                         max_shifts[SOUTH] = piece_row;
                     }
 
-                    if (blockers_idx[WEST]) {
+                    if (blockers[WEST]) {
                         uint blocker_idx = blockers_idx[WEST];
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
                         // Check color
@@ -970,7 +970,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                 case B_BISHOP:
                 case W_QUEEN:
                 case B_QUEEN:
-                    if (blockers_idx[NORTHEAST]) {
+                    if (blockers[NORTHEAST]) {
                         uint blocker_idx = blockers_idx[NORTHEAST];
                         uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
@@ -986,7 +986,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                         max_shifts[NORTHEAST] = MIN(CHESSBOARD_DIMENSION - piece_row, CHESSBOARD_DIMENSION - piece_col) - 1U;
                     }
 
-                    if (blockers_idx[NORTHWEST]) {
+                    if (blockers[NORTHWEST]) {
                         uint blocker_idx = blockers_idx[NORTHWEST];
                         uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
@@ -1002,7 +1002,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                         max_shifts[NORTHWEST] = MIN(CHESSBOARD_DIMENSION - piece_row - 1U, piece_col);
                     }
 
-                    if (blockers_idx[SOUTHEAST]) {
+                    if (blockers[SOUTHEAST]) {
                         uint blocker_idx = blockers_idx[SOUTHEAST];
                         uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
@@ -1018,7 +1018,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                         max_shifts[SOUTHEAST] = MIN(piece_row, CHESSBOARD_DIMENSION - piece_col - 1U);
                     }
 
-                    if (blockers_idx[SOUTHWEST]) {
+                    if (blockers[SOUTHWEST]) {
                         uint blocker_idx = blockers_idx[SOUTHWEST];
                         uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
@@ -1043,90 +1043,154 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
             for (RayDirection direction = NORTH; direction <= SOUTHWEST; direction++) {
                 switch (direction) {
                     case NORTH:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src + CHESSBOARD_DIMENSION * shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = piece_idx_src + CHESSBOARD_DIMENSION * max_shifts[direction];
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src + CHESSBOARD_DIMENSION * shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
                     case EAST:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src + shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = (piece_idx_src + max_shifts[direction]);
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src + shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
                     case SOUTH:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src - CHESSBOARD_DIMENSION * shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = (piece_idx_src - CHESSBOARD_DIMENSION * max_shifts[direction]);
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src - CHESSBOARD_DIMENSION * shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else if (!tactical) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
                     case WEST:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src - shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = (piece_idx_src - max_shifts[direction]);
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src - shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
                     case NORTHEAST:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION + 1U) * shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION + 1U) * max_shifts[direction]);
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION + 1U) * shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else if (!tactical) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
                     case NORTHWEST:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION - 1U) * shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION - 1U) * max_shifts[direction]);
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src + (CHESSBOARD_DIMENSION - 1U) * shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else if (!tactical) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
                     case SOUTHEAST:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION - 1U) * shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION - 1U) * max_shifts[direction]);
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION - 1U) * shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else if (!tactical) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
                     case SOUTHWEST:
-                        for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
-                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION + 1U) * shift);
-                            const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
-                            if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                        if (tactical && max_shifts[direction] > 0) {
+                            const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION + 1U) * max_shifts[direction]);
+                            if ((moving_piece_color == WHITE ? occupancy_b : occupancy_w) & (1ULL << piece_idx_dst)) {
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else if (!tactical) {
-                                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                            }
+                        } else {
+                            for (uint shift = 1U; shift <= max_shifts[direction]; shift++) {
+                                const uint piece_idx_dst = (piece_idx_src - (CHESSBOARD_DIMENSION + 1U) * shift);
+                                const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
+                                if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
+                                } else if (!tactical) {
+                                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
+                                }
                             }
                         }
                         break;
