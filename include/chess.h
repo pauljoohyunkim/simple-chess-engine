@@ -11,6 +11,8 @@ extern "C" {
 
 #define CHESSBOARD_DIMENSION 8U
 
+#define UNASSIGNED (-1)
+
 typedef enum {
     W_PAWN = 0,
     W_KNIGHT = 1,
@@ -24,12 +26,10 @@ typedef enum {
     B_ROOK = 9,
     B_QUEEN = 10,
     B_KING = 11,
-    UNASSIGNED_PIECE_TYPE = 12
+    UNASSIGNED_PIECE_TYPE = UNASSIGNED
 } PieceType;
 
 #define N_TYPES_PIECES 12U
-
-#define UNASSIGNED (-1)
 
 #define PAWN_INITIAL_ROW (0xFFULL)
 #define KNIGHT_INITIAL_ROW ((1ULL << 6U) ^ (1ULL << 1U))

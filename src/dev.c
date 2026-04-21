@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "helper.h"
 #include "dev.h"
 #include "chess.h"
 
@@ -36,6 +37,7 @@ SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * co
     }
 
     ptr_board->bitboards[piece_type] ^= loc;
+    ptr_board->mailbox[COUNT_TRAILING_ZEROS(loc)] = piece_type;
 
     return SCE_SUCCESS;
 }
