@@ -18,7 +18,7 @@ extern "C" {
  * This also means that fullmove number (the last component of FEN string) will not be handled,
  * (but still must be given for completeness).
  */
-SCE_Return SCE_Chessboard_FEN_setup(SCE_Chessboard* const ptr_board, const char* const fen);
+SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fen);
 
 #ifdef __cplusplus
 }

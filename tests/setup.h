@@ -4,23 +4,25 @@
 #include "../include/dev.h"
 
 #define BOARD_CLEAR_SETUP(board) \
-    SCE_Chessboard board; \
-    SCE_Chessboard_clear(&board);
+    SCE_Context ctx; \
+    SCE_Chessboard& board { ctx.board }; \
+    SCE_Chessboard_clear(&ctx);
 
 
 #define BOARD_SETUP(board, precpt_tbl, zobrist_table) \
-    SCE_PieceMovementPrecomputationTable precpt_tbl; \
-    SCE_PieceMovementPrecompute(&precpt_tbl); \
-    SCE_Chessboard board; \
-    SCE_Chessboard_reset(&board); \
-    SCE_ZobristTable zobrist_table; \
-    SCE_ZobristTable_init(&zobrist_table, NULL); \
-    board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&board, &zobrist_table);
+    SCE_Context ctx; \
+    SCE_PieceMovementPrecomputationTable& precpt_tbl { ctx.precomputation_table }; \
+    SCE_PieceMovementPrecompute(&ctx); \
+    SCE_Chessboard& board { ctx.board }; \
+    SCE_Chessboard_reset(&ctx); \
+    SCE_ZobristTable& zobrist_table { ctx.zobrist_table }; \
+    SCE_ZobristTable_init(&ctx, NULL); \
+    board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx);
 
 #define MOVE_LIST_SETUP(list, n_moves) \
     SCE_ChessMoveList list; \
     list.count = 0; \
-    ASSERT_EQ(SCE_GeneratePseudoLegalMoves(&list, &board, &precpt_tbl), SCE_SUCCESS); \
+    ASSERT_EQ(SCE_GeneratePseudoLegalMoves(&list, &ctx), SCE_SUCCESS); \
     uint n_moves[N_TYPES_PIECES] = { 0 }; \
     for (unsigned int i = 0; i < list.count; i++) { \
         print_move_to_AN(list.moves[i]); \
