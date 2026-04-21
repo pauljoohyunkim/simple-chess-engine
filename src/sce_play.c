@@ -4,8 +4,12 @@
 #include "chess.h"
 #include "eval/sef.h"
 #include "engine.h"
+#include "eval/pst.h"
 
 #define TT_TABLE_LOG_2_SIZE 20
+#define PHASE_DEEPNING_CUTOFF 12
+#define INITIAL_DEPTH 7
+#define DEEPENED_DEPTH 8
 
 int main() {
     SCE_Return ret;
@@ -21,7 +25,7 @@ int main() {
     // Chess engine
     SCE_Engine engine;
     ret = SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
-    engine.depth = 7;
+    engine.depth = INITIAL_DEPTH;
     
 
     printf("All moves are to be in \"E2E4\" form\n");
@@ -78,6 +82,14 @@ int main() {
         ret = SCE_MakeMove(&ctx, move);
         printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx.board) / 100);
         SCE_Chessboard_print(&ctx, player);
+
+        const unsigned int phase = SCE_Eval_ComputePhase(&ctx.board);
+        if (phase < PHASE_DEEPNING_CUTOFF) {
+            if (engine.depth < 8) {
+                printf("Warning: Engine phase deepening! Will be harder on you :)\n");
+            }
+            engine.depth = DEEPENED_DEPTH;
+        }
 
         // ------------------------------------------------
         // Now computer's perspective
