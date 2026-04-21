@@ -326,10 +326,10 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     SCE_Return ret;
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GenerateLegalMoves(&moves, ctx);
+    ret = SCE_GeneratePseudoLegalMoves(&moves, ctx);
     assert(ret == SCE_SUCCESS);
     if (moves.count == 0) {
-        // TODO: Check if king is in check or stalemate.
+        // Number of pseudolegal moves already tells us that we need to check for mate.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
         if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
             const int ply = ptr_engine->depth - depth;
@@ -339,7 +339,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         }
     }
     // MVV-LVA Guessing and sorting
-    // TODO: Mailbox array: board->mailbox[idx] = type needs to be implemented.
     ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, tt_hint_move);
     assert(ret == SCE_SUCCESS);
 
@@ -355,9 +354,12 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
      * 2.1. Exploring this move, the opponent has a move that evaluates to +2. The beta is +2 now.
      * 3. This means if I choose this move, opponent has a move that evaluates to +2. I might as well take the first move.
      */
+    unsigned int legal_move_count = 0U;
     for (uint i = 0U; i < moves.count; i++) {
         ret = SCE_MakeMove(ctx, moves.moves[i]);
-        assert(ret == SCE_SUCCESS);
+        if (ret != SCE_SUCCESS) {
+            continue;
+        }
 
         const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, depth-1, -beta, -alpha);
 
@@ -371,6 +373,17 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         if (score > alpha) { 
             alpha = score;
             best_move = moves.moves[i];
+        }
+        legal_move_count++;
+    }
+    if (legal_move_count == 0) {
+        // Check again, since legal move count ended up being 0.
+        const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
+        if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
+            const int ply = ptr_engine->depth - depth;
+            return SCE_EVAL_CHECKMATE + ply;
+        } else {
+            return SCE_EVAL_DRAW;
         }
     }
 
@@ -391,14 +404,16 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     SCE_Return ret;
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GenerateLegalMoves(&moves, ctx);
+    ret = SCE_GeneratePseudoLegalMoves(&moves, ctx);
     assert(ret == SCE_SUCCESS);
     ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, best_move);
     assert(ret == SCE_SUCCESS);
 
     for (uint i = 0U; i < moves.count; i++) {
         ret = SCE_MakeMove(ctx, moves.moves[i]);
-        assert(ret == SCE_SUCCESS);
+        if (ret != SCE_SUCCESS) {
+            continue;
+        }
         const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_engine->depth-1, -beta, -alpha);
 
         ret = SCE_UnmakeMove(ctx);
