@@ -15,8 +15,8 @@ Note that you can only play as white at the moment, as this is a test binary,
 though I might make you be able to choose.
 
 To build the unit test,
-```bash     # Run the test at bin/test
-make test
+```bash
+make test   # Run the test at bin/test
 ```
 To build the documentation (although at the moment it is not maintained, it may be later)
 ```bash
