@@ -229,6 +229,15 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color);
 SCE_Return SCE_PieceMovementPrecompute(SCE_Context* const ctx);
 
 /**
+ * @brief Add move to move list
+ * 
+ * @param move 
+ * @param ptr_movelist 
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
+ */
+SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
+
+/**
  * @brief Generates pseudolegal moves
  * 
  * @param ptr_movelist List of moves
