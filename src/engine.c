@@ -410,6 +410,8 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     assert(ret == SCE_SUCCESS);
     ret = SCE_GenerateLegalMoves(&moves, ctx);
     assert(ret == SCE_SUCCESS);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, best_move);
+    assert(ret == SCE_SUCCESS);
 
     for (uint i = 0U; i < moves.count; i++) {
         ret = SCE_MakeMove(ctx, moves.moves[i]);
