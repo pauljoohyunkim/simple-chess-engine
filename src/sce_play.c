@@ -132,7 +132,8 @@ int main() {
 
         // ------------------------------------------------
         // Now computer's perspective
-        move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
+        //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
+        move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(&engine, &ctx);
         if (move == UNASSIGNED) {
             printf("Mate!\n");
             break;
