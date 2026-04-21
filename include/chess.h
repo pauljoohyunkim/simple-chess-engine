@@ -11,18 +11,20 @@ extern "C" {
 
 #define CHESSBOARD_DIMENSION 8U
 
-#define W_PAWN 0U
-#define W_KNIGHT 1U
-#define W_BISHOP 2U
-#define W_ROOK 3U
-#define W_QUEEN 4U
-#define W_KING 5U
-#define B_PAWN 6U
-#define B_KNIGHT 7U
-#define B_BISHOP 8U
-#define B_ROOK 9U
-#define B_QUEEN 10U
-#define B_KING 11U
+typedef enum {
+    W_PAWN = 0,
+    W_KNIGHT = 1,
+    W_BISHOP = 2,
+    W_ROOK = 3,
+    W_QUEEN = 4,
+    W_KING = 5,
+    B_PAWN = 6,
+    B_KNIGHT = 7,
+    B_BISHOP = 8,
+    B_ROOK = 9,
+    B_QUEEN = 10,
+    B_KING = 11
+} PieceType;
 
 #define N_TYPES_PIECES 12U
 
@@ -95,7 +97,7 @@ typedef struct {
     int en_passant_square;
     uint8_t castling_rights;
     unsigned int half_move_clock;       // 50-move rule
-    uint64_t zobrist_hash;              // TODO: Repetition detection
+    uint64_t zobrist_hash;
 } SCE_UndoState;
 
 #define N_MAX_MOVES (512U)

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include "helper.h"
 #include "chess.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if ((x) <= 0) { fprintf(stderr, "%s\n", msg); return SCE_INTERNAL_ERROR; } } while (0);
@@ -26,26 +27,6 @@ static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
 static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
 static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
 static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
-
-#ifdef __GNUC__
-#define COUNT_SET_BITS __builtin_popcountll
-// TODO: Implement fallback
-#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
-#define COUNT_LEADING_ZEROS(x) __builtin_clzll(x)
-#else
-// Miscellaneous static functions
-static uint count_set_bits(uint64_t n);
-
-// Kernighan's Bit Counting Algorithm
-static uint count_set_bits(uint64_t n) {
-    uint cnt = 0U;
-    while (n > 0) {
-        n &= (n - 1);
-        cnt++;
-    }
-    return cnt;
-}
-#endif
 
 SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     if (ptr_list == NULL) return SCE_INVALID_PARAM;
