@@ -403,6 +403,12 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     int best_score = SCE_ALPHA_INITIAL;
     int best_move = UNASSIGNED;
 
+    // Zobrist-Transposition-Table Lookup
+    const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
+    if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
+        best_move = ptr_transposition_entry->move;
+    }
+
     // Move generation
     SCE_ChessMoveList moves;
     SCE_Return ret;
@@ -430,6 +436,32 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
 
         if (score > alpha) {
             alpha = score;
+        }
+    }
+
+    return best_move;
+}
+
+int SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx) {
+    int best_move = UNASSIGNED;
+    for (uint iter_depth = 1U; iter_depth <= ptr_engine->depth; iter_depth++) {
+        int alpha = SCE_ALPHA_INITIAL;
+        int beta = SCE_BETA_INITIAL;
+        int tt_hint_move = UNASSIGNED;
+
+        // TT lookup
+        const SCE_TranspositionTableEntry* ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
+        if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
+            tt_hint_move = ptr_transposition_entry->move;
+        }
+
+        // Call alpha beta search.
+        // This saves best move to TT.
+        const int score = SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, iter_depth, alpha, beta);
+
+        ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
+        if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
+            best_move = ptr_transposition_entry->move;
         }
     }
 
