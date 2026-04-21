@@ -232,11 +232,11 @@ SCE_Return SCE_PieceMovementPrecompute(SCE_Context* const ctx);
  * @brief Generates pseudolegal moves
  * 
  * @param ptr_movelist List of moves
- * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @param ctx Pointer to the SCE_Context struct.
+ * @param tactical Whether or not only to generate tactical (capture/promotion) moves.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
+SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 
 /**
  * @brief Checks if the square is under attack by certain color.
