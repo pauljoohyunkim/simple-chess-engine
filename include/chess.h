@@ -23,7 +23,8 @@ typedef enum {
     B_BISHOP = 8,
     B_ROOK = 9,
     B_QUEEN = 10,
-    B_KING = 11
+    B_KING = 11,
+    UNASSIGNED_PIECE_TYPE = 12
 } PieceType;
 
 #define N_TYPES_PIECES 12U
@@ -121,6 +122,7 @@ typedef struct {
     uint8_t castling_rights;
     unsigned int half_move_clock;
     uint64_t zobrist_hash;
+    PieceType mailbox[CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
     SCE_ChessMoveList history;
     SCE_UndoState undo_states[N_MAX_MOVES];
 } SCE_Chessboard;

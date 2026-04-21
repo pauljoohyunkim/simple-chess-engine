@@ -48,6 +48,9 @@ SCE_Return SCE_Chessboard_clear(SCE_Context* const ctx) {
     ctx->board.castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     ctx->board.half_move_clock = 0U;
     ctx->board.zobrist_hash = 0U;
+    for (uint i = 0U; i < sizeof(ctx->board.mailbox) / sizeof(ctx->board.mailbox[0]); i++) {
+        ctx->board.mailbox[i] = UNASSIGNED_PIECE_TYPE;
+    }
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ctx->board.history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -79,6 +82,31 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
     ctx->board.castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     ctx->board.half_move_clock = 0U;
     ctx->board.zobrist_hash = 0U;
+    {
+        // Mailbox
+        ctx->board.mailbox[0U] = W_ROOK;
+        ctx->board.mailbox[1U] = W_KNIGHT;
+        ctx->board.mailbox[2U] = W_BISHOP;
+        ctx->board.mailbox[3U] = W_QUEEN;
+        ctx->board.mailbox[4U] = W_KING;
+        ctx->board.mailbox[5U] = W_BISHOP;
+        ctx->board.mailbox[6U] = W_KNIGHT;
+        ctx->board.mailbox[7U] = W_ROOK;
+        for (uint i = CHESSBOARD_DIMENSION; i < CHESSBOARD_DIMENSION * 2U; i++) {
+            ctx->board.mailbox[i] = W_PAWN;
+        }
+        for (uint i = CHESSBOARD_DIMENSION * 6U; i < CHESSBOARD_DIMENSION * 7U; i++) {
+            ctx->board.mailbox[i] = B_PAWN;
+        }
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 0U] = B_ROOK;
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 1U] = B_KNIGHT;
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 2U] = B_BISHOP;
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 3U] = B_QUEEN;
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 4U] = B_KING;
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 5U] = B_BISHOP;
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 6U] = B_KNIGHT;
+        ctx->board.mailbox[CHESSBOARD_DIMENSION * 7U + 7U] = B_ROOK;
+    }
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ctx->board.history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
@@ -218,16 +246,7 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
             }
             uint64_t pos = 1ULL << shift;
 
-            int piece_in_square = UNASSIGNED;
-            // For each square, check if any of the type exists.
-            for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
-                if (ctx->board.bitboards[piece_type] & pos) {
-                    // Check exclusive ownership of square.
-                    if (piece_in_square != UNASSIGNED) return SCE_INVALID_BOARD_STATE;
-
-                    piece_in_square = (int) piece_type;
-                }
-            }
+            const PieceType piece_in_square = ctx->board.mailbox[shift];
 
             switch (piece_in_square) {
                 case W_PAWN:
@@ -266,7 +285,7 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
                 case B_KING:
                     printf("\x1b[90mK\x1b[0m");
                     break;
-                case UNASSIGNED:
+                case UNASSIGNED_PIECE_TYPE:
                     printf("-");
                     break;
                 default:
