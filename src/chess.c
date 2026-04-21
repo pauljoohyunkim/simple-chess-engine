@@ -21,7 +21,6 @@ static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* cons
 static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
 
-static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
 
 static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
@@ -664,7 +663,7 @@ static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTab
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
+SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
     if (ptr_movelist == NULL) return SCE_INVALID_PARAM;
     if (ptr_movelist->count == N_MAX_MOVES - 1U) { 
         fprintf(stderr, "Adding to move list failure: MoveList full.\n");

@@ -59,19 +59,58 @@ int main() {
         }
         
         int move = UNASSIGNED;
+        SCE_ChessMoveList movelist;
+        ret = SCE_ChessMoveList_clear(&movelist);
         // Check if move is one of the legal moves.
         for (unsigned int i = 0U; i < legal_move_list.count; i++) {
             const SCE_ChessMove legal_move = legal_move_list.moves[i];
             const unsigned int legal_src_idx = legal_move SCE_CHESSMOVE_GET_SRC;
             const unsigned int legal_dst_idx = legal_move SCE_CHESSMOVE_GET_DST;
             if (legal_src_idx == src_idx && legal_dst_idx == dst_idx) {
-                move = legal_move;
-                break;
+                ret = SCE_AddToMoveList(legal_move, &movelist);
             }
         }
-        if (move == UNASSIGNED) {
+        if (movelist.count == 0) {
             fprintf(stderr, "Not a legal move. Try again\n");
             continue;
+        } else if (movelist.count == 1) {
+            move = movelist.moves[0];
+        } else {
+            // Promotion
+            unsigned int choice;
+            printf("Available moves:");
+            for (unsigned int i = 0U; i < movelist.count; i++) {
+                //const unsigned int src_idx = movelist.moves[i] SCE_CHESSMOVE_GET_SRC;
+                //const unsigned int dst_idx = movelist.moves[i] SCE_CHESSMOVE_GET_DST;
+                const int flag = movelist.moves[i] SCE_CHESSMOVE_GET_FLAG;
+                printf("%d: ");
+                switch (flag) {
+                    case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
+                    case SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE:
+                        printf("Promote to knight");
+                        break;
+                    case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
+                    case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
+                        printf("Promote to bishop");
+                        break;
+                    case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
+                    case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
+                        printf("Promote to rook");
+                        break;
+                    case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
+                    case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
+                        printf("Promote to queen");
+                        break;
+                    default:
+                        break;
+                }
+            }
+            printf("Choice: ");
+            scanf("%d", &choice);
+            if (choice >= movelist.count) {
+                fprintf(stderr, "Wrong index!\n");
+                continue;
+            }
         }
         if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
             printf("(Capture)");
