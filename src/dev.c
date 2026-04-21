@@ -135,7 +135,7 @@ unsigned long long perft_count(const SCE_Context* const ctx, const uint depth, c
     unsigned long long count = 0U;
     SCE_ChessMoveList pseudolegal_moves;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&pseudolegal_moves), "Could not clear move list.");
-    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ctx), "Could not clear move list.");
+    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ctx, false), "Could not clear move list.");
     for (uint i = 0U; i < pseudolegal_moves.count; i++) {
         // For each move, try making the move. If successful, recursively call the function.
         const SCE_Return ret = SCE_MakeMove(ctx, pseudolegal_moves.moves[i]);

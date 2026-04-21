@@ -23,10 +23,10 @@ static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTab
 
 static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
 
-static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
-static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
-static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
-static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx);
+static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
+static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
+static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
+static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 
 SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     if (ptr_list == NULL) return SCE_INVALID_PARAM;
@@ -687,25 +687,25 @@ static SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList*
 }
 
 // Generate moves that the piece can physically move to without pins or checks.
-SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx) {
+SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     // 1. Generate pseudolegal moves for knights
-    RETURN_IF_SCE_FAILURE(SCE_Knight_GeneratePseudoLegalMoves(ptr_movelist, ctx), "Knight (pseudolegal) move generation failed");
+    RETURN_IF_SCE_FAILURE(SCE_Knight_GeneratePseudoLegalMoves(ptr_movelist, ctx, tactical), "Knight (pseudolegal) move generation failed");
 
     // 2. Generate pseudolegal moves for kings
-    RETURN_IF_SCE_FAILURE(SCE_King_GeneratePseudoLegalMoves(ptr_movelist, ctx), "King (pseudolegal) move generation failed");
+    RETURN_IF_SCE_FAILURE(SCE_King_GeneratePseudoLegalMoves(ptr_movelist, ctx, tactical), "King (pseudolegal) move generation failed");
 
     // 3. Generate pseudolegal moves for sliders (bishop, rook, queen)
-    RETURN_IF_SCE_FAILURE(SCE_Slider_GeneratePseudoLegalMoves(ptr_movelist, ctx), "Slider (pseudolegal) move generation failed");
+    RETURN_IF_SCE_FAILURE(SCE_Slider_GeneratePseudoLegalMoves(ptr_movelist, ctx, tactical), "Slider (pseudolegal) move generation failed");
 
     // 4. Generate pseudolegal moves for pawns
-    RETURN_IF_SCE_FAILURE(SCE_Pawn_GeneratePseudoLegalMoves(ptr_movelist, ctx), "Pawn (pseudolegal) move generation failed");
+    RETURN_IF_SCE_FAILURE(SCE_Pawn_GeneratePseudoLegalMoves(ptr_movelist, ctx, tactical), "Pawn (pseudolegal) move generation failed");
 
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx) {
+static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
@@ -719,6 +719,9 @@ static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
         uint knight_idx_src = COUNT_TRAILING_ZEROS(knights);
         // Knight moves, but cannot attack the same color
         uint64_t knight_moves = (ctx->precomputation_table.knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ctx, moving_piece_type == W_KNIGHT ? WHITE : BLACK)));
+        if (tactical) {
+            knight_moves &= moving_piece_type == W_KNIGHT ? occupancy_b : occupancy_w;
+        }
         
         while (knight_moves) {
             // For each moves, add to list.
@@ -742,7 +745,7 @@ static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx) {
+static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
@@ -757,6 +760,9 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
         uint king_idx_src = COUNT_TRAILING_ZEROS(king);
         // King moves, but cannot attack the same color
         uint64_t king_moves = (ctx->precomputation_table.king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ctx, moving_piece_type == W_KING ? WHITE : BLACK)));
+        if (tactical) {
+            king_moves &= moving_piece_type == W_KING ? occupancy_b : occupancy_w;
+        }
         
         while (king_moves) {
             // For each moves, add to list.
@@ -773,66 +779,67 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
             king_moves &= ~(1ULL << king_idx_dst);
         }
 
+        if (!tactical) {
+                // 00000110 (from A to H) = 0b01100000
+                uint64_t king_side_gap_mask = 0x60ULL;
+                // 01110000 (from A to H) = 0b1110
+                uint64_t queen_side_gap_mask = 0x0EULL;
+                // Castling
+                if (moving_piece_type == W_KING) {
+                    // White king
+                    // King-side
+                    if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_WK) {
+                        // Check for gap.
+                        if (!(occupancy & king_side_gap_mask)) {
+                            const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
+                            const uint king_idx_dst = king_idx_src + 2U;
+                            const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                            SCE_AddToMoveList(move, ptr_movelist);
+                        }
+                    }
 
-        // 00000110 (from A to H) = 0b01100000
-        uint64_t king_side_gap_mask = 0x60ULL;
-        // 01110000 (from A to H) = 0b1110
-        uint64_t queen_side_gap_mask = 0x0EULL;
-        // Castling
-        if (moving_piece_type == W_KING) {
-            // White king
-            // King-side
-            if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_WK) {
-                // Check for gap.
-                if (!(occupancy & king_side_gap_mask)) {
-                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
-                    const uint king_idx_dst = king_idx_src + 2U;
-                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
-                    SCE_AddToMoveList(move, ptr_movelist);
-                }
-            }
+                    // Queen-side
+                    if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_WQ) {
+                        // Check for gap.
+                        if (!(occupancy & queen_side_gap_mask)) {
+                            const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
+                            const uint king_idx_dst = king_idx_src - 2U;
+                            const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                            SCE_AddToMoveList(move, ptr_movelist);
+                        }
+                    }
+                    
+                } else {
+                    // Black king
+                    // King-side
+                    if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_BK) {
+                        // Check for gap.
+                        if (!(occupancy & (king_side_gap_mask UP * 7))) {
+                            const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
+                            const uint king_idx_dst = king_idx_src + 2U;
+                            const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                            SCE_AddToMoveList(move, ptr_movelist);
+                        }
+                    }
 
-            // Queen-side
-            if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_WQ) {
-                // Check for gap.
-                if (!(occupancy & queen_side_gap_mask)) {
-                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW);
-                    const uint king_idx_dst = king_idx_src - 2U;
-                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
-                    SCE_AddToMoveList(move, ptr_movelist);
-                }
-            }
-            
-        } else {
-            // Black king
-            // King-side
-            if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_BK) {
-                // Check for gap.
-                if (!(occupancy & (king_side_gap_mask UP * 7))) {
-                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
-                    const uint king_idx_dst = king_idx_src + 2U;
-                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
-                    SCE_AddToMoveList(move, ptr_movelist);
-                }
-            }
-
-            // Queen-side
-            if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_BQ) {
-                // Check for gap.
-                if (!(occupancy & (queen_side_gap_mask UP * 7))) {
-                    const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
-                    const uint king_idx_dst = king_idx_src - 2U;
-                    const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
-                    SCE_AddToMoveList(move, ptr_movelist);
+                    // Queen-side
+                    if (ctx->board.castling_rights & SCE_CASTLING_RIGHTS_BQ) {
+                        // Check for gap.
+                        if (!(occupancy & (queen_side_gap_mask UP * 7))) {
+                            const uint king_idx_src = COUNT_TRAILING_ZEROS(KING_INITIAL_ROW UP * 7);
+                            const uint king_idx_dst = king_idx_src - 2U;
+                            const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) | (king_idx_dst SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+                            SCE_AddToMoveList(move, ptr_movelist);
+                        }
+                    }
                 }
             }
         }
-    }
 
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx) {
+static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
@@ -1041,7 +1048,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1052,7 +1059,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1063,7 +1070,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1074,7 +1081,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1085,7 +1092,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1096,7 +1103,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1107,7 +1114,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1118,7 +1125,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                             const SCE_ChessMove move = (piece_idx_src SCE_CHESSMOVE_SET_SRC) | (piece_idx_dst SCE_CHESSMOVE_SET_DST);
                             if ((1ULL << piece_idx_dst) & (moving_piece_color == WHITE ? occupancy_b : occupancy_w)) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add move.");
-                            } else {
+                            } else if (!tactical) {
                                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add move.");
                             }
                         }
@@ -1136,7 +1143,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx) {
+static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     // Four cases:
@@ -1153,8 +1160,9 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
         uint64_t single_push = (ctx->board.bitboards[W_PAWN] UP) & ~occupancy;
 
         // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
+        // For tactical move generation, this is skipped.
         const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 2U);
-        uint64_t double_push = (filtered UP) & ~occupancy;
+        uint64_t double_push = tactical ? 0U : (filtered UP) & ~occupancy;
 
         // 3. Capture
         // 3.1. Capture EAST
@@ -1169,8 +1177,10 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
 
             const SCE_ChessMove move = ((pawn_idx_dst - CHESSBOARD_DIMENSION) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST);
             if (pawn_idx_dst < CHESSBOARD_DIMENSION * 7U) {
-                // Normal push
-                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+                // Normal push. Skipped for tactical move generation
+                if (!tactical) {
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+                }
             } else {
                 // Promotion
                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) move.");
@@ -1182,6 +1192,7 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
             single_push &= ~pawn_dst;
         }
 
+        // Set to zero if tactical -> skipped.
         while (double_push) {
             const uint pawn_idx_dst = COUNT_TRAILING_ZEROS(double_push);
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
@@ -1262,8 +1273,9 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
         uint64_t single_push = (ctx->board.bitboards[B_PAWN] DOWN) & ~occupancy;
 
         // 2. Double Push (from rank 2, 7); will be reusing single_push with bitmask for rank 3 and 6.
+        // Skipped if tactical move gneeration
         const uint64_t filtered = single_push & (PAWN_INITIAL_ROW UP * 5U);
-        uint64_t double_push = (filtered DOWN) & ~occupancy;
+        uint64_t double_push = tactical ? 0U : (filtered DOWN) & ~occupancy;
 
         // 3. Capture
         // 3.1. Capture EAST
@@ -1279,7 +1291,10 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
             const SCE_ChessMove move = ((pawn_idx_dst + CHESSBOARD_DIMENSION) SCE_CHESSMOVE_SET_SRC) ^ (pawn_idx_dst SCE_CHESSMOVE_SET_DST);
             if (pawn_idx_dst >= CHESSBOARD_DIMENSION) {
                 // Normal push
-                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+                // Skipped if tactical
+                if (!tactical) {
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add pawn move.");
+                }
             } else {
                 // Promotion
                 RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION SCE_CHESSMOVE_SET_FLAG), ptr_movelist), "Could not add pawn (knight promotion) move.");
@@ -1291,6 +1306,7 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
             single_push &= ~pawn_dst;
         }
 
+        // Set to zero if tactical -> skipped.
         while (double_push) {
             const uint pawn_idx_dst = 63U - COUNT_LEADING_ZEROS(double_push);
             const uint64_t pawn_dst = 1ULL << pawn_idx_dst;
@@ -1866,7 +1882,7 @@ SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Con
 
     SCE_ChessMoveList pseudolegal_moves;
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&pseudolegal_moves), "Could not clear move list.");
-    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ctx), "Could not generate pseudo legal movelist.");
+    RETURN_IF_SCE_FAILURE(SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, ctx, false), "Could not generate pseudo legal movelist.");
     for (uint i = 0U; i < pseudolegal_moves.count; i++) {
         const SCE_Return ret = SCE_MakeMove(ctx, pseudolegal_moves.moves[i]);
         if (ret == SCE_SUCCESS) {

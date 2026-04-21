@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "eval/pst.h"
+#include "dev.h"
 #include "engine.h"
 
 typedef unsigned int uint;
@@ -250,7 +251,7 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
     SCE_ChessMoveList moves;
     SCE_Return ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GenerateLegalMoves(&moves, ctx);
+    ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, true);
     assert(ret == SCE_SUCCESS);
 
     // Order moves
@@ -261,10 +262,14 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
         const SCE_ChessMove move = moves.moves[i];
         const uint flag = move SCE_CHESSMOVE_GET_FLAG;
         // Only get moves that are capture.
-        if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && !(flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION)) continue;
+        //print_move_to_AN(move);
+        assert((flag & SCE_CHESSMOVE_FLAG_CAPTURE) || (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION));
+        //if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && !(flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION)) continue;
 
         ret = SCE_MakeMove(ctx, move);
-        assert(ret == SCE_SUCCESS);
+        if (ret != SCE_SUCCESS) {
+            continue;
+        }
 
         int score = -SCE_Engine_QuiesceNegamax(ptr_engine, ctx, -beta, -alpha);
 
@@ -326,7 +331,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     SCE_Return ret;
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GeneratePseudoLegalMoves(&moves, ctx);
+    ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, false);
     assert(ret == SCE_SUCCESS);
     if (moves.count == 0) {
         // Number of pseudolegal moves already tells us that we need to check for mate.
@@ -404,7 +409,7 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     SCE_Return ret;
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_GeneratePseudoLegalMoves(&moves, ctx);
+    ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, false);
     assert(ret == SCE_SUCCESS);
     ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, best_move);
     assert(ret == SCE_SUCCESS);
