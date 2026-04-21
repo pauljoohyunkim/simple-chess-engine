@@ -22,7 +22,7 @@ int main() {
     // Chess engine
     SCE_Engine engine;
     ret = SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
-    engine.depth = 7;
+    engine.depth = 5;
     
 
     printf("All moves are to be in \"E2E4\" form\n");

@@ -349,7 +349,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         // TODO: Check if king is in check or stalemate.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
         if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
-            return SCE_EVAL_CHECKMATE + depth;
+            const int ply = ptr_engine->depth - depth;
+            return SCE_EVAL_CHECKMATE + ply;
         } else {
             return SCE_EVAL_DRAW;
         }
