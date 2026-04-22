@@ -71,18 +71,18 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * 
  * @param ptr_engine Pointer to to the SCE_Engine struct
  * @param ctx Pointer to the SCE_Context struct
- * @return int Best move (in which case, can be casted to SCE_ChessMove) or UNASSIGNED (-1)
+ * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context *const ctx);
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context *const ctx);
 
 /**
  * @brief Outputs the best move calculated by the engine via iterative deepening with alpha beta.
  * 
  * @param ptr_engine Pointer to to the SCE_Engine struct
  * @param ctx Pointer to the SCE_Context struct
- * @return int Best move (in which case, can be casted to SCE_ChessMove) or UNASSIGNED (-1)
+ * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-int SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx);
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx);
 
 #ifdef __cplusplus
 }

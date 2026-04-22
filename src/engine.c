@@ -113,6 +113,8 @@ static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboa
         PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE
     };
 
+    // TODO: Extreme rare case of quiet promotion being a killer move, which would not get score of PROMOTION, which is higher than killer moves.
+
     moving_piece_type = ptr_board->mailbox[moving_piece_idx];
     assert(moving_piece_type != UNASSIGNED);
 
@@ -423,11 +425,11 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     return alpha;
 }
 
-int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx) {
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx) {
     int alpha = SCE_ALPHA_INITIAL;
     int beta = SCE_BETA_INITIAL;
     int best_score = SCE_ALPHA_INITIAL;
-    int best_move = EMPTY_MOVE;
+    SCE_ChessMove best_move = EMPTY_MOVE;
 
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
@@ -471,12 +473,12 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     return best_move;
 }
 
-int SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx) {
-    int best_move = EMPTY_MOVE;
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx) {
+    SCE_ChessMove best_move = EMPTY_MOVE;
     for (uint iter_depth = 1U; iter_depth <= ptr_engine->depth; iter_depth++) {
         int alpha = SCE_ALPHA_INITIAL;
         int beta = SCE_BETA_INITIAL;
-        int tt_hint_move = EMPTY_MOVE;
+        SCE_ChessMove tt_hint_move = EMPTY_MOVE;
         ptr_engine->current_search_depth = iter_depth;
 
         // TT lookup
