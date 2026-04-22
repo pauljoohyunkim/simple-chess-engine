@@ -12,6 +12,7 @@ extern "C" {
 #define CHESSBOARD_DIMENSION 8U
 
 #define UNASSIGNED (-1)
+#define EMPTY_MOVE (0)
 
 typedef enum {
     W_PAWN = 0,

@@ -36,12 +36,14 @@ typedef struct {
     size_t table_size;
 } SCE_TranspositionTable;
 
+#define SCE_MAX_PLY 50
 typedef struct {
     SCE_Eval eval_function;
     SCE_DeltaEval delta_eval_function;          // Optional. If this is set, this will be used during searches.
     SCE_TranspositionTable transposition_table;
     uint8_t depth;
     uint8_t current_search_depth;
+    SCE_ChessMove killer_moves[SCE_MAX_PLY][2];
 } SCE_Engine;
 
 /**

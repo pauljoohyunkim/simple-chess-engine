@@ -30,6 +30,10 @@ SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_fun
 
     ptr_engine->eval_function = eval_func;
     ptr_engine->delta_eval_function = delta_eval_func;
+    for (uint i = 0U; i < sizeof(ptr_engine->killer_moves)/sizeof(ptr_engine->killer_moves[0]); i++) {
+        ptr_engine->killer_moves[i][0] = EMPTY_MOVE;
+        ptr_engine->killer_moves[i][1] = EMPTY_MOVE;
+    }
 
     return SCE_SUCCESS;
 }
@@ -361,7 +365,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
      */
     unsigned int legal_move_count = 0U;
     for (uint i = 0U; i < moves.count; i++) {
-        ret = SCE_MakeMove(ctx, moves.moves[i]);
+        const SCE_ChessMove move = moves.moves[i];
+        ret = SCE_MakeMove(ctx, move);
         if (ret != SCE_SUCCESS) {
             continue;
         }
@@ -372,12 +377,21 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         assert(ret == SCE_SUCCESS);
 
         if (score >= beta) { 
-            SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, moves.moves[i], SCE_TF_BETA);
+            SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, move, SCE_TF_BETA);
+            const int flag = move SCE_CHESSMOVE_GET_FLAG;
+            const int ply = ptr_engine->current_search_depth - depth;
+            if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && ply < SCE_MAX_PLY) {
+                // Add to killer moves (only if move is not in the killer move)
+                if (ptr_engine->killer_moves[ply][0] != move) {
+                    ptr_engine->killer_moves[ply][1] = ptr_engine->killer_moves[ply][0];
+                    ptr_engine->killer_moves[ply][0] = move;
+                }
+            }
             return beta;
         }
         if (score > alpha) { 
             alpha = score;
-            best_move = moves.moves[i];
+            best_move = move;
         }
         legal_move_count++;
     }
@@ -421,7 +435,8 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     assert(ret == SCE_SUCCESS);
 
     for (uint i = 0U; i < moves.count; i++) {
-        ret = SCE_MakeMove(ctx, moves.moves[i]);
+        const SCE_ChessMove move = moves.moves[i];
+        ret = SCE_MakeMove(ctx, move);
         if (ret != SCE_SUCCESS) {
             continue;
         }
@@ -433,7 +448,7 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
 
         if (score > best_score) {
             best_score = score;
-            best_move = moves.moves[i];
+            best_move = move;
         }
 
         if (score > alpha) {
