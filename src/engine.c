@@ -303,8 +303,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
     if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
+        tt_hint_move = ptr_transposition_entry->move;
         if (depth <= ptr_transposition_entry->depth) {
-            tt_hint_move = ptr_transposition_entry->move;
             // Useful result.
             switch (ptr_transposition_entry->flag) {
                 case SCE_TF_EXACT:

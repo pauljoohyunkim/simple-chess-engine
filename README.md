@@ -28,4 +28,9 @@ There are clearly a lot of work to do, but so far I think it is of good quality 
 (for something that was built hastily in 3 weeks)!
 
 ## Benchmark
-TODO
+I am testing against bots from [Chess.com](https://www.chess.com/).
+
+### ELO 2000
+![2000](./2000.png)
+
+This suggests that the current bot may be better than ELO 2000.
