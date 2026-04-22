@@ -11,12 +11,12 @@
         {
             "label": "Make sce_play (Debug)",
             "type": "shell",
-            "command": "make bin"
+            "command": "make bin OPTIMIZATION=-O0"
         },
         {
             "label": "Unit test",
             "type": "shell",
-            "command": "make test"
+            "command": "make test OPTIMIZATION=-O0"
         },
     ]
 }

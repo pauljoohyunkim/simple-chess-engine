@@ -3,7 +3,8 @@ INCLUDES=-Iinclude
 
 CC=gcc
 CFLAGSEXTRA=
-CFLAGS=-g -Wall -Wextra -O0 -pedantic -MMD -MP $(INCLUDES)
+OPTIMIZATION?=-O3
+CFLAGS=-g -Wall -Wextra $(OPTIMIZATION) -pedantic -MMD -MP $(INCLUDES) -flto -march=native
 CFLAGS+=`pkg-config --cflags $(PKG_DEPS)`
 CFLAGS+=$(CFLAGSEXTRA)
 CXX=g++
