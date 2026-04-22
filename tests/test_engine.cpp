@@ -9,7 +9,7 @@ TEST(Engine_SEF, AlphaBetaBestMove) {
     BOARD_SETUP(board, precomputation_table, zobrist_table);
 
     SCE_Engine engine;
-    ASSERT_EQ(SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, NULL, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
     engine.depth = 8;
 
@@ -23,7 +23,7 @@ TEST(Engine_SEF, IterativeDeepeningBestMove) {
     BOARD_SETUP(board, precomputation_table, zobrist_table);
 
     SCE_Engine engine;
-    ASSERT_EQ(SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, NULL, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
     engine.depth = 8;
 

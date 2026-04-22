@@ -19,7 +19,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        int alpha,
                                        int beta);
 
-SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const unsigned int transposition_table_log2_size) {
+SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size) {
     if (ptr_engine == NULL || eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
 
     const size_t n_entries = 1ULL << transposition_table_log2_size;
@@ -29,6 +29,7 @@ SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_fun
     ptr_engine->transposition_table.table_size = n_entries;
 
     ptr_engine->eval_function = eval_func;
+    ptr_engine->delta_eval_function = delta_eval_func;
 
     return SCE_SUCCESS;
 }
