@@ -7,7 +7,8 @@ typedef unsigned int uint;
 
 static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
-static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Chessboard* const ptr_board, const int tt_hint_move);
+static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move);
+static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply);
 static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board);
 static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
@@ -87,6 +88,8 @@ static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* cons
 #define MVV_LVA_TT_HINT_MOVE INT_MAX
 #define MVV_LVA_CAPTURE      1000000
 #define MVV_LVA_PROMOTION     500000
+#define KILLER_MOVE_1_VALUE   400000
+#define KILLER_MOVE_2_VALUE   300000
 #define PAWN_VALUE 100
 #define KNIGHT_VALUE 320
 #define BISHOP_VALUE 330
@@ -94,7 +97,8 @@ static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* cons
 #define QUEEN_VALUE 900
 #define KING_VALUE 1000
 #define FLIP(x) ((x)^56)
-static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE_ChessMove move) {
+static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move) {
+    assert(ptr_engine != NULL);
     assert(ptr_board != NULL);
     
     int score = 0;
@@ -173,7 +177,7 @@ static int SCE_Engine_ScoreMove(const SCE_Chessboard* const ptr_board, const SCE
     }
 }
 
-static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Chessboard* const ptr_board, const int tt_hint_move) {
+static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply) {
     if (ptr_movelist == NULL) return SCE_INVALID_BOARD_STATE;
 
     // Keeps track of how many elements are sorted.
@@ -196,8 +200,21 @@ static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movel
     }
 
     // Compute MVV-LVA score.
+    // TODO: Readjust scoring values
+    // TODO: Maybe put killer move check inside scoring function, or refactor this.
     for (uint i = n_sorted; i < ptr_movelist->count; i++) {
-        move_scores[i] = SCE_Engine_ScoreMove(ptr_board, ptr_movelist->moves[i]);
+        const SCE_ChessMove move = ptr_movelist->moves[i];
+        if (ply != UNASSIGNED && ply < SCE_MAX_PLY) {
+            if (move == ptr_engine->killer_moves[ply][0]) {
+                move_scores[i] = KILLER_MOVE_1_VALUE;
+            } else if (move == ptr_engine->killer_moves[ply][1]) {
+                move_scores[i] = KILLER_MOVE_2_VALUE;
+            } else {
+                move_scores[i] = SCE_Engine_ScoreMove(ptr_engine, ptr_board, move);
+            }
+        } else {
+            move_scores[i] = SCE_Engine_ScoreMove(ptr_engine, ptr_engine, move);
+        }
     }
 
     // Sort based on score, remembering to update the score array too.
@@ -260,7 +277,7 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
     assert(ret == SCE_SUCCESS);
 
     // Order moves
-    ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, UNASSIGNED);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_engine, &ctx->board, UNASSIGNED, UNASSIGNED);
     assert(ret == SCE_SUCCESS);
 
     for (uint i = 0U; i < moves.count; i++) {
@@ -348,7 +365,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         }
     }
     // MVV-LVA Guessing and sorting
-    ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, tt_hint_move);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_engine, &ctx->board, tt_hint_move);
     assert(ret == SCE_SUCCESS);
 
     // Iterating through moves
@@ -431,7 +448,7 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     assert(ret == SCE_SUCCESS);
     ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, false);
     assert(ret == SCE_SUCCESS);
-    ret = SCE_Engine_OrderMove_MVVLVA(&moves, &ctx->board, best_move);
+    ret = SCE_Engine_OrderMove_MVVLVA(&moves, ptr_engine, &ctx->board, best_move);
     assert(ret == SCE_SUCCESS);
 
     for (uint i = 0U; i < moves.count; i++) {
