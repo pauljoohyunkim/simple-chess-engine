@@ -7,9 +7,9 @@
 #include "eval/pst.h"
 
 #define TT_TABLE_LOG_2_SIZE 20
-#define PHASE_DEEPNING_CUTOFF 12
+#define PHASE_DEEPNING_CUTOFF 15
 #define INITIAL_DEPTH 7
-#define DEEPENED_DEPTH 8
+#define DEEPENED_DEPTH 9
 
 int main() {
     SCE_Return ret;
@@ -132,7 +132,8 @@ int main() {
 
         // ------------------------------------------------
         // Now computer's perspective
-        move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
+        //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
+        move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(&engine, &ctx);
         if (move == UNASSIGNED) {
             printf("Mate!\n");
             break;

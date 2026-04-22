@@ -39,6 +39,7 @@ typedef struct {
     SCE_Eval eval_function;
     SCE_TranspositionTable transposition_table;
     uint8_t depth;
+    uint8_t current_search_depth;
 } SCE_Engine;
 
 /**
@@ -61,15 +62,22 @@ SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_fun
 SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
 
 /**
- * @brief Outputs the best move calculated by engine.
+ * @brief Outputs the best move calculated by engine via simple alpha beta search.
  * 
- * @param ptr_engine Pointer to the SCE_Engine struct.
- * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
- * @param ptr_table Pointer to the SCE_ZobristTable struct.
+ * @param ptr_engine Pointer to to the SCE_Engine struct
+ * @param ctx Pointer to the SCE_Context struct
  * @return int Best move (in which case, can be casted to SCE_ChessMove) or UNASSIGNED (-1)
  */
 int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context *const ctx);
+
+/**
+ * @brief Outputs the best move calculated by the engine via iterative deepening with alpha beta.
+ * 
+ * @param ptr_engine Pointer to to the SCE_Engine struct
+ * @param ctx Pointer to the SCE_Context struct
+ * @return int Best move (in which case, can be casted to SCE_ChessMove) or UNASSIGNED (-1)
+ */
+int SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx);
 
 #ifdef __cplusplus
 }

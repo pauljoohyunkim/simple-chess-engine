@@ -303,8 +303,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
     if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
-        if (depth >= ptr_transposition_entry->depth) {
-            tt_hint_move = ptr_transposition_entry->move;
+        tt_hint_move = ptr_transposition_entry->move;
+        if (depth <= ptr_transposition_entry->depth) {
             // Useful result.
             switch (ptr_transposition_entry->flag) {
                 case SCE_TF_EXACT:
@@ -336,7 +336,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         // Number of pseudolegal moves already tells us that we need to check for mate.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
         if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
-            const int ply = ptr_engine->depth - depth;
+            const int ply = ptr_engine->current_search_depth - depth;
             return SCE_EVAL_CHECKMATE + ply;
         } else {
             return SCE_EVAL_DRAW;
@@ -384,7 +384,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         // Check again, since legal move count ended up being 0.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
         if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
-            const int ply = ptr_engine->depth - depth;
+            const int ply = ptr_engine->current_search_depth - depth;
             return SCE_EVAL_CHECKMATE + ply;
         } else {
             return SCE_EVAL_DRAW;
@@ -403,6 +403,12 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
     int best_score = SCE_ALPHA_INITIAL;
     int best_move = UNASSIGNED;
 
+    // Zobrist-Transposition-Table Lookup
+    const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
+    if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
+        best_move = ptr_transposition_entry->move;
+    }
+
     // Move generation
     SCE_ChessMoveList moves;
     SCE_Return ret;
@@ -418,6 +424,7 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
         if (ret != SCE_SUCCESS) {
             continue;
         }
+        ptr_engine->current_search_depth = ptr_engine->depth-1;
         const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_engine->depth-1, -beta, -alpha);
 
         ret = SCE_UnmakeMove(ctx);
@@ -430,6 +437,33 @@ int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* cons
 
         if (score > alpha) {
             alpha = score;
+        }
+    }
+
+    return best_move;
+}
+
+int SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx) {
+    int best_move = UNASSIGNED;
+    for (uint iter_depth = 1U; iter_depth <= ptr_engine->depth; iter_depth++) {
+        int alpha = SCE_ALPHA_INITIAL;
+        int beta = SCE_BETA_INITIAL;
+        int tt_hint_move = UNASSIGNED;
+        ptr_engine->current_search_depth = iter_depth;
+
+        // TT lookup
+        const SCE_TranspositionTableEntry* ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
+        if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
+            tt_hint_move = ptr_transposition_entry->move;
+        }
+
+        // Call alpha beta search.
+        // This saves best move to TT.
+        const int score = SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, iter_depth, alpha, beta);
+
+        ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
+        if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
+            best_move = ptr_transposition_entry->move;
         }
     }
 
