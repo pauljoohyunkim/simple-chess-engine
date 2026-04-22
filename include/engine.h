@@ -36,12 +36,14 @@ typedef struct {
     size_t table_size;
 } SCE_TranspositionTable;
 
+#define SCE_MAX_PLY 50
 typedef struct {
     SCE_Eval eval_function;
     SCE_DeltaEval delta_eval_function;          // Optional. If this is set, this will be used during searches.
     SCE_TranspositionTable transposition_table;
     uint8_t depth;
     uint8_t current_search_depth;
+    SCE_ChessMove killer_moves[SCE_MAX_PLY][2];
 } SCE_Engine;
 
 /**
@@ -69,18 +71,18 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * 
  * @param ptr_engine Pointer to to the SCE_Engine struct
  * @param ctx Pointer to the SCE_Context struct
- * @return int Best move (in which case, can be casted to SCE_ChessMove) or UNASSIGNED (-1)
+ * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-int SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context *const ctx);
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context *const ctx);
 
 /**
  * @brief Outputs the best move calculated by the engine via iterative deepening with alpha beta.
  * 
  * @param ptr_engine Pointer to to the SCE_Engine struct
  * @param ctx Pointer to the SCE_Context struct
- * @return int Best move (in which case, can be casted to SCE_ChessMove) or UNASSIGNED (-1)
+ * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-int SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx);
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx);
 
 #ifdef __cplusplus
 }
