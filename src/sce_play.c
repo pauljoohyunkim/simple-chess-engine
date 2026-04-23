@@ -41,7 +41,7 @@ int main() {
 
         if (legal_move_list.count == 0) break;
 
-        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx.board) / 100);
+        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx) / 100);
         SCE_Chessboard_print(&ctx, player);
 
         // Get move from user
@@ -119,7 +119,7 @@ int main() {
 
         // Making player move.
         ret = SCE_MakeMove(&ctx, move);
-        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx.board) / 100);
+        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx) / 100);
         SCE_Chessboard_print(&ctx, player);
 
         const unsigned int phase = SCE_Eval_ComputePhase(&ctx.board);

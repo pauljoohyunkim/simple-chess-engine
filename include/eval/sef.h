@@ -7,9 +7,9 @@ extern "C" {
 
 #include "engine.h"
 
-int SCE_Eval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board);
+int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx);
 
-int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, const SCE_ChessMove move);
+int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, const SCE_ChessMove move);
 
 #ifdef __cplusplus
 }

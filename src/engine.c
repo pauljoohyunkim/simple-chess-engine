@@ -46,6 +46,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
     ptr_engine->transposition_table.entries = NULL;
     ptr_engine->transposition_table.table_size = 0;
     ptr_engine->eval_function = NULL;
+    ptr_engine->delta_eval_function = NULL;
 
     return SCE_SUCCESS;
 }
@@ -259,7 +260,7 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
                                      int alpha,
                                      int beta) {
-    const int static_eval = ptr_engine->eval_function(&ctx->board);
+    const int static_eval = ptr_engine->eval_function(ctx);
 
     int best_value = static_eval;
     if (best_value >= beta) return best_value;

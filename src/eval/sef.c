@@ -13,33 +13,33 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
 static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
 
-int SCE_Eval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board) {
-    assert(ptr_board != NULL);
+int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx) {
+    assert(ctx != NULL);
     int centipawns = 0;
     
     // Compute the material sum.
     for (uint piece_type = W_PAWN; piece_type <= W_KING; piece_type++) {
-        centipawns += COUNT_SET_BITS(ptr_board->bitboards[piece_type]) * piece_weights[piece_type];
+        centipawns += COUNT_SET_BITS(ctx->board.bitboards[piece_type]) * piece_weights[piece_type];
     }
     for (uint piece_type = B_PAWN; piece_type <= B_KING; piece_type++) {
-        centipawns -= COUNT_SET_BITS(ptr_board->bitboards[piece_type]) * piece_weights[piece_type];
+        centipawns -= COUNT_SET_BITS(ctx->board.bitboards[piece_type]) * piece_weights[piece_type];
     }
 
     // Each piece and their piece-square sum.
 
-    centipawns += SCE_Eval_PawnSquareEval(ptr_board, WHITE);
-    centipawns += SCE_Eval_KnightSquareEval(ptr_board, WHITE);
-    centipawns += SCE_Eval_BishopSquareEval(ptr_board, WHITE);
-    centipawns += SCE_Eval_RookSquareEval(ptr_board, WHITE);
-    centipawns += SCE_Eval_QueenSquareEval(ptr_board, WHITE);
-    centipawns += SCE_Eval_KingSquareEval(ptr_board, WHITE);
+    centipawns += SCE_Eval_PawnSquareEval(&ctx->board, WHITE);
+    centipawns += SCE_Eval_KnightSquareEval(&ctx->board, WHITE);
+    centipawns += SCE_Eval_BishopSquareEval(&ctx->board, WHITE);
+    centipawns += SCE_Eval_RookSquareEval(&ctx->board, WHITE);
+    centipawns += SCE_Eval_QueenSquareEval(&ctx->board, WHITE);
+    centipawns += SCE_Eval_KingSquareEval(&ctx->board, WHITE);
 
-    centipawns += SCE_Eval_PawnSquareEval(ptr_board, BLACK);
-    centipawns += SCE_Eval_KnightSquareEval(ptr_board, BLACK);
-    centipawns += SCE_Eval_BishopSquareEval(ptr_board, BLACK);
-    centipawns += SCE_Eval_RookSquareEval(ptr_board, BLACK);
-    centipawns += SCE_Eval_QueenSquareEval(ptr_board, BLACK);
-    centipawns += SCE_Eval_KingSquareEval(ptr_board, BLACK);
+    centipawns += SCE_Eval_PawnSquareEval(&ctx->board, BLACK);
+    centipawns += SCE_Eval_KnightSquareEval(&ctx->board, BLACK);
+    centipawns += SCE_Eval_BishopSquareEval(&ctx->board, BLACK);
+    centipawns += SCE_Eval_RookSquareEval(&ctx->board, BLACK);
+    centipawns += SCE_Eval_QueenSquareEval(&ctx->board, BLACK);
+    centipawns += SCE_Eval_KingSquareEval(&ctx->board, BLACK);
 
     return centipawns;
 }
@@ -139,6 +139,6 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return ((mg_sum * phase) + (eg_sum * (TOTAL_PHASE_WEIGHT - phase))) / TOTAL_PHASE_WEIGHT;
 }
 
-int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, const SCE_ChessMove move) {
+int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, const SCE_ChessMove move) {
 
 }

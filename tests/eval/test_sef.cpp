@@ -5,5 +5,5 @@
 TEST(SEF, Initial) {
     BOARD_SETUP(board, precomputation_table, zobrist_table);
 
-    ASSERT_EQ(SCE_Eval_SimplifiedEvaluationFunction(&board), 0);
+    ASSERT_EQ(SCE_Eval_SimplifiedEvaluationFunction(&ctx), 0);
 }
