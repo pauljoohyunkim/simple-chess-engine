@@ -77,6 +77,7 @@ TEST(SEF, DeltaEval_Initial) {
 
         ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
     }
+    ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }
 
 TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
@@ -129,9 +130,14 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
 
         ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
     }
+    ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }
 
-TEST(SEF, DeltaEval_Kiwipete_Depth_3) {
+#ifndef UNITTEST_FULL
+TEST(SEF, DeltaEval_Kiwipete_Depth_4) {
+#else
+TEST(SEF, DeltaEval_Kiwipete_Depth_6) {
+#endif
     SCE_Context ctx;
     ASSERT_EQ(SCE_Context_init(&ctx), SCE_SUCCESS);
     ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
@@ -140,5 +146,11 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_3) {
     SCE_Engine engine;
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
-    DeltaEvalTest(&ctx, 5);
+#ifndef UNITTEST_FULL
+    DeltaEvalTest(&ctx, 4);
+#else
+    DeltaEvalTest(&ctx, 6);
+#endif
+
+    ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }

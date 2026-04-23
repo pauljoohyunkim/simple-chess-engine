@@ -10,7 +10,7 @@
 #define TT_TABLE_LOG_2_SIZE 20
 #define PHASE_DEEPNING_CUTOFF 15
 #define INITIAL_DEPTH 7
-#define DEEPENED_DEPTH 9
+#define DEEPENED_DEPTH 8
 
 int main() {
     SCE_Return ret;

@@ -14,51 +14,6 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
 static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color, const bool is_mg);
 
-int dev_SCE_Eval_SimplifiedEvaluationFunction_READ_ONLY(const SCE_Context* const ctx) {
-    assert(ctx != NULL);
-    int material_sum = 0;
-    int pst_sum = 0;
-    
-    // Compute the material sum.
-    for (uint piece_type = W_PAWN; piece_type <= W_KING; piece_type++) {
-        material_sum += COUNT_SET_BITS(ctx->board.bitboards[piece_type]) * piece_weights[piece_type];
-    }
-    for (uint piece_type = B_PAWN; piece_type <= B_KING; piece_type++) {
-        material_sum -= COUNT_SET_BITS(ctx->board.bitboards[piece_type]) * piece_weights[piece_type];
-    }
-
-    int phase = SCE_Eval_ComputePhase(&ctx->board);
-    int mg_score = material_sum;
-    int eg_score = material_sum;
-
-    // Each piece and their piece-square sum.
-    // Except for kings, all pieces are equivalent for MG and EG
-    pst_sum += SCE_Eval_PawnSquareEval(&ctx->board, WHITE);
-    pst_sum += SCE_Eval_KnightSquareEval(&ctx->board, WHITE);
-    pst_sum += SCE_Eval_BishopSquareEval(&ctx->board, WHITE);
-    pst_sum += SCE_Eval_RookSquareEval(&ctx->board, WHITE);
-    pst_sum += SCE_Eval_QueenSquareEval(&ctx->board, WHITE);
-
-    pst_sum += SCE_Eval_PawnSquareEval(&ctx->board, BLACK);
-    pst_sum += SCE_Eval_KnightSquareEval(&ctx->board, BLACK);
-    pst_sum += SCE_Eval_BishopSquareEval(&ctx->board, BLACK);
-    pst_sum += SCE_Eval_RookSquareEval(&ctx->board, BLACK);
-    pst_sum += SCE_Eval_QueenSquareEval(&ctx->board, BLACK);
-
-    mg_score += pst_sum;
-    eg_score += pst_sum;
-
-    // For kings, mg and eg scores are different.
-    mg_score += SCE_Eval_KingSquareEval(&ctx->board, WHITE, true);
-    mg_score += SCE_Eval_KingSquareEval(&ctx->board, BLACK, true);
-    eg_score += SCE_Eval_KingSquareEval(&ctx->board, WHITE, false);
-    eg_score += SCE_Eval_KingSquareEval(&ctx->board, BLACK, false);
-
-    // (Middle game * phase + End game * (24 - phase)) / 24
-    return (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
-
-}
-
 int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx) {
     assert(ctx != NULL);
     int material_sum = 0;
