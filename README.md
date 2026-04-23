@@ -35,5 +35,6 @@ I am testing against bots from [Chess.com](https://www.chess.com/).
 
 This suggests that the current bot may be better than ELO 2000.
 
+### ELO 2500
 ![2500](./2500.png)
 This suggests that the current bot (Depth 9 -> 10 (after phase < 15)) is roughly ELO 2500.
