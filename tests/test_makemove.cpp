@@ -231,6 +231,4 @@ TEST(MakeMove, MakeUnmake_PromoCapture) {
 
     ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
     debug_print_board(&ctx);
-
-    printf("Yolo");
 }

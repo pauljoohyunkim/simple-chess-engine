@@ -30,10 +30,6 @@ void DeltaEvalTest(SCE_Context* const ctx, const int depth) {
         ASSERT_EQ(delta_evaluated, full_evaluated);
         ASSERT_EQ(temp_eval_state.eg_score, ctx->eval_state.eg_score);
         ASSERT_EQ(temp_eval_state.mg_score, ctx->eval_state.mg_score);
-        if (temp_eval_state.phase != ctx->eval_state.phase) {
-            debug_print_board(ctx);
-            //int asdf = 0;
-        }
         ASSERT_EQ(temp_eval_state.phase, ctx->eval_state.phase);
         //ASSERT_TRUE(temp_eval_state.phase <= 24);
         //ASSERT_TRUE(ctx->eval_state.phase <= 24);
@@ -144,5 +140,5 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_3) {
     SCE_Engine engine;
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
-    DeltaEvalTest(&ctx, 4);
+    DeltaEvalTest(&ctx, 5);
 }
