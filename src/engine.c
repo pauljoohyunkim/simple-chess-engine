@@ -5,7 +5,7 @@
 
 typedef unsigned int uint;
 
-static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move);
+inline static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move);
 static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply);
@@ -21,7 +21,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        int alpha,
                                        int beta);
 
-static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
+inline static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
     if (ctx == NULL || ptr_engine == NULL || move == EMPTY_MOVE) return SCE_INVALID_PARAM;
 
     // 1. Take snapshot of eval states
