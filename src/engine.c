@@ -39,6 +39,8 @@ static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine
     } else {
         return SCE_INVALID_MOVE;
     }
+
+    return SCE_SUCCESS;
 }
 
 SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size) {
@@ -284,7 +286,10 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
                                      int alpha,
                                      int beta) {
-    const int static_eval = ptr_engine->eval_function(ctx);
+    const int phase = ctx->eval_state.phase;
+    const int mg_score = ctx->eval_state.mg_score;
+    const int eg_score = ctx->eval_state.eg_score;
+    const int static_eval = (ctx->board.to_move == WHITE ? 1 : -1) * (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
 
     int best_value = static_eval;
     if (best_value >= beta) return best_value;
@@ -308,7 +313,8 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
         //print_move_to_AN(move);
         assert((flag & SCE_CHESSMOVE_FLAG_CAPTURE) || (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION));
 
-        ret = SCE_MakeMove(ctx, move);
+        //ret = SCE_MakeMove(ctx, move);
+        ret = SCE_Search_MakeMove_Wrapper(ctx, ptr_engine, move);
         if (ret != SCE_SUCCESS) {
             continue;
         }
@@ -404,7 +410,8 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     unsigned int legal_move_count = 0U;
     for (uint i = 0U; i < moves.count; i++) {
         const SCE_ChessMove move = moves.moves[i];
-        ret = SCE_MakeMove(ctx, move);
+        //ret = SCE_MakeMove(ctx, move);
+        ret = SCE_Search_MakeMove_Wrapper(ctx, ptr_engine, move);
         if (ret != SCE_SUCCESS) {
             continue;
         }
@@ -475,7 +482,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
 
     for (uint i = 0U; i < moves.count; i++) {
         const SCE_ChessMove move = moves.moves[i];
-        ret = SCE_MakeMove(ctx, move);
+        ret = SCE_Search_MakeMove_Wrapper(ctx, ptr_engine, move);
         if (ret != SCE_SUCCESS) {
             continue;
         }
