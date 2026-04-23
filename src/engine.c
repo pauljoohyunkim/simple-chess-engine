@@ -24,6 +24,10 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
 static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
     if (ctx == NULL || ptr_engine == NULL || move == EMPTY_MOVE) return SCE_INVALID_PARAM;
 
+    // 1. Take snapshot of eval states
+    // 2. Use delta evaluation on the eval states
+    // 3. Try MakeMove.
+    // 4. If it succeeds, MakeMove will write the eval state into the undo_states. We write the new evaluation to the eval_states on the board
 }
 
 SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size) {

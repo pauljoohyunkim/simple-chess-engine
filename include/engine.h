@@ -11,7 +11,7 @@ extern "C" {
 #include "chess.h"
 
 typedef int (*SCE_Eval)(SCE_Context* const);
-typedef int (*SCE_DeltaEval)(SCE_Context* const, const SCE_ChessMove move);
+typedef int (*SCE_DeltaEval)(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move);
 
 #define SCE_ALPHA_INITIAL (INT_MIN / 2)
 #define SCE_BETA_INITIAL (INT_MAX / 2)

@@ -42,7 +42,7 @@ SCE_Return SCE_Context_init(SCE_Context* const ctx) {
 SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     if (ptr_list == NULL) return SCE_INVALID_PARAM;
 
-    memset(ptr_list, 0, sizeof(SCE_ChessMoveList));
+    memset(ptr_list, EMPTY_MOVE, sizeof(SCE_ChessMoveList));
 
     return SCE_SUCCESS;
 }

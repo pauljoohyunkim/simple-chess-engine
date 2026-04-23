@@ -150,6 +150,42 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return part_sum;
 }
 
-int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, const SCE_ChessMove move) {
+int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move) {
+    const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
+    const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
+    const PieceType src_piece_type = ptr_board->mailbox[src_idx];
+    assert(src_piece_type != UNASSIGNED_PIECE_TYPE);
+
+    const PieceColor src_color = src_piece_type < B_PAWN ? WHITE : BLACK;
+
+    const uint src_adjusted_pst_idx = src_color == WHITE ? src_idx : FLIP(src_idx);
+
+    // 1. "Subtract" piece value from old square
+    if (src_piece_type != W_KING && src_piece_type != B_KING) {
+        // Regular pieces (0~4, 6~10 -> 0~4)
+        const uint pst_idx = src_piece_type % 6U;
+        const int* pst = PST[pst_idx];
+
+        ptr_eval_state->mg_score -= src_color == WHITE ? pst[src_idx] : -pst[FLIP(src_idx)];
+        ptr_eval_state->eg_score -= src_color == WHITE ? pst[src_idx] : -pst[FLIP(src_idx)];
+        ptr_eval_state->mg_score += src_color == WHITE ? pst[dst_idx] : -pst[FLIP(dst_idx)];
+        ptr_eval_state->eg_score += src_color == WHITE ? pst[dst_idx] : -pst[FLIP(dst_idx)];
+    } else {
+        // Moving a king piece
+        const int* pst_king_mg = PST[PST_KING_MIDDLE];
+        const int* pst_king_eg = PST[PST_KING_END];
+
+        ptr_eval_state->mg_score -= src_color == WHITE ? pst_king_mg[src_idx] : -pst_king_mg[FLIP(src_idx)];
+        ptr_eval_state->eg_score -= src_color == WHITE ? pst_king_eg[src_idx] : -pst_king_eg[FLIP(src_idx)];
+        ptr_eval_state->mg_score += src_color == WHITE ? pst_king_mg[dst_idx] : -pst_king_mg[FLIP(dst_idx)];
+        ptr_eval_state->eg_score -= src_color == WHITE ? pst_king_eg[dst_idx] : -pst_king_eg[FLIP(dst_idx)];
+    }
+
+    // 2. Deal with
+    // 2.1 Capture
+    // 2.2 En passant
+    // 2.3 Promotion
+    // 2.4 Castling
+
 
 }
