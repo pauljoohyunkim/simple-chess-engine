@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
-#include "../include/chess.h"
-#include "../include/dev.h"
+#include "chess.h"
+#include "dev.h"
+#include "fen.h"
 #include "setup.h"
 
 TEST(MakeMove, MakeMove_Endgame1_WhitePawn_Promote_To_Knight) {
@@ -215,4 +216,21 @@ TEST(MakeMove, Castle_Through_Check) {
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_INVALID_MOVE);
 
     debug_print_board(&ctx);
+}
+
+TEST(MakeMove, MakeUnmake_PromoCapture) {
+    SCE_Context ctx;
+    SCE_Context_init(&ctx);
+
+    SCE_Chessboard_FEN_setup(&ctx, "r3k3/1P6/8/8/8/8/8/1K6 w q - 0 1");
+
+    //SCE_ChessMove move = (SCE_AN_To_Idx("B7") SCE_CHESSMOVE_SET_SRC | SCE_AN_To_Idx("A8") SCE_CHESSMOVE_SET_DST | (SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG));
+    SCE_ChessMove move = (SCE_AN_To_Idx("B7") SCE_CHESSMOVE_SET_SRC | SCE_AN_To_Idx("B8") SCE_CHESSMOVE_SET_DST | (SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION SCE_CHESSMOVE_SET_FLAG));
+    ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
+    debug_print_board(&ctx);
+
+    ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
+    debug_print_board(&ctx);
+
+    printf("Yolo");
 }
