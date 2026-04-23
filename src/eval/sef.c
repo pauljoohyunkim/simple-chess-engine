@@ -153,10 +153,12 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move) {
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
+    const int flag = move SCE_CHESSMOVE_GET_FLAG;
     const PieceType src_piece_type = ptr_board->mailbox[src_idx];
     assert(src_piece_type != UNASSIGNED_PIECE_TYPE);
 
     const PieceColor src_color = src_piece_type < B_PAWN ? WHITE : BLACK;
+    const int sign = src_color == WHITE ? 1 : -1;
 
     const uint src_adjusted_pst_idx = src_color == WHITE ? src_idx : FLIP(src_idx);
 
@@ -178,14 +180,70 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_b
         ptr_eval_state->mg_score -= src_color == WHITE ? pst_king_mg[src_idx] : -pst_king_mg[FLIP(src_idx)];
         ptr_eval_state->eg_score -= src_color == WHITE ? pst_king_eg[src_idx] : -pst_king_eg[FLIP(src_idx)];
         ptr_eval_state->mg_score += src_color == WHITE ? pst_king_mg[dst_idx] : -pst_king_mg[FLIP(dst_idx)];
-        ptr_eval_state->eg_score -= src_color == WHITE ? pst_king_eg[dst_idx] : -pst_king_eg[FLIP(dst_idx)];
+        ptr_eval_state->eg_score += src_color == WHITE ? pst_king_eg[dst_idx] : -pst_king_eg[FLIP(dst_idx)];
     }
 
     // 2. Deal with
     // 2.1 Capture
-    // 2.2 En passant
-    // 2.3 Promotion
-    // 2.4 Castling
+    if (flag & SCE_CHESSMOVE_FLAG_CAPTURE) {
+        // 2.1.1 En passant
+        if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
+            const PieceType captured_piece_type = src_color == WHITE ? B_PAWN : W_PAWN;
+            const uint captured_piece_idx = src_color == WHITE ? ptr_board->en_passant_idx - CHESSBOARD_DIMENSION : ptr_board->en_passant_idx + CHESSBOARD_DIMENSION;
+            const int* pst = PST[PST_PAWN];
+            // PST
+            ptr_eval_state->mg_score += src_color == WHITE ? pst[FLIP(captured_piece_idx)] : -pst[captured_piece_idx];
+            ptr_eval_state->eg_score += src_color == WHITE ? pst[FLIP(captured_piece_idx)] : -pst[captured_piece_idx];
+            // Material
+            ptr_eval_state->mg_score += src_color == WHITE ? PAWN_WEIGHT : -PAWN_WEIGHT;
+            ptr_eval_state->eg_score += src_color == WHITE ? PAWN_WEIGHT : -PAWN_WEIGHT;
+        } else {
+            const PieceType captured_piece_type = ptr_board->mailbox[dst_idx];
+            assert(captured_piece_type != W_KING && captured_piece_type != B_KING);
+            
+            // Non-king piece
+            const uint pst_idx = captured_piece_type % 6U;
+            const int* pst = PST[pst_idx];
+            // PST
+            ptr_eval_state->mg_score += src_color == WHITE ? pst[FLIP(dst_idx)] : -pst[dst_idx];
+            ptr_eval_state->eg_score += src_color == WHITE ? pst[FLIP(dst_idx)] : -pst[dst_idx];
+            // Material
+            ptr_eval_state->mg_score += src_color == WHITE ? piece_weights[pst_idx] : -piece_weights[pst_idx];
+            ptr_eval_state->eg_score += src_color == WHITE ? piece_weights[pst_idx] : -piece_weights[pst_idx];
 
+            // Phase update
+            switch (pst_idx) {
+                case PST_KNIGHT:
+                    ptr_eval_state->phase -= KNIGHT_PHASE_WEIGHT;
+                    break;
+                case PST_BISHOP:
+                    ptr_eval_state->phase -= BISHOP_PHASE_WEIGHT;
+                    break;
+                case PST_ROOK:
+                    ptr_eval_state->phase -= ROOK_PHASE_WEIGHT;
+                    break;
+                case PST_QUEEN:
+                    ptr_eval_state->phase -= QUEEN_PHASE_WEIGHT;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
+    // 2.2 Promotion
+    if (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) {
+
+    }
+
+    // 2.3 Castling
+    if (flag == SCE_CHESSMOVE_FLAG_KING_CASTLE || flag == SCE_CHESSMOVE_FLAG_QUEEN_CASTLE) {
+
+    }
+
+    // Clamp phase for computation to less than 24 (even though eval_state can have larger phase due to promotion)
+    const int phase = ptr_eval_state->phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ptr_eval_state->phase;
+
+    // TODO
+    return 0;
 }

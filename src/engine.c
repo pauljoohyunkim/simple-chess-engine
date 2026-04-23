@@ -25,9 +25,20 @@ static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine
     if (ctx == NULL || ptr_engine == NULL || move == EMPTY_MOVE) return SCE_INVALID_PARAM;
 
     // 1. Take snapshot of eval states
+    SCE_EvalState eval_state = ctx->eval_state;
+
     // 2. Use delta evaluation on the eval states
+    int score = ptr_engine->delta_eval_function(&ctx->board, &eval_state, move);
+
     // 3. Try MakeMove.
+    SCE_Return ret = SCE_MakeMove(ctx, move);
     // 4. If it succeeds, MakeMove will write the eval state into the undo_states. We write the new evaluation to the eval_states on the board
+    if (ret == SCE_SUCCESS) {
+        ctx->eval_state = eval_state;
+        return SCE_SUCCESS;
+    } else {
+        return SCE_INVALID_MOVE;
+    }
 }
 
 SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size) {
