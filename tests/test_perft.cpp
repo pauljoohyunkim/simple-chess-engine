@@ -48,10 +48,17 @@ TEST(PERFT, Custom_PERFT) {
 }
 */
 
+#ifndef UNITTEST_FULL
+TEST(PERFT, Kiwipete_Depth_1_to_4) {
+#else
+TEST(PERFT, Kiwipete_Depth_1_to_6) {
+#endif
 
-TEST(PERFT, Kiwipete_Depth_1_to_5_or_6) {
-    const uint testvector[] = { 48, 2039, 97862, 4085603, 193690690 };
-    //const ull testvector[] = { 48, 2039, 97862, 4085603, 193690690, 8031647685 };
+#ifndef UNITTEST_FULL
+    const uint testvector[] = { 48, 2039, 97862, 4085603 };
+#else
+    const ull testvector[] = { 48, 2039, 97862, 4085603, 193690690, 8031647685 };
+#endif
     for (uint depth = 1U; depth <= sizeof(testvector)/sizeof(testvector[0]); depth++) {
         SCE_Context ctx;
         SCE_Chessboard& board { ctx.board };
