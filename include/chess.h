@@ -150,9 +150,19 @@ typedef struct {
 } SCE_PieceMovementPrecomputationTable;
 
 typedef struct {
+    unsigned int mg_score;
+    unsigned int eg_score;
+    int phase;
+} SCE_EvalState;
+
+typedef struct {
     SCE_Chessboard board;
     SCE_PieceMovementPrecomputationTable precomputation_table;
     SCE_ZobristTable zobrist_table;
+
+    // For Engine
+    uint8_t current_search_depth;
+    SCE_EvalState eval_state;
 } SCE_Context;
 
 /**

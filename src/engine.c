@@ -350,7 +350,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     assert(ret == SCE_SUCCESS);
     ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, false);
     assert(ret == SCE_SUCCESS);
-    const int ply = ptr_engine->current_search_depth - depth;
+    const int ply = ctx->current_search_depth - depth;
     if (moves.count == 0) {
         // Number of pseudolegal moves already tells us that we need to check for mate.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
@@ -392,7 +392,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         if (score >= beta) { 
             SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, move, SCE_TF_BETA);
             const int flag = move SCE_CHESSMOVE_GET_FLAG;
-            const int ply = ptr_engine->current_search_depth - depth;
+            const int ply = ctx->current_search_depth - depth;
             if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && ply < SCE_MAX_PLY) {
                 // Add to killer moves (only if move is not in the killer move)
                 if (ptr_engine->killer_moves[ply][0] != move) {
@@ -412,7 +412,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         // Check again, since legal move count ended up being 0.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
         if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
-            const int ply = ptr_engine->current_search_depth - depth;
+            const int ply = ctx->current_search_depth - depth;
             return SCE_EVAL_CHECKMATE + ply;
         } else {
             return SCE_EVAL_DRAW;
@@ -454,7 +454,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
         if (ret != SCE_SUCCESS) {
             continue;
         }
-        ptr_engine->current_search_depth = ptr_engine->depth-1;
+        ctx->current_search_depth = ptr_engine->depth-1;
         const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_engine->depth-1, -beta, -alpha);
 
         ret = SCE_UnmakeMove(ctx);
@@ -479,7 +479,7 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
         int alpha = SCE_ALPHA_INITIAL;
         int beta = SCE_BETA_INITIAL;
         SCE_ChessMove tt_hint_move = EMPTY_MOVE;
-        ptr_engine->current_search_depth = iter_depth;
+        ctx->current_search_depth = iter_depth;
 
         // TT lookup
         const SCE_TranspositionTableEntry* ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);

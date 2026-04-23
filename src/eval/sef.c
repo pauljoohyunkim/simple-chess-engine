@@ -139,3 +139,6 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return ((mg_sum * phase) + (eg_sum * (TOTAL_PHASE_WEIGHT - phase))) / TOTAL_PHASE_WEIGHT;
 }
 
+int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, const SCE_ChessMove move) {
+
+}

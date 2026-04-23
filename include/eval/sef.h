@@ -9,6 +9,8 @@ extern "C" {
 
 int SCE_Eval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board);
 
+int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, const SCE_ChessMove move);
+
 #ifdef __cplusplus
 }
 #endif
