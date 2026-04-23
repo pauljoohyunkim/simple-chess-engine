@@ -27,10 +27,22 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
 static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 
+SCE_Return SCE_Context_init(SCE_Context* const ctx) {
+    if (ctx == NULL) return SCE_INVALID_PARAM;
+
+    RETURN_IF_SCE_FAILURE(SCE_Chessboard_reset(ctx), "Could not reset the board.");
+    RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(ctx), "Could not precompute the lookup table for movements.");
+    RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(ctx, NULL), "Could not initialize Zobrist hash table.");
+    ctx->current_search_depth = 0U;
+    memset(&ctx->eval_state, 0, sizeof(ctx->eval_state));
+
+    return SCE_SUCCESS;
+}
+
 SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     if (ptr_list == NULL) return SCE_INVALID_PARAM;
 
-    memset(ptr_list, 0, sizeof(SCE_ChessMoveList));
+    memset(ptr_list, EMPTY_MOVE, sizeof(SCE_ChessMoveList));
 
     return SCE_SUCCESS;
 }
@@ -1662,6 +1674,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         ctx->board.undo_states[ctx->board.history.count].castling_rights = ctx->board.castling_rights;
         ctx->board.undo_states[ctx->board.history.count].half_move_clock = ctx->board.half_move_clock;
         ctx->board.undo_states[ctx->board.history.count].zobrist_hash = ctx->board.zobrist_hash;
+        ctx->board.undo_states[ctx->board.history.count].eval_state = ctx->eval_state;
         // This automatically increments the count
         RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ctx->board.history), "Adding to list failed!");
     }
@@ -1855,6 +1868,7 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
     ctx->board.castling_rights = ctx->board.undo_states[move_idx].castling_rights;
     ctx->board.half_move_clock = ctx->board.undo_states[move_idx].half_move_clock;
     ctx->board.zobrist_hash = ctx->board.undo_states[move_idx].zobrist_hash;
+    ctx->eval_state = ctx->board.undo_states[move_idx].eval_state;
 
     // Restoration
     // 1. Flag action
