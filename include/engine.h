@@ -39,7 +39,7 @@ typedef struct {
 #define SCE_MAX_PLY 50
 typedef struct {
     SCE_Eval eval_function;
-    SCE_DeltaEval delta_eval_function;          // Optional. If this is set, this will be used during searches.
+    SCE_DeltaEval delta_eval_function;
     SCE_TranspositionTable transposition_table;
     uint8_t depth;
     SCE_ChessMove killer_moves[SCE_MAX_PLY][2];
@@ -48,14 +48,15 @@ typedef struct {
 /**
  * @brief Sets up SCE_Engine struct.
  * 
+ * @param ctx Pointer to the SCE_Context struct
  * @param ptr_engine Pointer to the SCE_Engine struct.
  * @param eval_func Function pointer to evaluation function of the board.
- * @param delta_eval_func Function pointer to incremental evaluation function of the board. If set to NULL, eval_function will be called every time.
+ * @param delta_eval_func Function pointer to incremental evaluation function of the board.
  * @param transposition_table_log2_size Number of entries that transposition table could theoretically hold, applied log2(.).
  * The actual size of the transposition table will be 2^(transposition_table_log2_size) entries.
  * @return SCE_Return SCE_SUCCESS for success, otherwise for failure.
  */
-SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size);
+SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size);
 
 /**
  * @brief Releases dynamically allocated components within SCE_Engine struct and empties it.

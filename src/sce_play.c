@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,12 +20,13 @@ int main() {
     SCE_Context ctx;
 
     ret = SCE_Context_init(&ctx);
+    assert(ret == SCE_SUCCESS);
 
     // Chess engine
     SCE_Engine engine;
-    ret = SCE_Engine_init(&engine, SCE_Eval_SimplifiedEvaluationFunction, NULL, TT_TABLE_LOG_2_SIZE);
+    ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
+    assert(ret == SCE_SUCCESS);
     engine.depth = INITIAL_DEPTH;
-    
 
     printf("All moves are to be in \"E2E4\" form\n");
     
@@ -34,8 +36,10 @@ int main() {
         char dst_an[3] = { 0 };
         SCE_ChessMoveList legal_move_list;
         ret = SCE_ChessMoveList_clear(&legal_move_list);
+        assert(ret == SCE_SUCCESS);
 
         ret = SCE_GenerateLegalMoves(&legal_move_list, &ctx);
+        assert(ret == SCE_SUCCESS);
 
         if (legal_move_list.count == 0) break;
 
@@ -59,6 +63,7 @@ int main() {
         int move = UNASSIGNED;
         SCE_ChessMoveList movelist;
         ret = SCE_ChessMoveList_clear(&movelist);
+        assert(ret == SCE_SUCCESS);
         // Check if move is one of the legal moves.
         for (unsigned int i = 0U; i < legal_move_list.count; i++) {
             const SCE_ChessMove legal_move = legal_move_list.moves[i];
@@ -117,6 +122,7 @@ int main() {
 
         // Making player move.
         ret = SCE_MakeMove(&ctx, move);
+        assert(ret == SCE_SUCCESS);
         printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx) / 100);
         SCE_Chessboard_print(&ctx, player);
 
@@ -132,11 +138,12 @@ int main() {
         // Now computer's perspective
         //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
         move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(&engine, &ctx);
-        if (move == UNASSIGNED) {
+        if (move == EMPTY_MOVE) {
             printf("Mate!\n");
             break;
         }
         ret = SCE_MakeMove(&ctx, move);
+        assert(ret == SCE_SUCCESS);
         {
             ret = SCE_Bitboard_To_AN(src_an, 1ULL << (move SCE_CHESSMOVE_GET_SRC));
             ret = SCE_Bitboard_To_AN(dst_an, 1ULL << (move SCE_CHESSMOVE_GET_DST));

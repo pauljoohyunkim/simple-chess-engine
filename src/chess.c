@@ -1674,6 +1674,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         ctx->board.undo_states[ctx->board.history.count].castling_rights = ctx->board.castling_rights;
         ctx->board.undo_states[ctx->board.history.count].half_move_clock = ctx->board.half_move_clock;
         ctx->board.undo_states[ctx->board.history.count].zobrist_hash = ctx->board.zobrist_hash;
+        ctx->board.undo_states[ctx->board.history.count].eval_state = ctx->eval_state;
         // This automatically increments the count
         RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ctx->board.history), "Adding to list failed!");
     }
@@ -1867,6 +1868,7 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
     ctx->board.castling_rights = ctx->board.undo_states[move_idx].castling_rights;
     ctx->board.half_move_clock = ctx->board.undo_states[move_idx].half_move_clock;
     ctx->board.zobrist_hash = ctx->board.undo_states[move_idx].zobrist_hash;
+    ctx->eval_state = ctx->board.undo_states[move_idx].eval_state;
 
     // Restoration
     // 1. Flag action

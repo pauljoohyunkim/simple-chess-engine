@@ -5,6 +5,7 @@
 
 typedef unsigned int uint;
 
+static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move);
 static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply);
@@ -20,8 +21,13 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        int alpha,
                                        int beta);
 
-SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size) {
-    if (ptr_engine == NULL || eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
+static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
+    if (ctx == NULL || ptr_engine == NULL || move == EMPTY_MOVE) return SCE_INVALID_PARAM;
+
+}
+
+SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size) {
+    if (ctx == NULL || ptr_engine == NULL || eval_func == NULL || delta_eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
 
     const size_t n_entries = 1ULL << transposition_table_log2_size;
 
@@ -35,6 +41,9 @@ SCE_Return SCE_Engine_init(SCE_Engine* const ptr_engine, const SCE_Eval eval_fun
         ptr_engine->killer_moves[i][0] = EMPTY_MOVE;
         ptr_engine->killer_moves[i][1] = EMPTY_MOVE;
     }
+
+    // Compute the initial evaluation
+    ptr_engine->eval_function(ctx);
 
     return SCE_SUCCESS;
 }

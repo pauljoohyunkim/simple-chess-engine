@@ -94,12 +94,20 @@ typedef uint16_t SCE_ChessMove;
 #define SCE_CASTLING_RIGHTS_BQ (1U << 3)
 
 typedef struct {
+    int mg_score;
+    int eg_score;
+    int phase;
+} SCE_EvalState;
+
+typedef struct {
     unsigned int moving_piece;
     int captured_piece;
     int en_passant_square;
     uint8_t castling_rights;
     unsigned int half_move_clock;       // 50-move rule
     uint64_t zobrist_hash;
+
+    SCE_EvalState eval_state;           // For engine
 } SCE_UndoState;
 
 #define N_MAX_MOVES (512U)
@@ -148,12 +156,6 @@ typedef struct {
     // Castling Rights
     uint8_t castling_mask[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
 } SCE_PieceMovementPrecomputationTable;
-
-typedef struct {
-    unsigned int mg_score;
-    unsigned int eg_score;
-    int phase;
-} SCE_EvalState;
 
 typedef struct {
     SCE_Chessboard board;
