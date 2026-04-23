@@ -57,7 +57,7 @@ int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx) {
     const int phase = ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score;
     const int eg_score = ctx->eval_state.eg_score;
-    return (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / 24;
+    return (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
 }
 
 static int SCE_Eval_PawnSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
@@ -279,12 +279,20 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_b
 
     // 2.3 Castling
     if (flag == SCE_CHESSMOVE_FLAG_KING_CASTLE || flag == SCE_CHESSMOVE_FLAG_QUEEN_CASTLE) {
+        uint rook_src_idx = flag == SCE_CHESSMOVE_FLAG_KING_CASTLE ? dst_idx + 1U : dst_idx - 2U;
+        uint rook_dst_idx = flag == SCE_CHESSMOVE_FLAG_KING_CASTLE ? dst_idx - 1U : dst_idx + 1U;
+        const int* pst_rook = PST[PST_ROOK];
 
+        ptr_eval_state->mg_score -= src_color == WHITE ? pst_rook[rook_src_idx] : -pst_rook[FLIP(rook_src_idx)];
+        ptr_eval_state->eg_score -= src_color == WHITE ? pst_rook[rook_src_idx] : -pst_rook[FLIP(rook_src_idx)];
+        ptr_eval_state->mg_score += src_color == WHITE ? pst_rook[rook_dst_idx] : -pst_rook[FLIP(rook_dst_idx)];
+        ptr_eval_state->eg_score += src_color == WHITE ? pst_rook[rook_dst_idx] : -pst_rook[FLIP(rook_dst_idx)];
     }
 
     // Clamp phase for computation to less than 24 (even though eval_state can have larger phase due to promotion)
     const int phase = ptr_eval_state->phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ptr_eval_state->phase;
+    const int mg_score = ptr_eval_state->mg_score;
+    const int eg_score = ptr_eval_state->eg_score;
 
-    // TODO
-    return 0;
+    return (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
 }
