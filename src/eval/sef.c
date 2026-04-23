@@ -233,7 +233,48 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_b
 
     // 2.2 Promotion
     if (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) {
+        uint pst_idx;
+        int phase_weight;
+        switch (flag) {
+            case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE:
+                pst_idx = PST_KNIGHT;
+                phase_weight = KNIGHT_PHASE_WEIGHT;
+                break;
+            case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
+                pst_idx = PST_BISHOP;
+                phase_weight = BISHOP_PHASE_WEIGHT;
+                break;
+            case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
+                pst_idx = PST_ROOK;
+                phase_weight = ROOK_PHASE_WEIGHT;
+                break;
+            case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
+            case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
+                pst_idx = PST_QUEEN;
+                phase_weight = QUEEN_PHASE_WEIGHT;
+                break;
+            default:
+                break;
+        }
+        // Get rid of pawn and add promoted piece.
+        const int* pst_pawn = PST[PST_PAWN];
+        const int* pst_promoted = PST[pst_idx];
 
+        // PST
+        ptr_eval_state->mg_score -= src_color == WHITE ? pst_pawn[dst_idx] : -pst_pawn[FLIP(dst_idx)];
+        ptr_eval_state->eg_score -= src_color == WHITE ? pst_pawn[dst_idx] : -pst_pawn[FLIP(dst_idx)];
+        ptr_eval_state->mg_score += src_color == WHITE ? pst_promoted[dst_idx] : -pst_promoted[FLIP(dst_idx)];
+        ptr_eval_state->eg_score += src_color == WHITE ? pst_promoted[dst_idx] : -pst_promoted[FLIP(dst_idx)];
+        // Material
+        ptr_eval_state->mg_score -= src_color == WHITE ? PAWN_WEIGHT : -PAWN_WEIGHT;
+        ptr_eval_state->eg_score -= src_color == WHITE ? PAWN_WEIGHT : -PAWN_WEIGHT;
+        ptr_eval_state->mg_score += src_color == WHITE ? piece_weights[pst_idx] : -piece_weights[pst_idx];
+        ptr_eval_state->eg_score += src_color == WHITE ? piece_weights[pst_idx] : -piece_weights[pst_idx];
+        // Phase (Note that at the end of the function, this will be clamped to below 24, even though it will be saved in memory as the original value.)
+        ptr_eval_state->phase += phase_weight;
     }
 
     // 2.3 Castling
