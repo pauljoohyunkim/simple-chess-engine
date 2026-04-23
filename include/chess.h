@@ -166,6 +166,14 @@ typedef struct {
 } SCE_Context;
 
 /**
+ * @brief Initializes SCE_Context with default setting.
+ * 
+ * @param ctx Pointer to the SCE_Context struct.
+ * @return SCE_Return SCE_SUCCESS for success, other for failure.
+ */
+SCE_Return SCE_Context_init(SCE_Context* const ctx);
+
+/**
  * @brief Clear out the move list
  * 
  * @param ptr_list Pointer to the SCE_ChessMoveList struct.

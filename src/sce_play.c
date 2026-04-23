@@ -18,9 +18,7 @@ int main() {
 
     SCE_Context ctx;
 
-    ret = SCE_PieceMovementPrecompute(&ctx);
-    ret = SCE_Chessboard_reset(&ctx);
-    ret = SCE_ZobristTable_init(&ctx, NULL);
+    ret = SCE_Context_init(&ctx);
 
     // Chess engine
     SCE_Engine engine;
