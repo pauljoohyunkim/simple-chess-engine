@@ -8,9 +8,11 @@
 #include "eval/pst.h"
 #include "helper.h"
 
-#define SIGNAL_OK 0
-#define SIGNAL_BREAK 1
-#define SIGNAL_CONTINUE 2
+typedef enum {
+    SIGNAL_OK = 0,
+    SIGNAL_BREAK = 1,
+    SIGNAL_CONTINUE = 2
+} Signal;
 
 
 #define TT_TABLE_LOG_2_SIZE 20
@@ -19,8 +21,8 @@
 #define DEEPENED_DEPTH 11
 
 // Returns true if end of game.
-static int player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color);
-static int computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color);
+static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color);
+static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color);
 
 int main(int argc, char** argv) {
     if (argc == 1) {
@@ -48,7 +50,7 @@ int main(int argc, char** argv) {
     printf("All moves are to be in \"E2E4\" form\n");
     
     while (true) {
-        int signal;
+        Signal signal;
         signal = player_move(&ctx, &engine, player);
         if (signal == SIGNAL_BREAK) break;
         if (signal == SIGNAL_CONTINUE) continue;
@@ -64,29 +66,9 @@ int main(int argc, char** argv) {
             engine.depth = DEEPENED_DEPTH;
         }
 
-        SCE_ChessMove move;
-
-        // ------------------------------------------------
-        // Now computer's perspective
-        //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
-        move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(&engine, &ctx);
-        if (move == EMPTY_MOVE) {
-            printf("Mate!\n");
-            break;
-        }
-        ret = SCE_MakeMove(&ctx, move);
-        assert(ret == SCE_SUCCESS);
-        {
-            char src_an[3] = { 0 };
-            char dst_an[3] = { 0 };
-            ret = SCE_Bitboard_To_AN(src_an, 1ULL << (move SCE_CHESSMOVE_GET_SRC));
-            ret = SCE_Bitboard_To_AN(dst_an, 1ULL << (move SCE_CHESSMOVE_GET_DST));
-            printf("Computer: %s -> %s", src_an, dst_an);
-            if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
-                printf(" (Capture)");
-            }
-            printf("\n");
-        }
+        signal = computer_move(&ctx, &engine, player);
+        if (signal == SIGNAL_BREAK) break;
+        if (signal == SIGNAL_CONTINUE) continue;
     }
 
     printf("End of game!\n");
@@ -94,7 +76,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-static int player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color) {
+static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color) {
     SCE_Return ret;
     char input[10] = { 0 };
     char src_an[3] = { 0 };
@@ -191,5 +173,32 @@ static int player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor play
     assert(ret == SCE_SUCCESS);
     printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
 
+    return SIGNAL_OK;
+}
+
+static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color) {
+    // ------------------------------------------------
+    // Now computer's perspective
+    //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
+    SCE_Return ret;
+    SCE_ChessMove move;
+    move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(ptr_engine, ctx);
+    if (move == EMPTY_MOVE) {
+        printf("Mate!\n");
+        return SIGNAL_BREAK;
+    }
+    ret = SCE_MakeMove(ctx, move);
+    assert(ret == SCE_SUCCESS);
+    {
+        char src_an[3] = { 0 };
+        char dst_an[3] = { 0 };
+        ret = SCE_Bitboard_To_AN(src_an, 1ULL << (move SCE_CHESSMOVE_GET_SRC));
+        ret = SCE_Bitboard_To_AN(dst_an, 1ULL << (move SCE_CHESSMOVE_GET_DST));
+        printf("Computer: %s -> %s", src_an, dst_an);
+        if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
+            printf(" (Capture)");
+        }
+        printf("\n");
+    }
     return SIGNAL_OK;
 }
