@@ -82,7 +82,7 @@ int main() {
         } else {
             // Promotion
             unsigned int choice;
-            printf("Available moves:");
+            printf("Available moves:\n");
             for (unsigned int i = 0U; i < movelist.count; i++) {
                 //const unsigned int src_idx = movelist.moves[i] SCE_CHESSMOVE_GET_SRC;
                 //const unsigned int dst_idx = movelist.moves[i] SCE_CHESSMOVE_GET_DST;
@@ -115,6 +115,7 @@ int main() {
                 fprintf(stderr, "Wrong index!\n");
                 continue;
             }
+            move = movelist.moves[choice];
         }
         if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
             printf("(Capture)");
