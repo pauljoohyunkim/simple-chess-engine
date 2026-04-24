@@ -40,9 +40,14 @@ This suggests that the current bot may be better than ELO 2000.
 
 This suggests that the current bot (Depth 9 -> 10 (after phase < 15)) is roughly ELO 2500, though it could be higher or lower.
 
-### ELO 2400 (Lose)
+### ELO 2400 (Loss)
 ![2400](./2400.png)
 
 This suggests that the current bot would be worse than ELO 2400.
+
+### ELO 2400 (Second Try, Win)
+![2400](./2400_2.png)
+
+It seems like with right parameters (for depth and deepening), the engine could practically improve.
 
 Based on these results, my estimation would be about ELO 2200.
