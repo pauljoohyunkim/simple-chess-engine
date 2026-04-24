@@ -6,11 +6,12 @@
 #include "eval/sef.h"
 #include "engine.h"
 #include "eval/pst.h"
+#include "helper.h"
 
 #define TT_TABLE_LOG_2_SIZE 20
-#define PHASE_DEEPNING_CUTOFF 15
-#define INITIAL_DEPTH 9
-#define DEEPENED_DEPTH 10
+#define N_PIECES_DEEPNING_CUTOFF 10
+#define INITIAL_DEPTH 10
+#define DEEPENED_DEPTH 11
 
 int main() {
     SCE_Return ret;
@@ -86,23 +87,23 @@ int main() {
                 //const unsigned int src_idx = movelist.moves[i] SCE_CHESSMOVE_GET_SRC;
                 //const unsigned int dst_idx = movelist.moves[i] SCE_CHESSMOVE_GET_DST;
                 const int flag = movelist.moves[i] SCE_CHESSMOVE_GET_FLAG;
-                printf("%d: ");
+                printf("%d: ", i);
                 switch (flag) {
                     case SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION:
                     case SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE:
-                        printf("Promote to knight");
+                        printf("Promote to knight\n");
                         break;
                     case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
                     case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
-                        printf("Promote to bishop");
+                        printf("Promote to bishop\n");
                         break;
                     case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
                     case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
-                        printf("Promote to rook");
+                        printf("Promote to rook\n");
                         break;
                     case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
                     case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
-                        printf("Promote to queen");
+                        printf("Promote to queen\n");
                         break;
                     default:
                         break;
@@ -123,13 +124,14 @@ int main() {
         // Making player move.
         ret = SCE_MakeMove(&ctx, move);
         assert(ret == SCE_SUCCESS);
-        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx) / 100);
+        printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(&ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
         SCE_Chessboard_print(&ctx, player);
 
-        const unsigned int phase = SCE_Eval_ComputePhase(&ctx.board);
-        if (phase < PHASE_DEEPNING_CUTOFF) {
-            if (engine.depth < 8) {
-                printf("Warning: Engine phase deepening! Will be harder on you :)\n");
+        const uint64_t occupancy_wo_pawn = SCE_Chessboard_Occupancy(&ctx) ^ ctx.board.bitboards[W_PAWN] ^ ctx.board.bitboards[B_PAWN];
+        const unsigned int n_pieces = COUNT_SET_BITS(occupancy_wo_pawn);
+        if (n_pieces < N_PIECES_DEEPNING_CUTOFF) {
+            if (engine.depth == INITIAL_DEPTH) {
+                printf("Warning: Engine search deepening! Will be harder on you :)\n");
             }
             engine.depth = DEEPENED_DEPTH;
         }
