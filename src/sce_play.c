@@ -21,8 +21,8 @@ typedef enum {
 #define DEEPENED_DEPTH 11
 
 // Returns true if end of game.
-static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color);
-static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color);
+static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine);
+static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine);
 
 int main(int argc, char** argv) {
     if (argc == 1) {
@@ -47,11 +47,12 @@ int main(int argc, char** argv) {
     assert(ret == SCE_SUCCESS);
     engine.depth = INITIAL_DEPTH;
 
+    SCE_Chessboard_print(&ctx, player);
     printf("All moves are to be in \"E2E4\" form\n");
     
     while (true) {
         Signal signal;
-        signal = player_move(&ctx, &engine, player);
+        signal = player_move(&ctx, &engine);
         if (signal == SIGNAL_BREAK) break;
         if (signal == SIGNAL_CONTINUE) continue;
 
@@ -66,9 +67,10 @@ int main(int argc, char** argv) {
             engine.depth = DEEPENED_DEPTH;
         }
 
-        signal = computer_move(&ctx, &engine, player);
+        signal = computer_move(&ctx, &engine);
         if (signal == SIGNAL_BREAK) break;
         if (signal == SIGNAL_CONTINUE) continue;
+        SCE_Chessboard_print(&ctx, player);
     }
 
     printf("End of game!\n");
@@ -76,7 +78,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color) {
+static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     SCE_Return ret;
     char input[10] = { 0 };
     char src_an[3] = { 0 };
@@ -90,8 +92,8 @@ static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor p
 
     if (legal_move_list.count == 0) return SIGNAL_BREAK;
 
-    printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(ctx) / 100);
-    SCE_Chessboard_print(ctx, player_color);
+    //printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(ctx) / 100);
+    //SCE_Chessboard_print(ctx, player_color);
 
     // Get move from user
     printf("Your move: ");
@@ -171,12 +173,12 @@ static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor p
     // Making player move.
     ret = SCE_MakeMove(ctx, move);
     assert(ret == SCE_SUCCESS);
-    printf("Eval: %0.2f\n", (float) SCE_Eval_SimplifiedEvaluationFunction(ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
+    printf("Eval: %0.2f\n", (float) ptr_engine->eval_function(ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
 
     return SIGNAL_OK;
 }
 
-static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor player_color) {
+static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     // ------------------------------------------------
     // Now computer's perspective
     //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
@@ -200,5 +202,6 @@ static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine, PieceColor
         }
         printf("\n");
     }
+    printf("Eval: %0.2f\n", (float) ptr_engine->eval_function(ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
     return SIGNAL_OK;
 }
