@@ -50,28 +50,55 @@ int main(int argc, char** argv) {
 
     SCE_Chessboard_print(&ctx, player);
     printf("All moves are to be in \"E2E4\" form\n");
-    
-    while (true) {
-        Signal signal;
-        signal = player_move(&ctx, &engine);
-        if (signal == SIGNAL_BREAK) break;
-        if (signal == SIGNAL_CONTINUE) continue;
 
-        SCE_Chessboard_print(&ctx, player);
+    if (player == WHITE) {
+        while (true) {
+            Signal signal;
+            signal = player_move(&ctx, &engine);
+            if (signal == SIGNAL_BREAK) break;
+            if (signal == SIGNAL_CONTINUE) continue;
 
-        const uint64_t occupancy_wo_pawn = SCE_Chessboard_Occupancy(&ctx) ^ ctx.board.bitboards[W_PAWN] ^ ctx.board.bitboards[B_PAWN];
-        const unsigned int n_pieces = COUNT_SET_BITS(occupancy_wo_pawn);
-        if (n_pieces < N_PIECES_DEEPNING_CUTOFF) {
-            if (deepen_depth(&engine, DEEPENED_DEPTH)) {
-                printf("Warning: Engine search deepening! Will be harder on you :)\n");
+            SCE_Chessboard_print(&ctx, player);
+
+            const uint64_t occupancy_wo_pawn = SCE_Chessboard_Occupancy(&ctx) ^ ctx.board.bitboards[W_PAWN] ^ ctx.board.bitboards[B_PAWN];
+            const unsigned int n_pieces = COUNT_SET_BITS(occupancy_wo_pawn);
+            if (n_pieces < N_PIECES_DEEPNING_CUTOFF) {
+                if (deepen_depth(&engine, DEEPENED_DEPTH)) {
+                    printf("Warning: Engine search deepening! Will be harder on you :)\n");
+                }
             }
+
+            signal = computer_move(&ctx, &engine);
+            if (signal == SIGNAL_BREAK) break;
+            if (signal == SIGNAL_CONTINUE) continue;
+            SCE_Chessboard_print(&ctx, player);
+        }
+    } else {
+        while (true) {
+            Signal signal;
+            signal = computer_move(&ctx, &engine);
+            if (signal == SIGNAL_BREAK) break;
+            if (signal == SIGNAL_CONTINUE) continue;
+
+            SCE_Chessboard_print(&ctx, player);
+
+            const uint64_t occupancy_wo_pawn = SCE_Chessboard_Occupancy(&ctx) ^ ctx.board.bitboards[W_PAWN] ^ ctx.board.bitboards[B_PAWN];
+            const unsigned int n_pieces = COUNT_SET_BITS(occupancy_wo_pawn);
+            if (n_pieces < N_PIECES_DEEPNING_CUTOFF) {
+                if (deepen_depth(&engine, DEEPENED_DEPTH)) {
+                    printf("Warning: Engine search deepening! Will be harder on you :)\n");
+                }
+            }
+
+            // TODO: Need to handle again when the player gives wrong input.
+            signal = player_move(&ctx, &engine);
+            if (signal == SIGNAL_BREAK) break;
+            if (signal == SIGNAL_CONTINUE) continue;
+            SCE_Chessboard_print(&ctx, player);
         }
 
-        signal = computer_move(&ctx, &engine);
-        if (signal == SIGNAL_BREAK) break;
-        if (signal == SIGNAL_CONTINUE) continue;
-        SCE_Chessboard_print(&ctx, player);
     }
+    
 
     printf("End of game!\n");
 
