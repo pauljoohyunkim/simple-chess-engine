@@ -13,10 +13,19 @@
 #define INITIAL_DEPTH 10
 #define DEEPENED_DEPTH 11
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 1) {
+        fprintf(stderr, "[-] Usage: sce_play white/black\n");
+        return EXIT_FAILURE;
+    }
+    if ((strcmp(argv[1], "white") != 0) && (strcmp(argv[1], "black") != 0)) {
+        fprintf(stderr, "[-] Usage: sce_play white/black\n");
+        return EXIT_FAILURE;
+    }
+
     SCE_Return ret;
     // For now, player gets to be white.
-    const PieceColor player = WHITE;
+    const PieceColor player = strcmp(argv[1], "white") == 0 ? WHITE : BLACK;
 
     SCE_Context ctx;
 
