@@ -21,8 +21,9 @@ typedef enum {
 #define DEEPENED_DEPTH 11
 
 // Returns true if end of game.
-static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine);
-static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine);
+static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth);
 
 int main(int argc, char** argv) {
     if (argc == 1) {
@@ -61,10 +62,9 @@ int main(int argc, char** argv) {
         const uint64_t occupancy_wo_pawn = SCE_Chessboard_Occupancy(&ctx) ^ ctx.board.bitboards[W_PAWN] ^ ctx.board.bitboards[B_PAWN];
         const unsigned int n_pieces = COUNT_SET_BITS(occupancy_wo_pawn);
         if (n_pieces < N_PIECES_DEEPNING_CUTOFF) {
-            if (engine.depth == INITIAL_DEPTH) {
+            if (deepen_depth(&engine, DEEPENED_DEPTH)) {
                 printf("Warning: Engine search deepening! Will be harder on you :)\n");
             }
-            engine.depth = DEEPENED_DEPTH;
         }
 
         signal = computer_move(&ctx, &engine);
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
+static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     SCE_Return ret;
     char input[10] = { 0 };
     char src_an[3] = { 0 };
@@ -178,7 +178,7 @@ static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     return SIGNAL_OK;
 }
 
-static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
+static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     // ------------------------------------------------
     // Now computer's perspective
     //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
@@ -204,4 +204,14 @@ static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     }
     printf("Eval: %0.2f\n", (float) ptr_engine->eval_function(ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
     return SIGNAL_OK;
+}
+
+static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth) {
+    assert(ptr_engine != NULL);
+
+    if (new_depth > ptr_engine->depth) {
+        ptr_engine->depth = new_depth;
+        return true;
+    }
+    return false;
 }
