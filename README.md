@@ -37,10 +37,12 @@ This suggests that the current bot may be better than ELO 2000.
 
 ### ELO 2500 (Draw)
 ![2500](./2500.png)
+
 This suggests that the current bot (Depth 9 -> 10 (after phase < 15)) is roughly ELO 2500, though it could be higher or lower.
 
 ### ELO 2400 (Lose)
 ![2400](./2400.png)
+
 This suggests that the current bot would be worse than ELO 2400.
 
 Based on these results, my estimation would be about ELO 2200.
