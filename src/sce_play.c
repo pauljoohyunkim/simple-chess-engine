@@ -54,9 +54,10 @@ int main(int argc, char** argv) {
     if (player == WHITE) {
         while (true) {
             Signal signal;
+            do_white_player_move:
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
-            if (signal == SIGNAL_CONTINUE) continue;
+            if (signal == SIGNAL_CONTINUE) goto do_white_player_move;
 
             SCE_Chessboard_print(&ctx, player);
 
