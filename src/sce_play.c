@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     engine.depth = INITIAL_DEPTH;
 
     SCE_Chessboard_print(&ctx, player);
-    printf("All moves are to be in \"E2E4\" form\n");
+    printf("All moves are to be in \"E2E4\" form (For promotions, you do not specify the ending, as you will be given the choice)\n");
 
     if (player == WHITE) {
         while (true) {
@@ -91,9 +91,10 @@ int main(int argc, char** argv) {
             }
 
             // TODO: Need to handle again when the player gives wrong input.
+            do_black_player_move:
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
-            if (signal == SIGNAL_CONTINUE) continue;
+            if (signal == SIGNAL_CONTINUE) goto do_black_player_move;
             SCE_Chessboard_print(&ctx, player);
         }
 
