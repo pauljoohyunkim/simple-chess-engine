@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Build sce_play",
+            "name": "Build sce_play (White)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/sce_play",
-            "args": [],
+            "args": ["white"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -30,11 +30,61 @@
             "preLaunchTask": "Make sce_play"
         },
         {
-            "name": "Debug Build sce_play",
+            "name": "Build sce_play (Black)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/sce_play",
-            "args": [],
+            "args": ["black"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Make sce_play"
+        },
+        {
+            "name": "Debug Build sce_play (White)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/sce_play",
+            "args": ["white"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Make sce_play (Debug)"
+        },
+        {
+            "name": "Debug Build sce_play (Black)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/sce_play",
+            "args": ["black"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
