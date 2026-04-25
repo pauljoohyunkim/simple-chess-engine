@@ -16,13 +16,15 @@ typedef enum {
 
 
 #define TT_TABLE_LOG_2_SIZE 20
-#define N_PIECES_DEEPNING_CUTOFF 10
-#define INITIAL_DEPTH 10
+#define NPP_DEEPNING_CUTOFF 10
+#define DEPTH_MOST_SHALLOW 8
+#define DEPTH_DEEPEST 16
 #define DEEPENED_DEPTH 11
 
 // Returns true if end of game.
 static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth);
 
 int main(int argc, char** argv) {
@@ -46,7 +48,7 @@ int main(int argc, char** argv) {
     SCE_Engine engine;
     ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
     assert(ret == SCE_SUCCESS);
-    engine.depth = INITIAL_DEPTH;
+    engine.depth = DEPTH_MOST_SHALLOW;
 
     SCE_Chessboard_print(&ctx, player);
     printf("All moves are to be in \"E2E4\" form (For promotions, you do not specify the ending, as you will be given the choice)\n");
@@ -54,6 +56,9 @@ int main(int argc, char** argv) {
     if (player == WHITE) {
         while (true) {
             Signal signal;
+
+            deepen(&ctx, &engine);
+
             do_white_player_move:
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
@@ -61,13 +66,7 @@ int main(int argc, char** argv) {
 
             SCE_Chessboard_print(&ctx, player);
 
-            const uint64_t occupancy_wo_pawn = SCE_Chessboard_Occupancy(&ctx) ^ ctx.board.bitboards[W_PAWN] ^ ctx.board.bitboards[B_PAWN];
-            const unsigned int n_pieces = COUNT_SET_BITS(occupancy_wo_pawn);
-            if (n_pieces < N_PIECES_DEEPNING_CUTOFF) {
-                if (deepen_depth(&engine, DEEPENED_DEPTH)) {
-                    printf("Warning: Engine search deepening! Will be harder on you :)\n");
-                }
-            }
+            deepen(&ctx, &engine);
 
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
@@ -77,21 +76,17 @@ int main(int argc, char** argv) {
     } else {
         while (true) {
             Signal signal;
+
+            deepen(&ctx, &engine);
+
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) continue;
 
             SCE_Chessboard_print(&ctx, player);
 
-            const uint64_t occupancy_wo_pawn = SCE_Chessboard_Occupancy(&ctx) ^ ctx.board.bitboards[W_PAWN] ^ ctx.board.bitboards[B_PAWN];
-            const unsigned int n_pieces = COUNT_SET_BITS(occupancy_wo_pawn);
-            if (n_pieces < N_PIECES_DEEPNING_CUTOFF) {
-                if (deepen_depth(&engine, DEEPENED_DEPTH)) {
-                    printf("Warning: Engine search deepening! Will be harder on you :)\n");
-                }
-            }
+            deepen(&ctx, &engine);
 
-            // TODO: Need to handle again when the player gives wrong input.
             do_black_player_move:
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
@@ -233,6 +228,39 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
     }
     printf("Eval: %0.2f\n", (float) ptr_engine->eval_function(ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
     return SIGNAL_OK;
+}
+
+static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+    assert(ptr_engine != NULL);
+
+    const unsigned int npp_count_to_depth[] = {
+        15,     // 0
+        14,     // 1
+        13,     // 2
+        12,     // 3
+        12,     // 4
+        12,     // 5
+        11,     // 6
+        11,     // 7
+        11,     // 8
+        11,     // 9
+        10,     // 10
+        10,     // 11
+        10,     // 12
+        10,     // 13
+        9,      // 14
+        9,      // 15
+        8,      // 16
+    };
+
+    // Clamp npp_count to below 16
+    unsigned int npp_count = COUNT_SET_BITS(SCE_Chessboard_Occupancy(ctx) & ~(ctx->board.bitboards[W_PAWN] | ctx->board.bitboards[B_PAWN]));
+    npp_count = npp_count > 16U ? 16U : npp_count;
+
+    const bool deepened = deepen_depth(ptr_engine, npp_count_to_depth[npp_count]);
+    if (deepened) {
+        printf("Info: Engine search deepening to depth %d!\n", npp_count_to_depth[npp_count]);
+    }
 }
 
 static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth) {
