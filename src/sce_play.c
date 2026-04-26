@@ -50,12 +50,13 @@ int main(int argc, char** argv) {
     assert(ret == SCE_SUCCESS);
     engine.depth = DEPTH_MOST_SHALLOW;
 
-    SCE_Chessboard_print(&ctx, player);
     printf("All moves are to be in \"E2E4\" form (For promotions, you do not specify the ending, as you will be given the choice)\n");
 
     if (player == WHITE) {
         while (true) {
             Signal signal;
+
+            SCE_Chessboard_print(&ctx, player);
 
             deepen(&ctx, &engine);
 
@@ -71,27 +72,26 @@ int main(int argc, char** argv) {
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) continue;
-            SCE_Chessboard_print(&ctx, player);
         }
     } else {
         while (true) {
             Signal signal;
 
+            SCE_Chessboard_print(&ctx, player);
             deepen(&ctx, &engine);
 
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) continue;
 
-            SCE_Chessboard_print(&ctx, player);
 
+            SCE_Chessboard_print(&ctx, player);
             deepen(&ctx, &engine);
 
             do_black_player_move:
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) goto do_black_player_move;
-            SCE_Chessboard_print(&ctx, player);
         }
 
     }
@@ -122,6 +122,13 @@ static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) 
     // Get move from user
     printf("Your move: ");
     scanf("%s", input);
+    if (strcmp(input, "back") == 0) {
+        if (ctx->board.history.count >= 2) {
+            ret = SCE_UnmakeMove(ctx);  // Undo computer move
+            ret = SCE_UnmakeMove(ctx);  // Undo human move
+        }
+        return SIGNAL_CONTINUE;
+    }
     strncpy(src_an, input, 2);
     strncpy(dst_an, input+2, 2);
 
