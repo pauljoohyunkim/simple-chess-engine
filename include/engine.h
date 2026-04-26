@@ -67,6 +67,15 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
 SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
 
 /**
+ * @brief Returns whether or not there has been a repetition (for draw rule)
+ * 
+ * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @return true If there is a repetition.
+ * @return false If there is no repetition.
+ */
+bool SCE_DetectRepetition(const SCE_Chessboard* const ptr_board);
+
+/**
  * @brief Outputs the best move calculated by engine via simple alpha beta search.
  * 
  * @param ptr_engine Pointer to to the SCE_Engine struct

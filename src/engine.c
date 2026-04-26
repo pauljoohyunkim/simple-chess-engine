@@ -10,7 +10,6 @@ static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply);
 static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply);
-static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board);
 static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
                                      int alpha,
@@ -268,7 +267,7 @@ static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movel
     return SCE_SUCCESS;
 }
 
-static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board) {
+bool SCE_DetectRepetition(const SCE_Chessboard* const ptr_board) {
     if (ptr_board == NULL) return false;
     if (ptr_board->history.count < 2) return false;
 
@@ -341,7 +340,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        int alpha,
                                        int beta) {
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
-    if (SCE_Engine_DetectRepetition(&ctx->board)) return SCE_EVAL_DRAW;
+    if (SCE_DetectRepetition(&ctx->board)) return SCE_EVAL_DRAW;
 
     if (depth == 0) {
         //return ptr_engine->eval_function(ptr_board);
