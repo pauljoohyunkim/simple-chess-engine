@@ -152,7 +152,19 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
 
                 if (src_idx != ordered_move_src_idx) continue;
                 if (dst_idx != ordered_move_dst_idx) continue;
-                // TODO: Promotion handling
+                if ((ordered_move_flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) & (flag & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION)) {
+                    // TODO: Promotion handling
+                    // Check if last two bits are equivalent.
+                    if ((ordered_move_flag & 3) != (flag & 3)) continue;
+
+                    ret = SCE_MakeMove(ctx, move);
+                    if (ret != SCE_SUCCESS) return false;
+                    break;
+                } else {
+                    ret = SCE_MakeMove(ctx, move);
+                    if (ret != SCE_SUCCESS) return false;
+                    break;
+                }
             }
 
             printf("%s\n", move_str);
