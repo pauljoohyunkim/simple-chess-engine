@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -112,17 +113,26 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
             return false;
         }
     }
-    /*
     const char* moves_substr = strstr(line, "moves");
     if (moves_substr) {
-        char* space_before_move = strchr(moves_substr, ' ');
-        while (space_before_move) {
-            char uci_str[6] = { 0 };
-            const char* move_str = space_before_move + 1;
-            const SCE_Return ret = SCE_UCIStringToMove()
+        char moves_substr_cpy[BUFSIZ] = { 0 };
+        strcpy(moves_substr_cpy, &moves_substr[6]);
+
+        {
+            // Replace newline with '\0'
+            char* pos = strchr(moves_substr_cpy, '\n');
+            if (pos) {
+                *pos = '\0';
+            }
+        }
+
+        char* saveptr;
+        char* move_str = strtok_r(moves_substr_cpy, " ", &saveptr);
+        while (move_str) {
+            printf("%s\n", move_str);
+            move_str = strtok_r(NULL, " ", &saveptr);
         }
     }
-    */
 
     return true;
 }
