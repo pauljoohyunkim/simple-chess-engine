@@ -51,3 +51,8 @@ This suggests that the current bot would be worse than ELO 2400.
 It seems like with right parameters (for depth and deepening), the engine could practically improve.
 
 Based on these results, my estimation would be about ELO 2200.
+
+### ELO 2700 (Draw by 50-Move Rule)
+![2700](./2700.png)
+
+My gosh this was stressful... At least I get to see that half-clock rule being activated.
