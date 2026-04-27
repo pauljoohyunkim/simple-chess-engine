@@ -31,33 +31,28 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     char fen_cpy[FEN_STRING_MAX_LEN] = { 0 };
     memcpy(fen_cpy, fen, fen_len);
 
-    char* indexer = NULL;
-    const char* piece_placement_str = fen_cpy;
-    indexer = strchr(piece_placement_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    char* chunks[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+    char* saveptr = NULL;
+    chunks[0] = strtok_r(fen_cpy, " ", &saveptr);
+    for (uint i = 1; i < 6U; i++) {
+        if (chunks[i-1]) {
+            chunks[i] = strtok_r(NULL, " ", &saveptr);
+        } else {
+            break;
+        }
+    }
 
-    const char* active_color_str = indexer;
-    indexer = strchr(active_color_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    const char* piece_placement_str = chunks[FEN_STEP_PIECE_PLACEMENT];
 
-    const char* castling_rights_str = indexer;
-    indexer = strchr(castling_rights_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    const char* active_color_str = chunks[FEN_STEP_ACTIVE_COLOR];
 
-    const char* en_passant_target_square_str = indexer;
-    indexer = strchr(en_passant_target_square_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    const char* castling_rights_str = chunks[FEN_STEP_CASTLING_RIGHTS];
+
+    const char* en_passant_target_square_str = chunks[FEN_STEP_EN_PASSANT_TARGET_SQUARE];
     
-    const char* halfmove_clock_str = indexer;
-    indexer = strchr(halfmove_clock_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    const char* halfmove_clock_str = chunks[FEN_STEP_HALFMOVE_CLOCK];
     
-    const char* fullmove_number = indexer;
+    const char* fullmove_number = chunks[FEN_STEP_FULLMOVE_NUMBER];
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ctx), "Clearing board failure!");
     ctx->board.castling_rights = 0U;
