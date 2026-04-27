@@ -375,6 +375,7 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
 #define HALF_MOVE_CUTOFF (100)
 #define SCE_EVAL_DRAW (0)
 #define SCE_EVAL_CHECKMATE (-100000)
+#define SCE_MATE_THRESHOLD (90000)
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Context* const ctx,
                                        const unsigned int depth,
@@ -389,6 +390,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         return SCE_Engine_QuiesceNegamax(ptr_engine, ctx, alpha, beta);
     }
 
+    const int ply = ctx->current_search_depth - depth;
     SCE_ChessMove tt_hint_move = EMPTY_MOVE;
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
@@ -396,14 +398,21 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         tt_hint_move = ptr_transposition_entry->move;
         if (depth <= ptr_transposition_entry->depth) {
             // Useful result.
+            int tt_entry_score = ptr_transposition_entry->score;
+            if (tt_entry_score > SCE_MATE_THRESHOLD) {
+                tt_entry_score -= ply;
+            } else if (tt_entry_score < -SCE_MATE_THRESHOLD) {
+                tt_entry_score += ply;
+            }
+
             switch (ptr_transposition_entry->flag) {
                 case SCE_TF_EXACT:
-                    return ptr_transposition_entry->score;
+                    return tt_entry_score;
                 case SCE_TF_ALPHA:
-                    if (ptr_transposition_entry->score <= alpha) return alpha;
+                    if (tt_entry_score <= alpha) return alpha;
                     break;
                 case SCE_TF_BETA:
-                    if (ptr_transposition_entry->score >= beta) return beta;
+                    if (tt_entry_score >= beta) return beta;
                     break;
                 default:
                     break;
@@ -414,7 +423,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     const int alpha_original = alpha;
 
     // Move generation
-    int best_move = EMPTY_MOVE;
+    SCE_ChessMove best_move = EMPTY_MOVE;
 
     SCE_ChessMoveList moves;
     SCE_Return ret;
@@ -422,7 +431,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     assert(ret == SCE_SUCCESS);
     ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, false);
     assert(ret == SCE_SUCCESS);
-    const int ply = ctx->current_search_depth - depth;
     if (moves.count == 0) {
         // Number of pseudolegal moves already tells us that we need to check for mate.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
@@ -463,9 +471,14 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         assert(ret == SCE_SUCCESS);
 
         if (score >= beta) { 
-            SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, move, SCE_TF_BETA);
+            if (score > SCE_MATE_THRESHOLD) {
+                SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score + ply, depth, move, SCE_TF_BETA);
+            } else if (score < -SCE_MATE_THRESHOLD) {
+                SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score - ply, depth, move, SCE_TF_BETA);
+            } else {
+                SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, move, SCE_TF_BETA);
+            }
             const int flag = move SCE_CHESSMOVE_GET_FLAG;
-            const int ply = ctx->current_search_depth - depth;
             if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && ply < SCE_MAX_PLY) {
                 // Add to killer moves (only if move is not in the killer move)
                 if (ptr_engine->killer_moves[ply][0] != move) {
@@ -493,7 +506,13 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     }
 
     const uint8_t flag = alpha <= alpha_original ? SCE_TF_ALPHA : SCE_TF_EXACT;
-    SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    if (alpha > SCE_MATE_THRESHOLD) {
+        SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha + ply, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    } else if (alpha < -SCE_MATE_THRESHOLD) {
+        SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha - ply, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    } else {
+        SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    }
 
     return alpha;
 }
