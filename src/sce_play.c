@@ -24,7 +24,7 @@ typedef enum {
 // Returns true if end of game.
 static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-static Signal check_draw(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static Signal check_draw(SCE_Context* const ctx);
 static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth);
 
@@ -65,10 +65,7 @@ int main(int argc, char** argv) {
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) goto do_white_player_move;
-            if (SCE_DetectRepetition(&ctx)) {
-                printf("Draw by repetition!\n");
-                break;
-            }
+            if (check_draw(&ctx)) break;
 
             SCE_Chessboard_print(&ctx, player);
 
@@ -77,10 +74,7 @@ int main(int argc, char** argv) {
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) continue;
-            if (SCE_DetectRepetition(&ctx)) {
-                printf("Draw by repetition!\n");
-                break;
-            }
+            if (check_draw(&ctx)) break;
         }
     } else {
         while (true) {
@@ -92,11 +86,7 @@ int main(int argc, char** argv) {
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) continue;
-            if (SCE_DetectRepetition(&ctx)) {
-                printf("Draw by repetition!\n");
-                break;
-            }
-
+            if (check_draw(&ctx)) break;
 
             SCE_Chessboard_print(&ctx, player);
             deepen(&ctx, &engine);
@@ -105,10 +95,7 @@ int main(int argc, char** argv) {
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) goto do_black_player_move;
-            if (SCE_DetectRepetition(&ctx)) {
-                printf("Draw by repetition!\n");
-                break;
-            }
+            if (check_draw(&ctx)) break;
         }
 
     }
@@ -254,9 +241,8 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
     return SIGNAL_OK;
 }
 
-static Signal check_draw(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static Signal check_draw(SCE_Context* const ctx) {
     assert(ctx != NULL);
-    assert(ptr_engine != NULL);
 
     // Draw by repetition
     if (SCE_DetectRepetition(ctx)) {
@@ -271,13 +257,18 @@ static Signal check_draw(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     }
 
     // Stalemate
-    /*
     {
         SCE_ChessMoveList movelist;
         SCE_Return ret = SCE_ChessMoveList_clear(&movelist);
         assert(ret == SCE_SUCCESS);
+        ret = SCE_GenerateLegalMoves(&movelist, ctx);
+
+        if (movelist.count == 0) {
+            // Check if under attack. If not, stalemate.
+            if (ctx->board.to_move == WHITE && !SCE_IsSquareAttacked(ctx, ctx->board.bitboards[W_KING], BLACK)) return true;
+            if (ctx->board.to_move == BLACK && !SCE_IsSquareAttacked(ctx, ctx->board.bitboards[B_KING], WHITE)) return true;
+        }
     }
-    */
     if (SCE_DetectInsufficientMaterial(ctx)) {
         printf("Draw by insufficient material.\n");
         return SIGNAL_BREAK;
