@@ -1,6 +1,10 @@
 #ifndef SCE_HELPER_H
 #define SCE_HELPER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __GNUC__
     #define COUNT_SET_BITS(x) __builtin_popcountll(x)
     // TODO: Implement fallback
@@ -13,5 +17,9 @@
     #define COUNT_SET_BITS(x) count_set_bits(x)
 
 #endif  // __GNUC__
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // SCE_HELPER_H

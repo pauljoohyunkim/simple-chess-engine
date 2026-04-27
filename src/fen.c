@@ -221,6 +221,8 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     // Also fullmove number is not handled.
     if (fen_step != FEN_STEP_FULLMOVE_NUMBER) return SCE_INVALID_PARAM;
 
+    ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
+    if (ctx->board.zobrist_hash == 0) return SCE_INTERNAL_ERROR;
     return SCE_SUCCESS;
 }
 
