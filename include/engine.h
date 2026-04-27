@@ -67,6 +67,24 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
 SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
 
 /**
+ * @brief Returns whether or not there has been a repetition (for draw rule)
+ * 
+ * @param ctx Pointer to the SCE_Context struct.
+ * @return true If there is a repetition.
+ * @return false If there is no repetition.
+ */
+bool SCE_DetectRepetition(const SCE_Context* const ctx);
+
+/**
+ * @brief Returns whether or not there are insufficient materials (for draw rule)
+ * 
+ * @param ctx Pointer to the SCE_Context struct.
+ * @return true If insufficient materials
+ * @return false Otherwise
+ */
+bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx);
+
+/**
  * @brief Outputs the best move calculated by engine via simple alpha beta search.
  * 
  * @param ptr_engine Pointer to to the SCE_Engine struct

@@ -24,6 +24,7 @@ typedef enum {
 // Returns true if end of game.
 static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static Signal check_draw(SCE_Context* const ctx);
 static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth);
 
@@ -64,6 +65,7 @@ int main(int argc, char** argv) {
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) goto do_white_player_move;
+            if (check_draw(&ctx)) break;
 
             SCE_Chessboard_print(&ctx, player);
 
@@ -72,6 +74,7 @@ int main(int argc, char** argv) {
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) continue;
+            if (check_draw(&ctx)) break;
         }
     } else {
         while (true) {
@@ -83,7 +86,7 @@ int main(int argc, char** argv) {
             signal = computer_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) continue;
-
+            if (check_draw(&ctx)) break;
 
             SCE_Chessboard_print(&ctx, player);
             deepen(&ctx, &engine);
@@ -92,12 +95,13 @@ int main(int argc, char** argv) {
             signal = player_move(&ctx, &engine);
             if (signal == SIGNAL_BREAK) break;
             if (signal == SIGNAL_CONTINUE) goto do_black_player_move;
+            if (check_draw(&ctx)) break;
         }
 
     }
-    
 
     printf("End of game!\n");
+    SCE_Engine_release(&engine);
 
     return 0;
 }
@@ -234,6 +238,42 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
         printf("\n");
     }
     printf("Eval: %0.2f\n", (float) ptr_engine->eval_function(ctx) / 100);     // Note: This internally updates the score cache, hence necessary!
+    return SIGNAL_OK;
+}
+
+static Signal check_draw(SCE_Context* const ctx) {
+    assert(ctx != NULL);
+
+    // Draw by repetition
+    if (SCE_DetectRepetition(ctx)) {
+        printf("Draw by repetition.\n");
+        return SIGNAL_BREAK;
+    }
+
+    // Fifty-move rule
+    if (ctx->board.half_move_clock >= 100) {
+        printf("Draw by fifty-move rule.\n");
+        return SIGNAL_BREAK;
+    }
+
+    // Stalemate
+    {
+        SCE_ChessMoveList movelist;
+        SCE_Return ret = SCE_ChessMoveList_clear(&movelist);
+        assert(ret == SCE_SUCCESS);
+        ret = SCE_GenerateLegalMoves(&movelist, ctx);
+
+        if (movelist.count == 0) {
+            // Check if under attack. If not, stalemate.
+            if (ctx->board.to_move == WHITE && !SCE_IsSquareAttacked(ctx, ctx->board.bitboards[W_KING], BLACK)) return true;
+            if (ctx->board.to_move == BLACK && !SCE_IsSquareAttacked(ctx, ctx->board.bitboards[B_KING], WHITE)) return true;
+        }
+    }
+    if (SCE_DetectInsufficientMaterial(ctx)) {
+        printf("Draw by insufficient material.\n");
+        return SIGNAL_BREAK;
+    }
+
     return SIGNAL_OK;
 }
 

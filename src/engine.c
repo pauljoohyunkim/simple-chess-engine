@@ -2,6 +2,7 @@
 #include "eval/pst.h"
 #include "dev.h"
 #include "engine.h"
+#include "helper.h"
 
 typedef unsigned int uint;
 
@@ -10,7 +11,6 @@ static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint
 static SCE_TranspositionTableEntry* SCE_Engine_GetTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply);
 static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply);
-static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board);
 static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
                                      int alpha,
@@ -268,8 +268,10 @@ static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movel
     return SCE_SUCCESS;
 }
 
-static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board) {
-    if (ptr_board == NULL) return false;
+bool SCE_DetectRepetition(const SCE_Context* const ctx) {
+    if (ctx == NULL) return false;
+
+    const SCE_Chessboard* const ptr_board = &ctx->board;
     if (ptr_board->history.count < 2) return false;
 
     for (int i = ptr_board->history.count - 2; i >= (int)ptr_board->history.count - (int)ptr_board->half_move_clock; i -= 2) {
@@ -281,6 +283,44 @@ static bool SCE_Engine_DetectRepetition(const SCE_Chessboard* const ptr_board) {
     return false;
 }
 
+#define SQUARE_COLOR(sq_idx) (((sq_idx) ^ ((sq_idx) >> 3)) & 1)
+bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx) {
+    if (ctx == NULL) return false;
+
+    // Pawn existence check
+    if (ctx->board.bitboards[W_PAWN] || ctx->board.bitboards[B_PAWN]) return false;
+
+    // Rook/Queen existence check
+    if (ctx->board.bitboards[W_ROOK] || ctx->board.bitboards[B_ROOK] || ctx->board.bitboards[W_QUEEN] || ctx->board.bitboards[B_QUEEN]) return false;
+
+    // Specific cases
+    {
+        const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
+        const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
+        const unsigned int n_white = COUNT_SET_BITS(occupancy_w);
+        const unsigned int n_black = COUNT_SET_BITS(occupancy_b);
+        if (n_white <= 2 && n_black <= 2) {
+            if ((n_white == 1 && n_black == 1)                      // King vs King
+            || (ctx->board.bitboards[W_KNIGHT] && n_black == 1)     // King + Knight vs King
+            || (n_white == 1 && ctx->board.bitboards[B_KNIGHT])     // King vs King + Knight
+            || (ctx->board.bitboards[W_BISHOP] && n_black == 1)     // King + Bishop vs King
+            || (n_white == 1 && ctx->board.bitboards[B_BISHOP])     // King vs King + Bishop
+            ) {
+                return true;
+            }
+            
+            // King + Bishop vs King + Bishop where Bishops are of same color square.
+            if (ctx->board.bitboards[W_BISHOP] && ctx->board.bitboards[B_BISHOP]) {
+                const uint w_bishop_sq_idx = COUNT_TRAILING_ZEROS(ctx->board.bitboards[W_BISHOP]);
+                const uint b_bishop_sq_idx = COUNT_TRAILING_ZEROS(ctx->board.bitboards[B_BISHOP]);
+
+                if (SQUARE_COLOR(w_bishop_sq_idx) == SQUARE_COLOR(b_bishop_sq_idx)) return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
@@ -335,34 +375,44 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
 #define HALF_MOVE_CUTOFF (100)
 #define SCE_EVAL_DRAW (0)
 #define SCE_EVAL_CHECKMATE (-100000)
+#define SCE_MATE_THRESHOLD (90000)
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Context* const ctx,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
-    if (SCE_Engine_DetectRepetition(&ctx->board)) return SCE_EVAL_DRAW;
+    if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;
+    if (SCE_DetectInsufficientMaterial(ctx)) return SCE_EVAL_DRAW;
 
     if (depth == 0) {
         //return ptr_engine->eval_function(ptr_board);
         return SCE_Engine_QuiesceNegamax(ptr_engine, ctx, alpha, beta);
     }
 
-    int tt_hint_move = EMPTY_MOVE;
+    const int ply = ctx->current_search_depth - depth;
+    SCE_ChessMove tt_hint_move = EMPTY_MOVE;
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
     if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
         tt_hint_move = ptr_transposition_entry->move;
         if (depth <= ptr_transposition_entry->depth) {
             // Useful result.
+            int tt_entry_score = ptr_transposition_entry->score;
+            if (tt_entry_score > SCE_MATE_THRESHOLD) {
+                tt_entry_score -= ply;
+            } else if (tt_entry_score < -SCE_MATE_THRESHOLD) {
+                tt_entry_score += ply;
+            }
+
             switch (ptr_transposition_entry->flag) {
                 case SCE_TF_EXACT:
-                    return ptr_transposition_entry->score;
+                    return tt_entry_score;
                 case SCE_TF_ALPHA:
-                    if (ptr_transposition_entry->score <= alpha) return alpha;
+                    if (tt_entry_score <= alpha) return alpha;
                     break;
                 case SCE_TF_BETA:
-                    if (ptr_transposition_entry->score >= beta) return beta;
+                    if (tt_entry_score >= beta) return beta;
                     break;
                 default:
                     break;
@@ -373,7 +423,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     const int alpha_original = alpha;
 
     // Move generation
-    int best_move = EMPTY_MOVE;
+    SCE_ChessMove best_move = EMPTY_MOVE;
 
     SCE_ChessMoveList moves;
     SCE_Return ret;
@@ -381,7 +431,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     assert(ret == SCE_SUCCESS);
     ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, false);
     assert(ret == SCE_SUCCESS);
-    const int ply = ctx->current_search_depth - depth;
     if (moves.count == 0) {
         // Number of pseudolegal moves already tells us that we need to check for mate.
         const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
@@ -422,9 +471,14 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         assert(ret == SCE_SUCCESS);
 
         if (score >= beta) { 
-            SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, move, SCE_TF_BETA);
+            if (score > SCE_MATE_THRESHOLD) {
+                SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score + ply, depth, move, SCE_TF_BETA);
+            } else if (score < -SCE_MATE_THRESHOLD) {
+                SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score - ply, depth, move, SCE_TF_BETA);
+            } else {
+                SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score, depth, move, SCE_TF_BETA);
+            }
             const int flag = move SCE_CHESSMOVE_GET_FLAG;
-            const int ply = ctx->current_search_depth - depth;
             if (!(flag & SCE_CHESSMOVE_FLAG_CAPTURE) && ply < SCE_MAX_PLY) {
                 // Add to killer moves (only if move is not in the killer move)
                 if (ptr_engine->killer_moves[ply][0] != move) {
@@ -452,7 +506,13 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     }
 
     const uint8_t flag = alpha <= alpha_original ? SCE_TF_ALPHA : SCE_TF_EXACT;
-    SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    if (alpha > SCE_MATE_THRESHOLD) {
+        SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha + ply, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    } else if (alpha < -SCE_MATE_THRESHOLD) {
+        SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha - ply, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    } else {
+        SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, alpha, depth, best_move == EMPTY_MOVE ? 0U : (SCE_ChessMove) best_move, flag);
+    }
 
     return alpha;
 }
