@@ -129,6 +129,32 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
         char* saveptr;
         char* move_str = strtok_r(moves_substr_cpy, " ", &saveptr);
         while (move_str) {
+            const SCE_ChessMove ordered_move = SCE_UCIStringToMove(move_str);
+            if (ordered_move == EMPTY_MOVE) continue;
+            const uint ordered_move_src_idx = ordered_move SCE_CHESSMOVE_GET_SRC;
+            const uint ordered_move_dst_idx = ordered_move SCE_CHESSMOVE_GET_DST;
+            const int ordered_move_flag = ordered_move SCE_CHESSMOVE_GET_FLAG;
+
+            // Before making move, need to generate legal moves and compare.
+            SCE_ChessMoveList movelist;
+            SCE_Return ret = SCE_ChessMoveList_clear(&movelist);
+            if (ret != SCE_SUCCESS) return false;
+            ret = SCE_GenerateLegalMoves(&movelist, ctx);
+            if (ret != SCE_SUCCESS) return false;
+
+            if (movelist.count == 0) return false;
+
+            for (uint i = 0; i < movelist.count; i++) {
+                const SCE_ChessMove move = movelist.moves[i];
+                const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
+                const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
+                const int flag = move SCE_CHESSMOVE_GET_FLAG;
+
+                if (src_idx != ordered_move_src_idx) continue;
+                if (dst_idx != ordered_move_dst_idx) continue;
+                // TODO: Promotion handling
+            }
+
             printf("%s\n", move_str);
             move_str = strtok_r(NULL, " ", &saveptr);
         }
