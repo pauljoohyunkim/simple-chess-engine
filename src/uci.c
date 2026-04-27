@@ -101,8 +101,15 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
     if (ctx == NULL || line == NULL) return false;
     if (strncmp(line, "position ", 9) != 0) return false;
 
+    const char* moves_substr = strstr(line, "moves");
     if (strncmp(&line[9], "fen", 3) == 0) {
-        SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, &line[13]);
+        char fen_str[93] = { 0 };
+        if (moves_substr) {
+            memcpy(fen_str, &line[13], moves_substr - &line[13] - 1);
+        } else {
+            strcpy(fen_str, line);
+        }
+        SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, fen_str);
         if (ret != SCE_SUCCESS) {
             return false;
         }
@@ -113,7 +120,6 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
             return false;
         }
     }
-    const char* moves_substr = strstr(line, "moves");
     if (moves_substr) {
         char moves_substr_cpy[BUFSIZ] = { 0 };
         strcpy(moves_substr_cpy, &moves_substr[6]);
