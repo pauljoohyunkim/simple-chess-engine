@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "chess.h"
 #include "uci.h"
+#include "fen.h"
 
 typedef unsigned int uint;
 
@@ -93,4 +94,35 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string) {
     const SCE_ChessMove move = (src_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (flag SCE_CHESSMOVE_SET_FLAG);
 
     return move;
+}
+
+bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
+    if (ctx == NULL || line == NULL) return false;
+    if (strncmp(line, "position ", 9) != 0) return false;
+
+    if (strncmp(&line[9], "fen", 3) == 0) {
+        SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, &line[13]);
+        if (ret != SCE_SUCCESS) {
+            return false;
+        }
+    }
+    if (strncmp(&line[9], "startpos", 8) == 0) {
+        SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        if (ret != SCE_SUCCESS) {
+            return false;
+        }
+    }
+    /*
+    const char* moves_substr = strstr(line, "moves");
+    if (moves_substr) {
+        char* space_before_move = strchr(moves_substr, ' ');
+        while (space_before_move) {
+            char uci_str[6] = { 0 };
+            const char* move_str = space_before_move + 1;
+            const SCE_Return ret = SCE_UCIStringToMove()
+        }
+    }
+    */
+
+    return true;
 }
