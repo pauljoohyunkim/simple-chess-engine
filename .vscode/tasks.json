@@ -6,7 +6,7 @@
         {
             "label": "Make sce_play",
             "type": "shell",
-            "command": "make bin"
+            "command": "make bin CFLAGSEXTRA=-DNDEBUG"
         },
         {
             "label": "Make sce_play (Debug)",
