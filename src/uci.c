@@ -105,9 +105,9 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
     if (strncmp(&line[9], "fen", 3) == 0) {
         char fen_str[93] = { 0 };
         if (moves_substr) {
-            memcpy(fen_str, &line[13], moves_substr - &line[13] - 1);
+            memcpy(fen_str, &line[13], moves_substr - &line[13]);
         } else {
-            strcpy(fen_str, line);
+            strcpy(fen_str, &line[13]);
         }
         SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, fen_str);
         if (ret != SCE_SUCCESS) {
