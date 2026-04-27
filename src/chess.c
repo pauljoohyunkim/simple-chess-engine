@@ -1562,7 +1562,7 @@ bool SCE_IsSquareAttacked(SCE_Context* const ctx, const uint64_t square, const P
 int SCE_AN_To_Idx(const char* an) {
     if (an == NULL || strlen(an) != 2) {
         fprintf(stderr, "\033[31m[-] Invalid parameter in converting from AN\033[0m\n");
-        return -1;
+        return UNASSIGNED;
     }
 
     const char file_char = an[0];
@@ -1576,14 +1576,14 @@ int SCE_AN_To_Idx(const char* an) {
         file_n = (uint) file_char - 'A';
     } else {
         fprintf(stderr, "\033[31m[-] Invalid parameter (file) in converting from AN\033[0m\n");
-        return -1;
+        return UNASSIGNED;
     }
 
     if ('1' <= rank_char && rank_char <= '8') {
         rank_n = (uint) rank_char - '1';
     } else {
         fprintf(stderr, "\033[31m[-] Invalid parameter (rank) in converting from AN\033[0m\n");
-        return -1;
+        return UNASSIGNED;
     }
 
     return rank_n * 8 + file_n;
@@ -1596,7 +1596,7 @@ uint64_t SCE_AN_To_Bitboard(const char* an) {
     }
 
     int idx = SCE_AN_To_Idx(an);
-    if (idx == -1) {
+    if (idx == UNASSIGNED) {
         fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_AN_To_Bitboard\033[0m\n");
         return 0U;
     }
