@@ -22,6 +22,9 @@ int main(int argc, char** argv) {
         if (strncmp(line, "position", 8) == 0) {
             SCE_UCI_ParsePosition(&ctx, line);
         }
+        if (strncmp(line, "print", 5) == 0) {
+            SCE_Chessboard_print(&ctx, WHITE);
+        }
         if (strncmp(line, "quit", 4) == 0) {
             break;
         }

@@ -173,7 +173,6 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
                 }
             }
 
-            printf("%s\n", move_str);
             move_str = strtok_r(NULL, " ", &saveptr);
         }
     }
