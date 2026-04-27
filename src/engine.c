@@ -2,6 +2,7 @@
 #include "eval/pst.h"
 #include "dev.h"
 #include "engine.h"
+#include "helper.h"
 
 typedef unsigned int uint;
 
@@ -267,8 +268,10 @@ static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movel
     return SCE_SUCCESS;
 }
 
-bool SCE_DetectRepetition(const SCE_Chessboard* const ptr_board) {
-    if (ptr_board == NULL) return false;
+bool SCE_DetectRepetition(const SCE_Context* const ctx) {
+    if (ctx == NULL) return false;
+
+    const SCE_Chessboard* const ptr_board = &ctx->board;
     if (ptr_board->history.count < 2) return false;
 
     for (int i = ptr_board->history.count - 2; i >= (int)ptr_board->history.count - (int)ptr_board->half_move_clock; i -= 2) {
@@ -280,6 +283,44 @@ bool SCE_DetectRepetition(const SCE_Chessboard* const ptr_board) {
     return false;
 }
 
+#define SQUARE_COLOR(sq_idx) (((sq_idx) ^ ((sq_idx) >> 3)) & 1)
+bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx) {
+    if (ctx == NULL) return false;
+
+    // Pawn existence check
+    if (ctx->board.bitboards[W_PAWN] || ctx->board.bitboards[B_PAWN]) return false;
+
+    // Rook/Queen existence check
+    if (ctx->board.bitboards[W_ROOK] || ctx->board.bitboards[B_ROOK] || ctx->board.bitboards[W_QUEEN] || ctx->board.bitboards[B_QUEEN]) return false;
+
+    // Specific cases
+    {
+        const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
+        const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
+        const unsigned int n_white = COUNT_SET_BITS(occupancy_w);
+        const unsigned int n_black = COUNT_SET_BITS(occupancy_b);
+        if (n_white <= 2 && n_black <= 2) {
+            if ((n_white == 1 && n_black == 1)                      // King vs King
+            || (ctx->board.bitboards[W_KNIGHT] && n_black == 1)     // King + Knight vs King
+            || (n_white == 1 && ctx->board.bitboards[B_KNIGHT])     // King vs King + Knight
+            || (ctx->board.bitboards[W_BISHOP] && n_black == 1)     // King + Bishop vs King
+            || (n_white == 1 && ctx->board.bitboards[B_BISHOP])     // King vs King + Bishop
+            ) {
+                return true;
+            }
+            
+            // King + Bishop vs King + Bishop where Bishops are of same color square.
+            if (ctx->board.bitboards[W_BISHOP] && ctx->board.bitboards[B_BISHOP]) {
+                const uint w_bishop_sq_idx = COUNT_TRAILING_ZEROS(ctx->board.bitboards[W_BISHOP]);
+                const uint b_bishop_sq_idx = COUNT_TRAILING_ZEROS(ctx->board.bitboards[B_BISHOP]);
+
+                if (SQUARE_COLOR(w_bishop_sq_idx) == SQUARE_COLOR(b_bishop_sq_idx)) return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
@@ -340,14 +381,15 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        int alpha,
                                        int beta) {
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
-    if (SCE_DetectRepetition(&ctx->board)) return SCE_EVAL_DRAW;
+    if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;
+    if (SCE_DetectInsufficientMaterial(ctx)) return SCE_EVAL_DRAW;
 
     if (depth == 0) {
         //return ptr_engine->eval_function(ptr_board);
         return SCE_Engine_QuiesceNegamax(ptr_engine, ctx, alpha, beta);
     }
 
-    int tt_hint_move = EMPTY_MOVE;
+    SCE_ChessMove tt_hint_move = EMPTY_MOVE;
     // Zobrist-Transposition-Table Lookup
     const SCE_TranspositionTableEntry* const ptr_transposition_entry = SCE_Engine_GetTransposition(ptr_engine, ctx->board.zobrist_hash);
     if (ptr_transposition_entry && ptr_transposition_entry->zobrist_hash == ctx->board.zobrist_hash) {
