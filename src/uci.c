@@ -61,10 +61,10 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string) {
     if (strlen(uci_string) < 4) return EMPTY_MOVE;
     if (strlen(uci_string) > 5) return EMPTY_MOVE;
 
-    char src_an[2] = { 0 };
-    char dst_an[2] = { 0 };
+    char src_an[3] = { 0 };
+    char dst_an[3] = { 0 };
     strncpy(src_an, uci_string, 2);
-    strncpy(src_an, uci_string, 2);
+    strncpy(dst_an, &uci_string[2], 2);
 
     const int src_idx = SCE_AN_To_Idx(src_an);
     const int dst_idx = SCE_AN_To_Idx(dst_an);
@@ -90,7 +90,7 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string) {
         }
     }
 
-    const SCE_ChessMove move = (src_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_GET_DST) | (flag SCE_CHESSMOVE_SET_FLAG);
+    const SCE_ChessMove move = (src_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (flag SCE_CHESSMOVE_SET_FLAG);
 
     return move;
 }

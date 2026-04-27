@@ -19,3 +19,11 @@ TEST(UCI, Move_To_UCI_String) {
     ASSERT_TRUE(SCE_MoveToUCIString(move, uci_str));
     ASSERT_STREQ(uci_str, "b7b8n");
 }
+
+TEST(UCI, UCI_String_To_Move) {
+    SCE_ChessMove move = (SCE_AN_To_Idx("A2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("H2") SCE_CHESSMOVE_SET_DST);
+    ASSERT_EQ(SCE_UCIStringToMove("a2h2"), move);
+
+    move = (SCE_AN_To_Idx("B2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("A1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_ROOK_PROMOTION SCE_CHESSMOVE_SET_FLAG);
+    ASSERT_EQ(SCE_UCIStringToMove("b2a1r"), move);
+}
