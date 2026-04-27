@@ -25,11 +25,15 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     size_t fen_len = strlen(fen);
     if (fen_len >= FEN_STRING_MAX_LEN) return SCE_INVALID_PARAM;
 
-    if (count_occurence(fen, ' ') != 5U) return SCE_INVALID_PARAM;
-
-    // Now guaranteed to have 6 chunks.
     char fen_cpy[FEN_STRING_MAX_LEN] = { 0 };
     memcpy(fen_cpy, fen, fen_len);
+    {
+        // Replace newline character to null terminator.
+        char* const ptr = strchr(fen_cpy, '\n');
+        if (ptr) {
+            *ptr = '\0';
+        }
+    }
 
     char* chunks[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
     char* saveptr = NULL;
@@ -52,7 +56,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     
     const char* halfmove_clock_str = chunks[FEN_STEP_HALFMOVE_CLOCK];
     
-    const char* fullmove_number = chunks[FEN_STEP_FULLMOVE_NUMBER];
+    const char* fullmove_number_str = chunks[FEN_STEP_FULLMOVE_NUMBER];
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ctx), "Clearing board failure!");
     ctx->board.castling_rights = 0U;
@@ -131,7 +135,10 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
         if (row != 0 || col != CHESSBOARD_DIMENSION) return SCE_INVALID_PARAM;
 
     fen_step_active_color:
-        if (active_color_str == NULL) goto fen_step_finish;
+        if (active_color_str == NULL) {
+            ctx->board.to_move = WHITE;
+            goto fen_step_finish;
+        }
         len = strlen(active_color_str);
         if (len != 1U) return SCE_INVALID_PARAM;
 
@@ -148,7 +155,11 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
 
 
     fen_step_castling_rights:
-        if (castling_rights_str == NULL) goto fen_step_finish;
+        if (castling_rights_str == NULL) {
+            // Default to no castling rights.
+            ctx->board.castling_rights = 0U;
+            goto fen_step_finish;
+        }
         len = strlen(castling_rights_str);
         if (len > 4U) return SCE_INVALID_PARAM;
         if (count_occurence(castling_rights_str, '-') > 1U) return SCE_INVALID_PARAM;
@@ -180,7 +191,10 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
 
 
     fen_step_en_passant_target_square:
-        if (en_passant_target_square_str == NULL) goto fen_step_finish;
+        if (en_passant_target_square_str == NULL) {
+            ctx->board.en_passant_idx = UNASSIGNED;
+            goto fen_step_finish;
+        }
         len = strlen(en_passant_target_square_str);
         if (len > 2U) return SCE_INVALID_PARAM;
         
@@ -195,7 +209,10 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
         }
 
     fen_step_halfmove_clock:
-        if (halfmove_clock_str == NULL) goto fen_step_finish;
+        if (halfmove_clock_str == NULL) {
+            ctx->board.half_move_clock = 0;
+            goto fen_step_finish;
+        }
         len = strlen(halfmove_clock_str);
         if (len > 3U) return SCE_INVALID_PARAM;
 
@@ -206,10 +223,12 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
 
         ctx->board.half_move_clock = atoi(halfmove_clock_str);
 
-    // If current step is not fullmove number, it means parsing stopped at one of the previous steps.
-    // This is not allowed.
-    // Also fullmove number is not handled.
-    // if (fen_step != FEN_STEP_FULLMOVE_NUMBER) return SCE_INVALID_PARAM;
+    fen_step_fullmove_number:
+        // Fullmove number is not handled.
+        // if (fen_step != FEN_STEP_FULLMOVE_NUMBER) return SCE_INVALID_PARAM;
+        if (fullmove_number_str == NULL) {
+            goto fen_step_finish;
+        }
 
     fen_step_finish:
         ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
