@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     SCE_Return ret = SCE_Context_init(&ctx);
     assert(ret == SCE_SUCCESS);
     //ctx.depth = 8;              // For testing
-    ctx.depth = 9;              // For testing
+    ctx.depth = 8;              // For testing
 
     SCE_Engine engine;
     ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);

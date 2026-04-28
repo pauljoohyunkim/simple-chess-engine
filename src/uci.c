@@ -217,6 +217,29 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
 SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const line) {
     if (session == NULL || line == NULL) return SCE_INVALID_PARAM;
     if (strncmp(line, "go", 2) != 0) return SCE_INVALID_PARAM;
+    char line_cpy[BUFSIZ] = { 0 };
+    strncpy(line_cpy, line, sizeof(line_cpy)-1);
+    {
+        // Replace newline with '\0'
+        char* pos = strchr(line_cpy, '\n');
+        if (pos) {
+            *pos = '\0';
+        }
+    }
+
+    int depth;
+    {
+        // TODO: Parse other options
+        // For now only parse depth command.
+        char* saveptr = NULL;
+        char* word = strtok_r(line_cpy, " ", &saveptr);         // "go"
+        word = strtok_r(NULL, " ", &saveptr);
+        if (word && (strcmp(word, "depth") == 0)) {
+            // Depth
+            word = strtok_r(NULL, " ", &saveptr);
+            depth = atoi(word);
+        }
+    }
 
     // Create task on heap for thread
     SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
@@ -224,6 +247,7 @@ SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const lin
     pthread_mutex_lock(&session->context_mutex);
     memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
     pthread_mutex_unlock(&session->context_mutex);
+    task->ctx.depth = depth;
     task->ptr_engine = session->ptr_engine;
     task->ptr_stdout_mutex = &session->stdout_mutex;
 
