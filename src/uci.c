@@ -199,17 +199,17 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
 
 static void* SCE_Search_Thread_Wrapper(void* arg) {
     if (arg == NULL) return NULL;
-    SCE_UCI_Session* session = (SCE_UCI_Session*) arg;
+    SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) arg;
 
     // Run the search here.
-    const SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(session->ptr_engine, session->ctx);
+    const SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(task->ptr_engine, &task->ctx);
     char uci_str[6] = { 0 };
     if (SCE_MoveToUCIString(move, uci_str)) {
-        pthread_mutex_lock(&session->stdout_mutex);
+        pthread_mutex_lock(task->ptr_stdout_mutex);
         printf("bestmove %s\n", uci_str);
-        pthread_mutex_unlock(&session->stdout_mutex);
+        pthread_mutex_unlock(task->ptr_stdout_mutex);
     }
-    session->ptr_engine->stop_searching = true;
+    free(task);
 
     return NULL;
 }
@@ -218,10 +218,18 @@ SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const lin
     if (session == NULL || line == NULL) return SCE_INVALID_PARAM;
     if (strncmp(line, "go", 2) != 0) return SCE_INVALID_PARAM;
 
-    //session->ptr_engine->depth = 8;
+    // Create task on heap for thread
+    SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
+    // Copying context
+    pthread_mutex_lock(&session->context_mutex);
+    memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
+    pthread_mutex_unlock(&session->context_mutex);
+    task->ptr_engine = session->ptr_engine;
+    task->ptr_stdout_mutex = &session->stdout_mutex;
+
     session->ptr_engine->stop_searching = false;
     pthread_t search_thread;
-    pthread_create(&search_thread, NULL, SCE_Search_Thread_Wrapper, (void*) session);
+    pthread_create(&search_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
     pthread_detach(search_thread);
 
     return SCE_SUCCESS;

@@ -26,7 +26,7 @@ static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static Signal check_draw(SCE_Context* const ctx);
 static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth);
+static bool deepen_depth(SCE_Context* const ctx, const int new_depth);
 
 int main(int argc, char** argv) {
     if (argc == 1) {
@@ -44,12 +44,12 @@ int main(int argc, char** argv) {
     SCE_Context ctx;
     ret = SCE_Context_init(&ctx);
     assert(ret == SCE_SUCCESS);
+    ctx.depth = DEPTH_MOST_SHALLOW;
 
     // Chess engine
     SCE_Engine engine;
     ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
     assert(ret == SCE_SUCCESS);
-    engine.depth = DEPTH_MOST_SHALLOW;
 
     printf("All moves are to be in \"E2E4\" form (For promotions, you do not specify the ending, as you will be given the choice)\n");
 
@@ -304,17 +304,17 @@ static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     unsigned int npp_count = COUNT_SET_BITS(SCE_Chessboard_Occupancy(ctx) & ~(ctx->board.bitboards[W_PAWN] | ctx->board.bitboards[B_PAWN]));
     npp_count = npp_count > 16U ? 16U : npp_count;
 
-    const bool deepened = deepen_depth(ptr_engine, npp_count_to_depth[npp_count]);
+    const bool deepened = deepen_depth(ctx, npp_count_to_depth[npp_count]);
     if (deepened) {
         printf("Info: Engine search deepening to depth %d!\n", npp_count_to_depth[npp_count]);
     }
 }
 
-static bool deepen_depth(SCE_Engine* const ptr_engine, const int new_depth) {
-    assert(ptr_engine != NULL);
+static bool deepen_depth(SCE_Context* const ctx, const int new_depth) {
+    assert(ctx != NULL);
 
-    if (new_depth > ptr_engine->depth) {
-        ptr_engine->depth = new_depth;
+    if (new_depth > ctx->depth) {
+        ctx->depth = new_depth;
         return true;
     }
     return false;

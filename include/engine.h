@@ -42,7 +42,6 @@ typedef struct {
     SCE_Eval eval_function;
     SCE_DeltaEval delta_eval_function;
     SCE_TranspositionTable transposition_table;
-    uint8_t depth;
     SCE_ChessMove killer_moves[SCE_MAX_PLY][2];
 } SCE_Engine;
 

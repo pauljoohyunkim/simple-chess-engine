@@ -547,8 +547,8 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
         if (ret != SCE_SUCCESS) {
             continue;
         }
-        ctx->current_search_depth = ptr_engine->depth-1;
-        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_engine->depth-1, -beta, -alpha);
+        ctx->current_search_depth = ctx->depth-1;
+        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ctx->depth-1, -beta, -alpha);
 
         ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
@@ -568,7 +568,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
 
 SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx) {
     SCE_ChessMove best_move = EMPTY_MOVE;
-    for (uint iter_depth = 1U; iter_depth <= ptr_engine->depth; iter_depth++) {
+    for (uint iter_depth = 1U; iter_depth <= ctx->depth; iter_depth++) {
         int alpha = SCE_ALPHA_INITIAL;
         int beta = SCE_BETA_INITIAL;
         SCE_ChessMove tt_hint_move = EMPTY_MOVE;

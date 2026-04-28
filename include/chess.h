@@ -163,6 +163,7 @@ typedef struct {
     SCE_ZobristTable zobrist_table;
 
     // For Engine
+    uint8_t depth;
     uint8_t current_search_depth;
     SCE_EvalState eval_state;
 } SCE_Context;

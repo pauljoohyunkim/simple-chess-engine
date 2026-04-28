@@ -11,9 +11,16 @@ extern "C" {
 // A struct holding pointers for thread operations
 typedef struct {
     pthread_mutex_t stdout_mutex;
+    pthread_mutex_t context_mutex;
     SCE_Context* ctx;
     SCE_Engine* ptr_engine;
 } SCE_UCI_Session;
+
+typedef struct {
+    pthread_mutex_t* ptr_stdout_mutex;
+    SCE_Engine* ptr_engine;
+    SCE_Context ctx;
+} SCE_UCI_SearchTask;
 
 /**
  * @brief Convert SCE_ChessMove to UCI move string
