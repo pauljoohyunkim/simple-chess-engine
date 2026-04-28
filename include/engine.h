@@ -13,8 +13,8 @@ extern "C" {
 typedef int (*SCE_Eval)(SCE_Context* const);
 typedef int (*SCE_DeltaEval)(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move);
 
-#define SCE_ALPHA_INITIAL (INT_MIN / 2)
-#define SCE_BETA_INITIAL (INT_MAX / 2)
+#define SCE_ALPHA_INITIAL (INT32_MIN / 2)
+#define SCE_BETA_INITIAL (INT32_MAX / 2)
 
 // Alpha: Upper, Beta: Lower
 typedef enum {
@@ -23,13 +23,19 @@ typedef enum {
     SCE_TF_EXACT = 2,
 } SCE_TranspositionFlag;
 
+ // data(8) = score(4) | move(2) | depth(1) | flag(1)
 typedef struct {
-    uint64_t zobrist_hash;  // If 0, this entry is blank.
-    int32_t score;
-    SCE_ChessMove move;     // Best move at current node.
-    uint8_t depth;
-    uint8_t flag;
+    uint64_t zobrist_hash_chksum; // zobrist_hash ^ data.
+    uint64_t data;
 } SCE_TranspositionTableEntry;
+#define SCE_TT_SET_SCORE << 32U
+#define SCE_TT_SET_MOVE << 16U
+#define SCE_TT_SET_DEPTH << 8U
+#define SCE_TT_SET_FLAG << 0U
+#define SCE_TT_GET_SCORE(d) (((int32_t)((d) >> 32)) & 0xFFFFFFFFULL)
+#define SCE_TT_GET_MOVE(d)  (((SCE_ChessMove)((d) >> 16)) & 0xFFFFULL)
+#define SCE_TT_GET_DEPTH(d) (((uint8_t)((d) >> 8)) & 0xFFULL)
+#define SCE_TT_GET_FLAG(d)  (((uint8_t)((d) >> 0)) & 0xFFULL)
 
 typedef struct {
     SCE_TranspositionTableEntry* entries;
