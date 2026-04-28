@@ -52,6 +52,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     if (ptr_engine->transposition_table.entries == NULL) return SCE_INTERNAL_ERROR;
     ptr_engine->transposition_table.table_size = n_entries;
 
+    ptr_engine->stop_searching = true;
     ptr_engine->eval_function = eval_func;
     ptr_engine->delta_eval_function = delta_eval_func;
     for (uint i = 0U; i < sizeof(ptr_engine->killer_moves)/sizeof(ptr_engine->killer_moves[0]); i++) {

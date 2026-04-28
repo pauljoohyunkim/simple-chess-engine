@@ -38,6 +38,7 @@ typedef struct {
 
 #define SCE_MAX_PLY 50
 typedef struct {
+    volatile bool stop_searching;
     SCE_Eval eval_function;
     SCE_DeltaEval delta_eval_function;
     SCE_TranspositionTable transposition_table;

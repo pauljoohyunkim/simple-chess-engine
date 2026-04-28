@@ -3,11 +3,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include <pthread.h>
 #include "chess.h"
 #include "uci.h"
 #include "fen.h"
 
 typedef unsigned int uint;
+
+static void* SCE_Search_Thread_Wrapper(void* ptr_engine);
 
 #define PROMO_TYPE_KNIGHT 0
 #define PROMO_TYPE_BISHOP 1
@@ -194,9 +197,32 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_UCI_ParseGo(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const char* const line) {
-    if (ctx == NULL || ptr_engine == NULL || line == NULL) return SCE_INVALID_PARAM;
+static void* SCE_Search_Thread_Wrapper(void* arg) {
+    if (arg == NULL) return NULL;
+    SCE_UCI_Session* session = (SCE_UCI_Session*) arg;
+
+    // Run the search here.
+    const SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(session->ptr_engine, session->ctx);
+    char uci_str[6] = { 0 };
+    if (SCE_MoveToUCIString(move, uci_str)) {
+        pthread_mutex_lock(&session->stdout_mutex);
+        printf("bestmove %s\n", uci_str);
+        pthread_mutex_unlock(&session->stdout_mutex);
+    }
+    session->ptr_engine->stop_searching = true;
+
+    return NULL;
+}
+
+SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const line) {
+    if (session == NULL || line == NULL) return SCE_INVALID_PARAM;
     if (strncmp(line, "go", 2) != 0) return SCE_INVALID_PARAM;
+
+    //session->ptr_engine->depth = 8;
+    session->ptr_engine->stop_searching = false;
+    pthread_t search_thread;
+    pthread_create(&search_thread, NULL, SCE_Search_Thread_Wrapper, (void*) session);
+    pthread_detach(search_thread);
 
     return SCE_SUCCESS;
 }
