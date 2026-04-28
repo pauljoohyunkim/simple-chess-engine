@@ -48,7 +48,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
 
     const size_t n_entries = 1ULL << transposition_table_log2_size;
 
-    ptr_engine->transposition_table.entries = (SCE_TranspositionTableEntry*) calloc(n_entries, sizeof(SCE_TranspositionTableEntry));
+    ptr_engine->transposition_table.entries = (SCE_TranspositionTableEntry*) aligned_alloc(sizeof(SCE_TranspositionTableEntry), n_entries * sizeof(SCE_TranspositionTableEntry));
     if (ptr_engine->transposition_table.entries == NULL) return SCE_INTERNAL_ERROR;
     ptr_engine->transposition_table.table_size = n_entries;
 
@@ -96,7 +96,9 @@ static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint
                               (((uint64_t)move) SCE_TT_SET_MOVE) |
                               (((uint64_t)flag) SCE_TT_SET_FLAG);
         ptr_engine->transposition_table.entries[key].data = data;
-        ptr_engine->transposition_table.entries[key].zobrist_hash_chksum = zobrist_hash ^ data;
+
+        __atomic_store_n(&ptr_engine->transposition_table.entries[key].zobrist_hash_chksum,
+                         zobrist_hash ^ data, __ATOMIC_RELEASE);
     } else {
         return false;
     }
@@ -109,7 +111,7 @@ static bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* const pt
 
     const uint64_t key = zobrist_hash & (ptr_engine->transposition_table.table_size - 1U);
     const uint64_t table_data = ptr_engine->transposition_table.entries[key].data;
-    const uint64_t table_chksum = ptr_engine->transposition_table.entries[key].zobrist_hash_chksum;
+    const uint64_t table_chksum = __atomic_load_n(&ptr_engine->transposition_table.entries[key].zobrist_hash_chksum, __ATOMIC_ACQUIRE);
 
     if ((table_data ^ table_chksum) == zobrist_hash) {
         *data = table_data;

@@ -27,7 +27,7 @@ typedef enum {
 typedef struct {
     uint64_t zobrist_hash_chksum; // zobrist_hash ^ data.
     uint64_t data;
-} SCE_TranspositionTableEntry;
+} __attribute__((aligned(16))) SCE_TranspositionTableEntry;
 #define SCE_TT_SET_SCORE << 32U
 #define SCE_TT_SET_MOVE << 16U
 #define SCE_TT_SET_DEPTH << 8U
