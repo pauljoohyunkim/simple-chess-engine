@@ -34,10 +34,9 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string);
  * 
  * @param ctx Pointer to the SCE_Context struct.
  * @param line The entire line from position command.
- * @return true If successful
- * @return false Otherwise
+ * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
  */
-bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line);
+SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line);
 
 #ifdef __cplusplus
 }

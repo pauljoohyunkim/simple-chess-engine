@@ -97,40 +97,53 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string) {
     return move;
 }
 
-bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
-    if (ctx == NULL || line == NULL) return false;
-    if (strncmp(line, "position ", 9) != 0) return false;
+SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
+    if (ctx == NULL || line == NULL) return SCE_INVALID_PARAM;
+    if (strncmp(line, "position ", 9) != 0) return SCE_INVALID_PARAM;
 
-    const char* moves_substr = strstr(line, "moves");
-    if (strncmp(&line[9], "fen", 3) == 0) {
-        char fen_str[93] = { 0 };
-        if (moves_substr) {
-            memcpy(fen_str, &line[13], moves_substr - &line[13]);
+    char line_cpy[BUFSIZ] = { 0 };
+    strncpy(line_cpy, line, sizeof(line_cpy)-1);
+    {
+        // Replace newline with '\0'
+        char* pos = strchr(line_cpy, '\n');
+        if (pos) {
+            *pos = '\0';
+        }
+    }
+
+    // Separate out mandatory part and optional part
+    char* const moves_substr = strstr(line_cpy, "moves");
+    if (moves_substr) {
+        *(moves_substr-1) = '\0';
+    }
+
+    // Mandatory Part
+    {
+        char* saveptr = NULL;
+        // "position"
+        char* word = strtok_r(line_cpy, " ", &saveptr);
+        // "fen" | "startpos"
+        word = strtok_r(NULL, " ", &saveptr);
+        if (strcmp(word, "fen") == 0) {
+            char* fen_str = strtok_r(NULL, " ", &saveptr);
+            SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, fen_str);
+            if (ret != SCE_SUCCESS) {
+                return SCE_INVALID_PARAM;
+            }
+        } else if (strcmp(word, "startpos") == 0) {
+            SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            if (ret != SCE_SUCCESS) {
+                return SCE_INTERNAL_ERROR;
+            }
         } else {
-            strcpy(fen_str, &line[13]);
-        }
-        SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, fen_str);
-        if (ret != SCE_SUCCESS) {
-            return false;
+            return SCE_INVALID_PARAM;
         }
     }
-    if (strncmp(&line[9], "startpos", 8) == 0) {
-        SCE_Return ret = SCE_Chessboard_FEN_setup(ctx, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        if (ret != SCE_SUCCESS) {
-            return false;
-        }
-    }
+
+    // Optional Moves
     if (moves_substr) {
         char moves_substr_cpy[BUFSIZ] = { 0 };
         strcpy(moves_substr_cpy, &moves_substr[6]);
-
-        {
-            // Replace newline with '\0'
-            char* pos = strchr(moves_substr_cpy, '\n');
-            if (pos) {
-                *pos = '\0';
-            }
-        }
 
         char* saveptr;
         char* move_str = strtok_r(moves_substr_cpy, " ", &saveptr);
@@ -144,11 +157,11 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
             // Before making move, need to generate legal moves and compare.
             SCE_ChessMoveList movelist;
             SCE_Return ret = SCE_ChessMoveList_clear(&movelist);
-            if (ret != SCE_SUCCESS) return false;
+            if (ret != SCE_SUCCESS) return SCE_INTERNAL_ERROR;
             ret = SCE_GenerateLegalMoves(&movelist, ctx);
-            if (ret != SCE_SUCCESS) return false;
+            if (ret != SCE_SUCCESS) return SCE_INVALID_PARAM;
 
-            if (movelist.count == 0) return false;
+            if (movelist.count == 0) return SCE_INVALID_PARAM;
 
             for (uint i = 0; i < movelist.count; i++) {
                 const SCE_ChessMove move = movelist.moves[i];
@@ -164,18 +177,19 @@ bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
                     if ((ordered_move_flag & 3) != (flag & 3)) continue;
 
                     ret = SCE_MakeMove(ctx, move);
-                    if (ret != SCE_SUCCESS) return false;
+                    if (ret != SCE_SUCCESS) return SCE_INTERNAL_ERROR;
                     break;
                 } else {
                     ret = SCE_MakeMove(ctx, move);
-                    if (ret != SCE_SUCCESS) return false;
+                    if (ret != SCE_SUCCESS) return SCE_INTERNAL_ERROR;
                     break;
                 }
             }
 
             move_str = strtok_r(NULL, " ", &saveptr);
         }
+
     }
 
-    return true;
+    return SCE_SUCCESS;
 }
