@@ -193,3 +193,10 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
 
     return SCE_SUCCESS;
 }
+
+SCE_Return SCE_UCI_ParseGo(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const char* const line) {
+    if (ctx == NULL || ptr_engine == NULL || line == NULL) return SCE_INVALID_PARAM;
+    if (strncmp(line, "go", 2) != 0) return SCE_INVALID_PARAM;
+
+    return SCE_SUCCESS;
+}

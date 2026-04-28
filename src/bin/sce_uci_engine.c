@@ -2,11 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 #include "chess.h"
+#include "engine.h"
+#include "eval/sef.h"
 #include "uci.h"
+
+#define TT_TABLE_LOG_2_SIZE 24
 
 int main(int argc, char** argv) {
     SCE_Context ctx;
     SCE_Return ret = SCE_Context_init(&ctx);
+    assert(ret == SCE_SUCCESS);
+
+    SCE_Engine engine;
+    ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
     assert(ret == SCE_SUCCESS);
 
     char line[BUFSIZ] = { 0 };
@@ -21,6 +29,9 @@ int main(int argc, char** argv) {
         }
         if (strncmp(line, "position", 8) == 0) {
             SCE_UCI_ParsePosition(&ctx, line);
+        }
+        if (strncmp(line, "go", 2) == 0) {
+            SCE_UCI_ParseGo(&ctx, &engine, line);
         }
         if (strncmp(line, "print", 5) == 0) {
             SCE_Chessboard_print(&ctx, WHITE);

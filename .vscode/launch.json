@@ -108,7 +108,7 @@
             "name": "Debug Build sce_engine",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/sce_engine",
+            "program": "${workspaceFolder}/bin/sce_uci_engine",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
