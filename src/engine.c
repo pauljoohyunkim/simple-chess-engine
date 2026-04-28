@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include "eval/pst.h"
 #include "dev.h"
 #include "engine.h"
@@ -49,6 +50,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     const size_t n_entries = 1ULL << transposition_table_log2_size;
 
     ptr_engine->transposition_table.entries = (SCE_TranspositionTableEntry*) aligned_alloc(sizeof(SCE_TranspositionTableEntry), n_entries * sizeof(SCE_TranspositionTableEntry));
+    memset(ptr_engine->transposition_table.entries, 0, n_entries * sizeof(SCE_TranspositionTableEntry));
     if (ptr_engine->transposition_table.entries == NULL) return SCE_INTERNAL_ERROR;
     ptr_engine->transposition_table.table_size = n_entries;
 
@@ -335,7 +337,6 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
                                      int alpha,
                                      int beta) {
-    ctx->nodes_visited += 1;
     const int phase = ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score;
     const int eg_score = ctx->eval_state.eg_score;
@@ -391,7 +392,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
-    ctx->nodes_visited += 1;
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
     if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;
     if (SCE_DetectInsufficientMaterial(ctx)) return SCE_EVAL_DRAW;

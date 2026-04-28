@@ -207,7 +207,6 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
     if (SCE_MoveToUCIString(move, uci_str)) {
         pthread_mutex_lock(task->ptr_stdout_mutex);
         printf("Role: %s\n", task->role == SEARCH_TASK_MASTER ? "master" : "helper");
-        printf("Visited: %d\n", task->ctx.nodes_visited);
         printf("bestmove %s\n", uci_str);
         pthread_mutex_unlock(task->ptr_stdout_mutex);
     }
@@ -252,7 +251,6 @@ SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const lin
     //memcpy(&task2->ctx, session->ctx, sizeof(SCE_Context));
     pthread_mutex_unlock(&session->context_mutex);
     task->ctx.depth = depth;
-    task->ctx.nodes_visited = 0;
     task->ptr_engine = session->ptr_engine;
     task->ptr_stdout_mutex = &session->stdout_mutex;
     task->role = SEARCH_TASK_MASTER;
@@ -260,7 +258,6 @@ SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const lin
     //task2->ptr_engine = session->ptr_engine;
     //task2->ptr_stdout_mutex = &session->stdout_mutex;
     //task2->role = SEARCH_TASK_HELPER;
-    //task2->ctx.nodes_visited = 0;
 
     session->ptr_engine->stop_searching = false;
     pthread_t search_thread;
