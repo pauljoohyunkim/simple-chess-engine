@@ -206,6 +206,7 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
     char uci_str[6] = { 0 };
     if (SCE_MoveToUCIString(move, uci_str)) {
         pthread_mutex_lock(task->ptr_stdout_mutex);
+        printf("Role: %s\n", task->role == SEARCH_TASK_MASTER ? "master" : "helper");
         printf("bestmove %s\n", uci_str);
         pthread_mutex_unlock(task->ptr_stdout_mutex);
     }
@@ -243,18 +244,28 @@ SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const lin
 
     // Create task on heap for thread
     SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
+    //SCE_UCI_SearchTask* task2 = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
     // Copying context
     pthread_mutex_lock(&session->context_mutex);
     memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
+    //memcpy(&task2->ctx, session->ctx, sizeof(SCE_Context));
     pthread_mutex_unlock(&session->context_mutex);
     task->ctx.depth = depth;
     task->ptr_engine = session->ptr_engine;
     task->ptr_stdout_mutex = &session->stdout_mutex;
+    task->role = SEARCH_TASK_MASTER;
+    //task2->ctx.depth = depth+1;
+    //task2->ptr_engine = session->ptr_engine;
+    //task2->ptr_stdout_mutex = &session->stdout_mutex;
+    //task2->role = SEARCH_TASK_HELPER;
 
     session->ptr_engine->stop_searching = false;
     pthread_t search_thread;
+    //pthread_t search_thread2;
     pthread_create(&search_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
+    //pthread_create(&search_thread2, NULL, SCE_Search_Thread_Wrapper, (void*) task2);
     pthread_detach(search_thread);
+    //pthread_detach(search_thread2);
 
     return SCE_SUCCESS;
 }

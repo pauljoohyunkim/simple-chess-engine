@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include "eval/pst.h"
 #include "dev.h"
 #include "engine.h"
@@ -11,10 +12,10 @@ static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint
 static bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
 static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply);
 static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply);
-static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
-                                     SCE_Context* const ctx,
-                                     int alpha,
-                                     int beta);
+static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
+                                        SCE_Context* const ctx,
+                                        int alpha,
+                                        int beta);
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Context* const ctx,
                                        const unsigned int depth,
@@ -49,6 +50,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     const size_t n_entries = 1ULL << transposition_table_log2_size;
 
     ptr_engine->transposition_table.entries = (SCE_TranspositionTableEntry*) aligned_alloc(sizeof(SCE_TranspositionTableEntry), n_entries * sizeof(SCE_TranspositionTableEntry));
+    memset(ptr_engine->transposition_table.entries, 0, n_entries * sizeof(SCE_TranspositionTableEntry));
     if (ptr_engine->transposition_table.entries == NULL) return SCE_INTERNAL_ERROR;
     ptr_engine->transposition_table.table_size = n_entries;
 
@@ -331,10 +333,10 @@ bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx) {
     return false;
 }
 
-static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
-                                     SCE_Context* const ctx,
-                                     int alpha,
-                                     int beta) {
+static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
+                                        SCE_Context* const ctx,
+                                        int alpha,
+                                        int beta) {
     const int phase = ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score;
     const int eg_score = ctx->eval_state.eg_score;
@@ -368,7 +370,7 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
             continue;
         }
 
-        int score = -SCE_Engine_QuiesceNegamax(ptr_engine, ctx, -beta, -alpha);
+        int score = -SCE_Engine_QuiescenceNegamax(ptr_engine, ctx, -beta, -alpha);
 
         ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
@@ -396,7 +398,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
 
     if (depth == 0) {
         //return ptr_engine->eval_function(ptr_board);
-        return SCE_Engine_QuiesceNegamax(ptr_engine, ctx, alpha, beta);
+        return SCE_Engine_QuiescenceNegamax(ptr_engine, ctx, alpha, beta);
     }
 
     const int ply = ctx->current_search_depth - depth;

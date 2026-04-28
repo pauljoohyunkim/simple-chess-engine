@@ -16,10 +16,16 @@ typedef struct {
     SCE_Engine* ptr_engine;
 } SCE_UCI_Session;
 
+typedef enum {
+    SEARCH_TASK_MASTER,
+    SEARCH_TASK_HELPER
+} SCE_UCI_SearchTaskWorkerRole;
+
 typedef struct {
     pthread_mutex_t* ptr_stdout_mutex;
     SCE_Engine* ptr_engine;
     SCE_Context ctx;
+    SCE_UCI_SearchTaskWorkerRole role;
 } SCE_UCI_SearchTask;
 
 /**
