@@ -335,6 +335,7 @@ static int SCE_Engine_QuiesceNegamax(SCE_Engine* const ptr_engine,
                                      SCE_Context* const ctx,
                                      int alpha,
                                      int beta) {
+    ctx->nodes_visited += 1;
     const int phase = ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score;
     const int eg_score = ctx->eval_state.eg_score;
@@ -390,6 +391,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
+    ctx->nodes_visited += 1;
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
     if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;
     if (SCE_DetectInsufficientMaterial(ctx)) return SCE_EVAL_DRAW;

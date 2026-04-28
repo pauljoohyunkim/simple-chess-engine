@@ -166,6 +166,7 @@ typedef struct {
     uint8_t depth;
     uint8_t current_search_depth;
     SCE_EvalState eval_state;
+    unsigned int nodes_visited;
 } SCE_Context;
 
 /**
