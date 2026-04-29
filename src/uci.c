@@ -210,6 +210,11 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
         task->ptr_engine->stop_searching = true;
         *task->ptr_move = move;
     }
+    #if NODE_COUNT
+    pthread_mutex_lock(task->ptr_stdout_mutex);
+    printf("info string %s node count: %lu\n", task->role == SEARCH_TASK_MASTER ? "master" : "helper", task->ctx.node_count);
+    pthread_mutex_unlock(task->ptr_stdout_mutex);
+    #endif
     free(task);
 
     return NULL;

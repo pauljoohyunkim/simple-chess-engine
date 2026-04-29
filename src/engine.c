@@ -338,6 +338,9 @@ static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
                                         SCE_Context* const ctx,
                                         int alpha,
                                         int beta) {
+    #ifdef NODE_COUNT
+    ctx->node_count++;
+    #endif NODE_COUNT
     if (ptr_engine->stop_searching) return DUMMY_VALUE_FROM_STOPPING_SEARCH;
     const int phase = ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score;
@@ -399,6 +402,9 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
+    #ifdef NODE_COUNT
+    ctx->node_count++;
+    #endif NODE_COUNT
     if (ptr_engine->stop_searching) return DUMMY_VALUE_FROM_STOPPING_SEARCH;
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
     if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;

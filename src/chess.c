@@ -32,10 +32,19 @@ SCE_Return SCE_Context_init(SCE_Context* const ctx) {
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_reset(ctx), "Could not reset the board.");
     RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(ctx), "Could not precompute the lookup table for movements.");
+    #ifdef NODE_COUNT
+    uint64_t seed = 1U;
+    RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(ctx, &seed), "Could not initialize Zobrist hash table.");
+    #else
     RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(ctx, NULL), "Could not initialize Zobrist hash table.");
+    #endif
+
     ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
     ctx->depth = 0U;
     ctx->current_search_depth = 0U;
+    #ifdef NODE_COUNT
+    ctx->node_count = 0U;
+    #endif
     memset(&ctx->eval_state, 0, sizeof(ctx->eval_state));
 
     return SCE_SUCCESS;
