@@ -11,7 +11,16 @@
 
 int main(int argc, char** argv) {
     SCE_Context ctx;
-    SCE_Return ret = SCE_Context_init(&ctx);
+
+    SCE_Precomputation_Tables precomputation_tables;
+    #ifdef NODE_COUNT
+    uint64_t seed = 1U;
+    SCE_Return ret = SCE_Precomputation_Tables_init(&precomputation_tables, &seed);
+    #else
+    SCE_Return ret = SCE_Precomputation_Tables_init(&precomputation_tables, NULL);
+    #endif
+
+    ret = SCE_Context_init(&ctx, &precomputation_tables);
     assert(ret == SCE_SUCCESS);
 
     SCE_Engine engine;

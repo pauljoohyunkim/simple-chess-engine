@@ -158,9 +158,13 @@ typedef struct {
 } SCE_PieceMovementPrecomputationTable;
 
 typedef struct {
-    SCE_Chessboard board;
-    SCE_PieceMovementPrecomputationTable precomputation_table;
+    SCE_PieceMovementPrecomputationTable pm_table;
     SCE_ZobristTable zobrist_table;
+} SCE_Precomputation_Tables;
+
+typedef struct {
+    SCE_Chessboard board;
+    SCE_Precomputation_Tables* precomputation_tables;
 
     // For Engine
     uint8_t depth;
@@ -171,13 +175,15 @@ typedef struct {
     #endif
 } SCE_Context;
 
+SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_precomputation_tables, const uint64_t* const ptr_seed);
+
 /**
  * @brief Initializes SCE_Context with default setting.
  * 
  * @param ctx Pointer to the SCE_Context struct.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_Context_init(SCE_Context* const ctx);
+SCE_Return SCE_Context_init(SCE_Context* const ctx, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 
 /**
  * @brief Clear out the move list
@@ -210,7 +216,7 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx);
  * @param seed Pointer to seed value for random number generation. NULL for randomly picked seed.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_ZobristTable_init(SCE_Context* const ctx, const uint64_t* const ptr_seed);
+SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
 
 /**
  * @brief Compute the Zobrist hash of the current board. Requires Zobrist table to be precomputed by SCE_ZobristTable_init
@@ -251,7 +257,7 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color);
  * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_PieceMovementPrecompute(SCE_Context* const ctx);
+SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
 
 /**
  * @brief Add move to move list
