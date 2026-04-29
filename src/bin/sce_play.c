@@ -41,8 +41,11 @@ int main(int argc, char** argv) {
     SCE_Return ret;
     const PieceColor player = strcmp(argv[1], "white") == 0 ? WHITE : BLACK;
 
+    SCE_Precomputation_Tables precomputation_tables;
+    ret = SCE_Precomputation_Tables_init(&precomputation_tables, NULL);
+
     SCE_Context ctx;
-    ret = SCE_Context_init(&ctx);
+    ret = SCE_Context_init(&ctx, &precomputation_tables);
     assert(ret == SCE_SUCCESS);
     ctx.depth = DEPTH_MOST_SHALLOW;
 

@@ -175,6 +175,8 @@ typedef struct {
     #endif
 } SCE_Context;
 
+SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_precomputation_tables, const uint64_t* const ptr_seed);
+
 /**
  * @brief Initializes SCE_Context with default setting.
  * 
@@ -222,7 +224,7 @@ SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, cons
  * @param ctx Pointer to the SCE_Context struct.
  * @return uint64_t Zobrist hash of the board if successful, or 0 for failure.
  */
-uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx, const SCE_ZobristTable* const ptr_zobrist_table);
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx);
 
 /**
  * @brief Returns the bitboard of occupancy information.
@@ -274,7 +276,7 @@ SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
  * @param tactical Whether or not only to generate tactical (capture/promotion) moves.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const SCE_Precomputation_Tables* const ptr_precomputation_tables, const bool tactical);
+SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 
 /**
  * @brief Checks if the square is under attack by certain color.
