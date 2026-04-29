@@ -264,12 +264,12 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     pthread_join(master_thread, NULL);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
-    double exe_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;
+    int exe_time = (end.tv_sec - start.tv_sec);
 
     char uci_str[6] = { 0 };
     if (SCE_MoveToUCIString(move, uci_str)) {
         pthread_mutex_lock(&session->stdout_mutex);
-        printf("info string Search took %f seconds\n", exe_time);
+        printf("info string Search took %d seconds\n", exe_time);
         printf("bestmove %s\n", uci_str);
         pthread_mutex_unlock(&session->stdout_mutex);
     }
