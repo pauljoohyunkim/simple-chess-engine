@@ -8,6 +8,8 @@ extern "C" {
 #include "chess.h"
 #include "engine.h"
 
+#define SCE_MAX_THREADS 256
+
 // A struct holding pointers for thread operations
 typedef struct {
     pthread_mutex_t stdout_mutex;
@@ -15,6 +17,7 @@ typedef struct {
     SCE_Context* ctx;
     SCE_Engine* ptr_engine;
     size_t n_helper_threads;
+    unsigned int depth;
 } SCE_UCI_Session;
 
 typedef enum {
@@ -27,6 +30,7 @@ typedef struct {
     SCE_Engine* ptr_engine;
     SCE_Context ctx;
     SCE_UCI_SearchTaskWorkerRole role;
+    SCE_ChessMove* ptr_move;        // For master
 } SCE_UCI_SearchTask;
 
 /**
