@@ -6,7 +6,7 @@
 #define DEBUG_TT_N_SIZE (24U)
 
 TEST(Engine_SEF, AlphaBetaBestMove) {
-    BOARD_SETUP(board, precomputation_table, zobrist_table);
+    BOARD_SETUP();
 
     SCE_Engine engine;
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
@@ -20,7 +20,7 @@ TEST(Engine_SEF, AlphaBetaBestMove) {
 }
 
 TEST(Engine_SEF, IterativeDeepeningBestMove) {
-    BOARD_SETUP(board, precomputation_table, zobrist_table);
+    BOARD_SETUP();
 
     SCE_Engine engine;
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);

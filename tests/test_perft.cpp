@@ -11,7 +11,7 @@ typedef unsigned long long ull;
 TEST(PERFT, Initial_Depth_1_to_5) {
     const ull testvector[5U] = { 20, 400, 8902, 197281, 4865609 };
     for (uint depth = 1U; depth <= 5U; depth++) {
-        BOARD_SETUP(board, precomputation_table, zobrist_table)
+        BOARD_SETUP()
 
         const ull count = perft_count(&ctx, depth, false);
 
@@ -62,11 +62,10 @@ TEST(PERFT, Kiwipete_Depth_1_to_6) {
     for (uint depth = 1U; depth <= sizeof(testvector)/sizeof(testvector[0]); depth++) {
         SCE_Context ctx;
         SCE_Chessboard& board { ctx.board };
+        SCE_Precomputation_Tables precomputation_tables;
+        ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+        ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
         ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
-
-        SCE_PieceMovementPrecompute(&ctx);
-
-        SCE_ZobristTable_init(&ctx, NULL);
 
         board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx);
 
@@ -83,10 +82,10 @@ TEST(PERFT, Position3) {
     for (uint depth = 1U; depth <= 4U; depth++) {
         SCE_Context ctx;
         SCE_Chessboard& board { ctx.board };
+        SCE_Precomputation_Tables precomputation_tables;
+        ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+        ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
         ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"), SCE_SUCCESS);
-        SCE_PieceMovementPrecompute(&ctx);
-
-        SCE_ZobristTable_init(&ctx, NULL);
 
         board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx);
 

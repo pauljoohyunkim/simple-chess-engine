@@ -42,14 +42,16 @@ void DeltaEvalTest(SCE_Context* const ctx, const int depth) {
 }
 
 TEST(SEF, Initial) {
-    BOARD_SETUP(board, precomputation_table, zobrist_table);
+    BOARD_SETUP();
 
     ASSERT_EQ(SCE_Eval_SimplifiedEvaluationFunction(&ctx), 0);
 }
 
 TEST(SEF, DeltaEval_Initial) {
     SCE_Context ctx;
-    ASSERT_EQ(SCE_Context_init(&ctx), SCE_SUCCESS);
+    SCE_Precomputation_Tables precomputation_tables;
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
 
     // While engine generation is not needed, this is used for precomputing the first evaluation.
     SCE_Engine engine;
@@ -82,7 +84,9 @@ TEST(SEF, DeltaEval_Initial) {
 
 TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
     SCE_Context ctx;
-    ASSERT_EQ(SCE_Context_init(&ctx), SCE_SUCCESS);
+    SCE_Precomputation_Tables precomputation_tables;
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
     ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
 
     // While engine generation is not needed, this is used for precomputing the first evaluation.
@@ -139,7 +143,9 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_4) {
 TEST(SEF, DeltaEval_Kiwipete_Depth_6) {
 #endif
     SCE_Context ctx;
-    ASSERT_EQ(SCE_Context_init(&ctx), SCE_SUCCESS);
+    SCE_Precomputation_Tables precomputation_tables;
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
     ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
 
     // While engine generation is not needed, this is used for precomputing the first evaluation.
