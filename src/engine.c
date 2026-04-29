@@ -54,7 +54,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     if (ptr_engine->transposition_table.entries == NULL) return SCE_INTERNAL_ERROR;
     ptr_engine->transposition_table.table_size = n_entries;
 
-    ptr_engine->stop_searching = true;
+    ptr_engine->stop_searching = false;
     ptr_engine->eval_function = eval_func;
     ptr_engine->delta_eval_function = delta_eval_func;
     for (uint i = 0U; i < sizeof(ptr_engine->killer_moves)/sizeof(ptr_engine->killer_moves[0]); i++) {
@@ -333,10 +333,12 @@ bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx) {
     return false;
 }
 
+#define DUMMY_VALUE_FROM_STOPPING_SEARCH 0
 static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
                                         SCE_Context* const ctx,
                                         int alpha,
                                         int beta) {
+    if (ptr_engine->stop_searching) return DUMMY_VALUE_FROM_STOPPING_SEARCH;
     const int phase = ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score;
     const int eg_score = ctx->eval_state.eg_score;
@@ -375,6 +377,11 @@ static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
         ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
 
+        // Check for forced stop
+        if (ptr_engine->stop_searching) {
+            return DUMMY_VALUE_FROM_STOPPING_SEARCH;
+        }
+
         if (score >= beta) return score;
         if (score > best_value) best_value = score;
         if (score > alpha) alpha = score;
@@ -392,6 +399,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
+    if (ptr_engine->stop_searching) return DUMMY_VALUE_FROM_STOPPING_SEARCH;
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
     if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;
     if (SCE_DetectInsufficientMaterial(ctx)) return SCE_EVAL_DRAW;
@@ -484,6 +492,10 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
 
+        if (ptr_engine->stop_searching) {
+            return DUMMY_VALUE_FROM_STOPPING_SEARCH;
+        }
+
         if (score >= beta) { 
             if (score > SCE_MATE_THRESHOLD) {
                 SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, score + ply, depth, move, SCE_TF_BETA);
@@ -567,6 +579,8 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
         ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
 
+        if (ptr_engine->stop_searching) return DUMMY_VALUE_FROM_STOPPING_SEARCH;
+
         if (score > best_score) {
             best_score = score;
             best_move = move;
@@ -598,6 +612,8 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
         // Call alpha beta search.
         // This saves best move to TT.
         const int score = SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, iter_depth, alpha, beta);
+
+        if (ptr_engine->stop_searching) break;
 
         transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
         if (transposition_data_exists) {

@@ -203,6 +203,10 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
 
     // Run the search here.
     const SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(task->ptr_engine, &task->ctx);
+    if (task->role == SEARCH_TASK_MASTER) {
+        // Master finished. Tell helpers to quit.
+        task->ptr_engine->stop_searching = true;
+    }
     char uci_str[6] = { 0 };
     if (SCE_MoveToUCIString(move, uci_str)) {
         pthread_mutex_lock(task->ptr_stdout_mutex);
@@ -239,6 +243,8 @@ SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const lin
             // Depth
             word = strtok_r(NULL, " ", &saveptr);
             depth = atoi(word);
+        } else {
+            return SCE_INVALID_PARAM;
         }
     }
 
@@ -254,18 +260,11 @@ SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const lin
     task->ptr_engine = session->ptr_engine;
     task->ptr_stdout_mutex = &session->stdout_mutex;
     task->role = SEARCH_TASK_MASTER;
-    //task2->ctx.depth = depth+1;
-    //task2->ptr_engine = session->ptr_engine;
-    //task2->ptr_stdout_mutex = &session->stdout_mutex;
-    //task2->role = SEARCH_TASK_HELPER;
 
     session->ptr_engine->stop_searching = false;
     pthread_t search_thread;
-    //pthread_t search_thread2;
     pthread_create(&search_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
-    //pthread_create(&search_thread2, NULL, SCE_Search_Thread_Wrapper, (void*) task2);
     pthread_detach(search_thread);
-    //pthread_detach(search_thread2);
 
     return SCE_SUCCESS;
 }

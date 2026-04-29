@@ -14,6 +14,7 @@ typedef struct {
     pthread_mutex_t context_mutex;
     SCE_Context* ctx;
     SCE_Engine* ptr_engine;
+    size_t n_helper_threads;
 } SCE_UCI_Session;
 
 typedef enum {
