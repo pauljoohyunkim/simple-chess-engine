@@ -27,11 +27,21 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
 static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
 
-SCE_Return SCE_Context_init(SCE_Context* const ctx) {
-    if (ctx == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_precomputation_tables, const uint64_t* const ptr_seed) {
+    if (ptr_precomputation_tables == NULL) return SCE_INVALID_PARAM;
+
+    RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(&ptr_precomputation_tables->zobrist_table, ptr_seed), "Could not initialize Zobrist hash table.");
+    RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(&ptr_precomputation_tables->precomputation_table), "Could not precompute piece movement table.");
+
+    return SCE_SUCCESS;
+}
+
+SCE_Return SCE_Context_init(SCE_Context* const ctx, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+    if (ctx == NULL || ptr_precomputation_tables == NULL) return SCE_INVALID_PARAM;
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_reset(ctx), "Could not reset the board.");
-    RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(ctx), "Could not precompute the lookup table for movements.");
+    // TODO: Remove this update this.
+    #warning THIS IS OBSOLETE.
     #ifdef NODE_COUNT
     uint64_t seed = 1U;
     RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(ctx, &seed), "Could not initialize Zobrist hash table.");
@@ -39,7 +49,7 @@ SCE_Return SCE_Context_init(SCE_Context* const ctx) {
     RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(ctx, NULL), "Could not initialize Zobrist hash table.");
     #endif
 
-    ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
+    ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx, &ptr_precomputation_tables->zobrist_table);
     ctx->depth = 0U;
     ctx->current_search_depth = 0U;
     #ifdef NODE_COUNT
@@ -141,8 +151,8 @@ static uint64_t xorshift(uint64_t x) {
     return x;
 }
 
-SCE_Return SCE_ZobristTable_init(SCE_Context* const ctx, const uint64_t* const ptr_seed) {
-    if (ctx == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
+    if (ptr_zobrist_table == NULL) return SCE_INVALID_PARAM;
     if (ptr_seed == NULL) srand(time(NULL));
 
     uint64_t x = ptr_seed == NULL ? (uint64_t) rand() : (*ptr_seed);
@@ -151,32 +161,32 @@ SCE_Return SCE_ZobristTable_init(SCE_Context* const ctx, const uint64_t* const p
     for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) {
         for (uint idx = 0U; idx < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; idx++) {
             x = xorshift(x);
-            ctx->zobrist_table.piece_key[piece_type][idx] = x;
+            ptr_zobrist_table->piece_key[piece_type][idx] = x;
         }
     }
 
     // Castling rights
     for (uint i = 0U; i < 16U; i++) {
         x = xorshift(x);
-        ctx->zobrist_table.castling_keys[i] = x;
+        ptr_zobrist_table->castling_keys[i] = x;
     }
 
     // En passant
     for (uint i = 0U; i < 9U; i++) {
         x = xorshift(x);
-        ctx->zobrist_table.en_passant_keys[i] = x;
+        ptr_zobrist_table->en_passant_keys[i] = x;
     }
 
     // Side key
     x = xorshift(x);
-    ctx->zobrist_table.side_key = x;
+    ptr_zobrist_table->side_key = x;
 
     return SCE_SUCCESS;
 }
 
 #define SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY (8U)
-uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx) {
-    if (ctx == NULL) return SCE_INVALID_PARAM;
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx, const SCE_ZobristTable* const ptr_zobrist_table) {
+    if (ctx == NULL || ptr_zobrist_table == NULL) return SCE_INVALID_PARAM;
 
     uint64_t hash = 0U;
 
@@ -187,25 +197,25 @@ uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx) {
         while (pieces) {
             // Get index of pieces one by one.
             const uint idx = COUNT_TRAILING_ZEROS(pieces);
-            hash ^= ctx->zobrist_table.piece_key[piece_type][idx];
+            hash ^= ptr_zobrist_table->piece_key[piece_type][idx];
             pieces &= ~(1ULL << idx);
         }
     }
 
     // Castling
-    hash ^= ctx->zobrist_table.castling_keys[ctx->board.castling_rights];
+    hash ^= ptr_zobrist_table->castling_keys[ctx->board.castling_rights];
 
     // En passant
     if (ctx->board.en_passant_idx == UNASSIGNED) {
-        hash ^= ctx->zobrist_table.en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
+        hash ^= ptr_zobrist_table->en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
     } else {
         const uint col_idx = ctx->board.en_passant_idx % 8U;
-        hash ^= ctx->zobrist_table.en_passant_keys[col_idx];
+        hash ^= ptr_zobrist_table->en_passant_keys[col_idx];
     }
 
     // Side
     if (ctx->board.to_move == BLACK) {
-        hash ^= ctx->zobrist_table.side_key;
+        hash ^= ptr_zobrist_table->side_key;
     }
 
     return hash;
@@ -329,18 +339,18 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_PieceMovementPrecompute(SCE_Context* const ctx) {
-    if (ctx == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_piece_movement_precomputation_table) {
+    if (ptr_piece_movement_precomputation_table == NULL) return SCE_INVALID_PARAM;
 
     // Empty the table.
-    memset(&ctx->precomputation_table, 0, sizeof(SCE_PieceMovementPrecomputationTable));
+    memset(ptr_piece_movement_precomputation_table, 0, sizeof(SCE_PieceMovementPrecomputationTable));
 
     // Precomputation: Knight
-    RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(&ctx->precomputation_table), "Knight moves table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_King_Precompute(&ctx->precomputation_table), "King moves table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(&ctx->precomputation_table), "Pawn moves/attacks table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_Rays_Precompute(&ctx->precomputation_table), "Pawn moves/attacks table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_CastlingMask_Precompute(&ctx->precomputation_table), "Castling mask table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_piece_movement_precomputation_table), "Knight moves table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_piece_movement_precomputation_table), "King moves table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(ptr_piece_movement_precomputation_table), "Pawn moves/attacks table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Rays_Precompute(ptr_piece_movement_precomputation_table), "Pawn moves/attacks table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_CastlingMask_Precompute(ptr_piece_movement_precomputation_table), "Castling mask table generation failed!");
 
     return SCE_SUCCESS;
 }
