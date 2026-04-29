@@ -158,7 +158,7 @@ typedef struct {
 } SCE_PieceMovementPrecomputationTable;
 
 typedef struct {
-    SCE_PieceMovementPrecomputationTable precomputation_table;
+    SCE_PieceMovementPrecomputationTable pm_table;
     SCE_ZobristTable zobrist_table;
 } SCE_Precomputation_Tables;
 
@@ -255,7 +255,7 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color);
  * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_piece_movement_precomputation_table);
+SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
 
 /**
  * @brief Add move to move list
@@ -274,7 +274,7 @@ SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
  * @param tactical Whether or not only to generate tactical (capture/promotion) moves.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
+SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const SCE_Precomputation_Tables* const ptr_precomputation_tables, const bool tactical);
 
 /**
  * @brief Checks if the square is under attack by certain color.

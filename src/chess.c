@@ -31,7 +31,7 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
     if (ptr_precomputation_tables == NULL) return SCE_INVALID_PARAM;
 
     RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(&ptr_precomputation_tables->zobrist_table, ptr_seed), "Could not initialize Zobrist hash table.");
-    RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(&ptr_precomputation_tables->precomputation_table), "Could not precompute piece movement table.");
+    RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(&ptr_precomputation_tables->pm_table), "Could not precompute piece movement table.");
 
     return SCE_SUCCESS;
 }
@@ -339,18 +339,18 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_piece_movement_precomputation_table) {
-    if (ptr_piece_movement_precomputation_table == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table) {
+    if (ptr_pm_table == NULL) return SCE_INVALID_PARAM;
 
     // Empty the table.
-    memset(ptr_piece_movement_precomputation_table, 0, sizeof(SCE_PieceMovementPrecomputationTable));
+    memset(ptr_pm_table, 0, sizeof(SCE_PieceMovementPrecomputationTable));
 
     // Precomputation: Knight
-    RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_piece_movement_precomputation_table), "Knight moves table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_piece_movement_precomputation_table), "King moves table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(ptr_piece_movement_precomputation_table), "Pawn moves/attacks table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_Rays_Precompute(ptr_piece_movement_precomputation_table), "Pawn moves/attacks table generation failed!");
-    RETURN_IF_SCE_FAILURE(SCE_CastlingMask_Precompute(ptr_piece_movement_precomputation_table), "Castling mask table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Knight_Precompute(ptr_pm_table), "Knight moves table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_King_Precompute(ptr_pm_table), "King moves table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Pawn_Precompute(ptr_pm_table), "Pawn moves/attacks table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_Rays_Precompute(ptr_pm_table), "Pawn moves/attacks table generation failed!");
+    RETURN_IF_SCE_FAILURE(SCE_CastlingMask_Precompute(ptr_pm_table), "Castling mask table generation failed!");
 
     return SCE_SUCCESS;
 }
@@ -871,8 +871,8 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
-    if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
+SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const SCE_Precomputation_Tables* const ptr_precomputation_tables, const bool tactical) {
+    if (ptr_movelist == NULL || ptr_precomputation_tables == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
@@ -900,14 +900,14 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
             uint piece_row = piece_idx_src / CHESSBOARD_DIMENSION;
             uint piece_col = piece_idx_src % CHESSBOARD_DIMENSION;
             const uint64_t blockers[] = {
-                ctx->precomputation_table.rays[NORTH][piece_idx_src] & occupancy,
-                ctx->precomputation_table.rays[EAST][piece_idx_src] & occupancy,
-                ctx->precomputation_table.rays[SOUTH][piece_idx_src] & occupancy,
-                ctx->precomputation_table.rays[WEST][piece_idx_src] & occupancy,
-                ctx->precomputation_table.rays[NORTHEAST][piece_idx_src] & occupancy,
-                ctx->precomputation_table.rays[NORTHWEST][piece_idx_src] & occupancy,
-                ctx->precomputation_table.rays[SOUTHEAST][piece_idx_src] & occupancy,
-                ctx->precomputation_table.rays[SOUTHWEST][piece_idx_src] & occupancy
+                ptr_precomputation_tables->precomputation_table.rays[NORTH][piece_idx_src] & occupancy,
+                ptr_precomputation_tables->precomputation_table.rays[EAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tables->precomputation_table.rays[SOUTH][piece_idx_src] & occupancy,
+                ptr_precomputation_tables->precomputation_table.rays[WEST][piece_idx_src] & occupancy,
+                ptr_precomputation_tables->precomputation_table.rays[NORTHEAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tables->precomputation_table.rays[NORTHWEST][piece_idx_src] & occupancy,
+                ptr_precomputation_tables->precomputation_table.rays[SOUTHEAST][piece_idx_src] & occupancy,
+                ptr_precomputation_tables->precomputation_table.rays[SOUTHWEST][piece_idx_src] & occupancy
             };
             const uint blockers_idx[] = {
                 blockers[NORTH] ? COUNT_TRAILING_ZEROS(blockers[NORTH]) : 0U,
