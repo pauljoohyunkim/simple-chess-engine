@@ -216,7 +216,8 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
 }
 
 static void* SCE_Search_Manager_Thread(void* arg) {
-    clock_t start = clock();        // TODO: Use monotonic clock
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     SCE_UCI_Session* session = (SCE_UCI_Session*) arg;
     SCE_ChessMove move = EMPTY_MOVE;
@@ -262,13 +263,13 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     }
     pthread_join(master_thread, NULL);
 
-    clock_t end = clock();
-    double exe_time = (double) (end - start) / CLOCKS_PER_SEC;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    int exe_time = (end.tv_sec - start.tv_sec);
 
     char uci_str[6] = { 0 };
     if (SCE_MoveToUCIString(move, uci_str)) {
         pthread_mutex_lock(&session->stdout_mutex);
-        printf("info string Search took %f seconds\n", exe_time);
+        printf("info string Search took %d seconds\n", exe_time);
         printf("bestmove %s\n", uci_str);
         pthread_mutex_unlock(&session->stdout_mutex);
     }
