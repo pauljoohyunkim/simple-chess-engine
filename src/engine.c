@@ -624,7 +624,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
 
 SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl) {
     SCE_ChessMove best_move = EMPTY_MOVE;
-    for (uint iter_depth = 1U; iter_depth <= ctx->depth; iter_depth++) {
+    for (uint iter_depth = ptr_ctrl->start_depth; iter_depth <= ctx->depth; iter_depth++) {
         int alpha = SCE_ALPHA_INITIAL;
         int beta = SCE_BETA_INITIAL;
         SCE_ChessMove tt_hint_move = EMPTY_MOVE;

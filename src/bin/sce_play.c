@@ -223,6 +223,7 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
     SCE_Return ret;
     SCE_ChessMove move;
     SCE_Engine_SearchControl ctrl = {
+        .start_depth = 0,
         .use_lmr = false
     };
     move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(ptr_engine, ctx, &ctrl);

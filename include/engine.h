@@ -52,6 +52,7 @@ typedef struct {
 } SCE_Engine;
 
 typedef struct {
+    unsigned int start_depth;   // Set to 0 unless multi-threading with helpers.
     bool use_lmr;
     int lmr_bias;
     int lmr_shallow_threshold;

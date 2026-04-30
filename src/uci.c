@@ -250,12 +250,13 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
-        task->ctx.depth = depth+(i % 4);
+        task->ctx.depth = depth;
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_HELPER;
+        task->ctrl.start_depth = 1 + (i % 3);
         task->ctrl.use_lmr = true;
-        task->ctrl.lmr_bias = i+1;
+        task->ctrl.lmr_bias = i % 2 == 0 ? 0 : (i+1);
         task->ctrl.lmr_shallow_threshold = 4;
         task->ctrl.lmr_deep_threshold = 7;
 
@@ -276,6 +277,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_MASTER;
         task->ptr_move = &move;
+        task->ctrl.start_depth = 1;
         task->ctrl.use_lmr = true;
         task->ctrl.lmr_bias = 0;
         task->ctrl.lmr_shallow_threshold = 8;
