@@ -236,7 +236,17 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     pthread_t master_thread;
     for (uint i = 0; i < n_helper_threads; i++) {
         // Helper thread
-        SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
+        size_t task_alloc_size = sizeof(SCE_UCI_SearchTask);
+        task_alloc_size = (task_alloc_size + 63) & ~63;
+        //SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
+        SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) aligned_alloc(64, task_alloc_size);
+        //SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
+        if (!task) {
+            pthread_mutex_lock(&session->stdout_mutex);
+            printf("info string Could not create thread #%d\n", i);
+            pthread_mutex_unlock(&session->stdout_mutex);
+            continue;
+        }
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
@@ -254,7 +264,10 @@ static void* SCE_Search_Manager_Thread(void* arg) {
 
     {
         // Main thread
-        SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) malloc(sizeof(SCE_UCI_SearchTask));
+        size_t task_alloc_size = sizeof(SCE_UCI_SearchTask);
+        task_alloc_size = (task_alloc_size + 63) & ~63;
+        SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) aligned_alloc(64, task_alloc_size);
+        // TODO: Handle task == NULL, where it would join the helper threads as well.
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);

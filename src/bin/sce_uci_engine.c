@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
         .context_mutex = PTHREAD_MUTEX_INITIALIZER,
         .ctx = &ctx,
         .ptr_engine = &engine,
-        .n_helper_threads = 0
+        .n_helper_threads = 4
     };
 
     char line[BUFSIZ] = { 0 };
