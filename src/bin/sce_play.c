@@ -8,6 +8,34 @@
 #include "eval/pst.h"
 #include "helper.h"
 
+const unsigned int npp_count_to_depth[] = {
+    15,     // 0
+    14,     // 1
+    14,     // 2
+    14,     // 3
+    13,     // 4
+    13,     // 5
+    12,     // 6
+    12,     // 7
+    12,     // 8
+    11,     // 9
+    10,     // 10
+    10,     // 11
+    10,     // 12
+    10,     // 13
+    9,      // 14
+    9,      // 15
+    9,      // 16
+};
+
+const SCE_Engine_SearchControl ctrl = {
+    .start_depth = 1,
+    .use_lmr = false,
+    .lmr_bias = 0,
+    .lmr_shallow_threshold = 4,
+    .lmr_deep_threshold = 7,
+};
+
 typedef enum {
     SIGNAL_OK = 0,
     SIGNAL_BREAK = 1,
@@ -17,9 +45,8 @@ typedef enum {
 
 #define TT_TABLE_LOG_2_SIZE 20
 #define NPP_DEEPNING_CUTOFF 10
-#define DEPTH_MOST_SHALLOW 8
-#define DEPTH_DEEPEST 16
-#define DEEPENED_DEPTH 11
+#define DEPTH_MOST_SHALLOW (npp_count_to_depth[sizeof(npp_count_to_depth) / sizeof(npp_count_to_depth[0]) - 1])
+#define DEPTH_DEEPEST (npp_count_to_depth[0])
 
 // Returns true if end of game.
 static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
@@ -222,10 +249,6 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
     //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
     SCE_Return ret;
     SCE_ChessMove move;
-    SCE_Engine_SearchControl ctrl = {
-        .start_depth = 0,
-        .use_lmr = false
-    };
     move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(ptr_engine, ctx, &ctrl);
     if (move == EMPTY_MOVE) {
         printf("Mate!\n");
@@ -286,26 +309,6 @@ static Signal check_draw(SCE_Context* const ctx) {
 
 static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     assert(ptr_engine != NULL);
-
-    const unsigned int npp_count_to_depth[] = {
-        15,     // 0
-        14,     // 1
-        13,     // 2
-        12,     // 3
-        12,     // 4
-        12,     // 5
-        11,     // 6
-        11,     // 7
-        11,     // 8
-        11,     // 9
-        10,     // 10
-        10,     // 11
-        10,     // 12
-        10,     // 13
-        9,      // 14
-        9,      // 15
-        8,      // 16
-    };
 
     // Clamp npp_count to below 16
     unsigned int npp_count = COUNT_SET_BITS(SCE_Chessboard_Occupancy(ctx) & ~(ctx->board.bitboards[W_PAWN] | ctx->board.bitboards[B_PAWN]));
