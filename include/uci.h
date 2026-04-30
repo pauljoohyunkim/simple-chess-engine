@@ -30,6 +30,7 @@ typedef struct {
     SCE_Engine* ptr_engine;
     SCE_Context ctx;
     SCE_UCI_SearchTaskWorkerRole role;
+    SCE_Engine_SearchControl ctrl;
     SCE_ChessMove* ptr_move;        // For master
 } SCE_UCI_SearchTask;
 

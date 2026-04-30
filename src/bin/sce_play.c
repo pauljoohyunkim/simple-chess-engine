@@ -222,7 +222,10 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
     //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
     SCE_Return ret;
     SCE_ChessMove move;
-    move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(ptr_engine, ctx);
+    SCE_Engine_SearchControl ctrl = {
+        .use_lmr = false
+    };
+    move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(ptr_engine, ctx, &ctrl);
     if (move == EMPTY_MOVE) {
         printf("Mate!\n");
         return SIGNAL_BREAK;

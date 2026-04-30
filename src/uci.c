@@ -204,7 +204,7 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
     SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) arg;
 
     // Run the search here.
-    const SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(task->ptr_engine, &task->ctx);
+    const SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(task->ptr_engine, &task->ctx, &task->ctrl);
     if (task->role == SEARCH_TASK_MASTER) {
         // Master finished. Tell helpers to quit.
         task->ptr_engine->stop_searching = true;
@@ -244,6 +244,10 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_HELPER;
+        task->ctrl.use_lmr = true;
+        task->ctrl.lmr_bias = i+1;
+        task->ctrl.lmr_shallow_threshold = 4;
+        task->ctrl.lmr_deep_threshold = 7;
 
         pthread_create(&helper_threads[i], NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }
@@ -259,6 +263,10 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_MASTER;
         task->ptr_move = &move;
+        task->ctrl.use_lmr = true;
+        task->ctrl.lmr_bias = 0;
+        task->ctrl.lmr_shallow_threshold = 8;
+        task->ctrl.lmr_deep_threshold = 10;
 
         pthread_create(&master_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }

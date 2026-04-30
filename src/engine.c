@@ -18,6 +18,7 @@ static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
                                         int beta);
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Context* const ctx,
+                                       const SCE_Engine_SearchControl* const ptr_ctrl,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta);
@@ -399,6 +400,7 @@ static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
 #define SCE_MATE_THRESHOLD (90000)
 static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                        SCE_Context* const ctx,
+                                       const SCE_Engine_SearchControl* const ptr_ctrl,
                                        const unsigned int depth,
                                        int alpha,
                                        int beta) {
@@ -455,14 +457,17 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
 
     SCE_ChessMoveList moves;
     SCE_Return ret;
+
+    const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
+    const bool is_in_check = SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE);
+
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
     ret = SCE_GeneratePseudoLegalMoves(&moves, ctx, false);
     assert(ret == SCE_SUCCESS);
     if (moves.count == 0) {
         // Number of pseudolegal moves already tells us that we need to check for mate.
-        const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
-        if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
+        if (is_in_check) {
             return SCE_EVAL_CHECKMATE + ply;
         } else {
             return SCE_EVAL_DRAW;
@@ -493,7 +498,23 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
             continue;
         }
 
-        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, depth-1, -beta, -alpha);
+        // LMR
+        int reduction = 0;
+        if ((ptr_ctrl->use_lmr) &&
+            (depth > 2) &&
+            (legal_move_count > ptr_ctrl->lmr_shallow_threshold) &&
+            !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
+            !(is_in_check)) {
+                reduction = 1 + ptr_ctrl->lmr_bias;  // Base reduction
+
+                if (legal_move_count > ptr_ctrl->lmr_deep_threshold) reduction++;
+        }
+
+        int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-reduction, -beta, -alpha);
+        if (reduction > 0 && score > alpha) {
+            // Reduced search beat alpha beta unexpectedly
+            score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1, -beta, -alpha);
+        }
 
         ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
@@ -528,8 +549,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     }
     if (legal_move_count == 0) {
         // Check again, since legal move count ended up being 0.
-        const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
-        if (SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE)) {
+        if (is_in_check) {
             const int ply = ctx->current_search_depth - depth;
             return SCE_EVAL_CHECKMATE + ply;
         } else {
@@ -549,7 +569,7 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     return alpha;
 }
 
-SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx) {
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl) {
     int alpha = SCE_ALPHA_INITIAL;
     int beta = SCE_BETA_INITIAL;
     int best_score = SCE_ALPHA_INITIAL;
@@ -580,7 +600,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
             continue;
         }
         ctx->current_search_depth = ctx->depth-1;
-        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ctx->depth-1, -beta, -alpha);
+        const int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, ctx->depth-1, -beta, -alpha);
 
         ret = SCE_UnmakeMove(ctx);
         assert(ret == SCE_SUCCESS);
@@ -600,7 +620,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
     return best_move;
 }
 
-SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx) {
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl) {
     SCE_ChessMove best_move = EMPTY_MOVE;
     for (uint iter_depth = 1U; iter_depth <= ctx->depth; iter_depth++) {
         int alpha = SCE_ALPHA_INITIAL;
@@ -617,7 +637,7 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
 
         // Call alpha beta search.
         // This saves best move to TT.
-        const int score = SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, iter_depth, alpha, beta);
+        const int score = SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, iter_depth, alpha, beta);
 
         if (ptr_engine->stop_searching) break;
 
