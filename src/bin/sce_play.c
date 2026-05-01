@@ -16,9 +16,9 @@ const unsigned int npp_count_to_depth[] = {
     13,     // 4
     13,     // 5
     12,     // 6
-    12,     // 7
-    12,     // 8
-    11,     // 9
+    11,     // 7
+    11,     // 8
+    10,     // 9
     10,     // 10
     10,     // 11
     10,     // 12
@@ -28,7 +28,7 @@ const unsigned int npp_count_to_depth[] = {
     9,      // 16
 };
 
-const SCE_Engine_SearchControl ctrl = {
+SCE_Engine_SearchControl ctrl = {
     .start_depth = 1,
     .use_lmr = false,
     .lmr_bias = 0,
@@ -43,10 +43,11 @@ typedef enum {
 } Signal;
 
 
-#define TT_TABLE_LOG_2_SIZE 20
+#define TT_TABLE_LOG_2_SIZE 24
 #define NPP_DEEPNING_CUTOFF 10
 #define DEPTH_MOST_SHALLOW (npp_count_to_depth[sizeof(npp_count_to_depth) / sizeof(npp_count_to_depth[0]) - 1])
 #define DEPTH_DEEPEST (npp_count_to_depth[0])
+#define NPP_WEIGHT_ENDGAME_START (2500)
 
 // Returns true if end of game.
 static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
@@ -54,6 +55,7 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
 static Signal check_draw(SCE_Context* const ctx);
 static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static bool deepen_depth(SCE_Context* const ctx, const int new_depth);
+static unsigned int calculate_npp(const SCE_Context* const ctx);
 
 int main(int argc, char** argv) {
     if (argc == 1) {
@@ -249,11 +251,34 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
     //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
     SCE_Return ret;
     SCE_ChessMove move;
+    if (calculate_npp(ctx) < NPP_WEIGHT_ENDGAME_START) ctrl.use_lmr = false;
     move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(ptr_engine, ctx, &ctrl);
+
     if (move == EMPTY_MOVE) {
-        printf("Mate!\n");
-        return SIGNAL_BREAK;
+        // Double checking if there are absolutely no legal moves.
+        SCE_ChessMoveList legal_moves;
+        ret = SCE_ChessMoveList_clear(&legal_moves);
+        assert(ret == SCE_SUCCESS);
+        if (legal_moves.count == 0) {
+            printf("Mate!\n");
+            return SIGNAL_BREAK;
+        } else {
+            // Search failure happened!
+            // Fallback: Full search
+            SCE_Engine_SearchControl full_ctrl = {
+                .start_depth = 1,
+                .use_lmr = false
+            };
+            move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(ptr_engine, ctx, &full_ctrl);
+
+            if (move == EMPTY_MOVE) {
+                // Somehow the search failed. Choosing the first move in order not to crash.
+                printf("info string Search complete failure. Choosing the first legal move.\n");
+                move = legal_moves.moves[0];
+            }
+        }
     }
+
     ret = SCE_MakeMove(ctx, move);
     assert(ret == SCE_SUCCESS);
     {
@@ -275,9 +300,17 @@ static Signal check_draw(SCE_Context* const ctx) {
     assert(ctx != NULL);
 
     // Draw by repetition
-    if (SCE_DetectRepetition(ctx)) {
-        printf("Draw by repetition.\n");
-        return SIGNAL_BREAK;
+    if (ctx->board.history.count >= 2) {
+        unsigned int rep_count = 1;
+        for (int i = ctx->board.history.count - 2; i >= (int)ctx->board.history.count - (int)ctx->board.half_move_clock; i -= 2) {
+            if (ctx->board.undo_states[i].zobrist_hash == ctx->board.zobrist_hash) {
+                rep_count++;
+            }
+        }
+        if (rep_count == 3) {
+            printf("Draw by repetition.\n");
+            return SIGNAL_BREAK;
+        }
     }
 
     // Fifty-move rule
@@ -328,4 +361,16 @@ static bool deepen_depth(SCE_Context* const ctx, const int new_depth) {
         return true;
     }
     return false;
+}
+
+static unsigned int calculate_npp(const SCE_Context* const ctx) {
+    assert(ctx != NULL);
+
+    unsigned int val = 0;
+    val += KNIGHT_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_KNIGHT] | ctx->board.bitboards[B_KNIGHT]);
+    val += BISHOP_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_BISHOP] | ctx->board.bitboards[B_BISHOP]);
+    val += ROOK_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_ROOK] | ctx->board.bitboards[B_ROOK]);
+    val += QUEEN_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_QUEEN] | ctx->board.bitboards[B_QUEEN]);
+
+    return val;
 }
