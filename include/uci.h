@@ -26,12 +26,13 @@ typedef enum {
 } SCE_UCI_SearchTaskWorkerRole;
 
 typedef struct {
-    pthread_mutex_t* ptr_stdout_mutex;
-    SCE_Engine* ptr_engine;
     SCE_Context ctx;
+    SCE_Engine* ptr_engine;
+    pthread_mutex_t* ptr_stdout_mutex;
     SCE_UCI_SearchTaskWorkerRole role;
+    SCE_Engine_SearchControl ctrl;
     SCE_ChessMove* ptr_move;        // For master
-} SCE_UCI_SearchTask;
+} __attribute__((aligned(64))) SCE_UCI_SearchTask;
 
 /**
  * @brief Convert SCE_ChessMove to UCI move string

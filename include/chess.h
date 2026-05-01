@@ -162,7 +162,7 @@ typedef struct {
     SCE_ZobristTable zobrist_table;
 } SCE_Precomputation_Tables;
 
-typedef struct {
+typedef struct SCE_Context {
     SCE_Chessboard board;
     SCE_Precomputation_Tables* precomputation_tables;
 
@@ -173,7 +173,7 @@ typedef struct {
     #ifdef NODE_COUNT
     unsigned long node_count;
     #endif
-} SCE_Context;
+} __attribute__((aligned(64))) SCE_Context;
 
 SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_precomputation_tables, const uint64_t* const ptr_seed);
 

@@ -51,6 +51,16 @@ typedef struct {
     SCE_ChessMove killer_moves[SCE_MAX_PLY][2];
 } SCE_Engine;
 
+typedef struct {
+    unsigned int start_depth;   // Set to 0 unless multi-threading with helpers.
+    bool use_lmr;
+    int lmr_bias;
+    int lmr_shallow_threshold;
+    int lmr_deep_threshold;
+    //bool check_timeout;
+    //uint64_t time_limit;
+} SCE_Engine_SearchControl;
+
 /**
  * @brief Sets up SCE_Engine struct.
  * 
@@ -97,7 +107,7 @@ bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx);
  * @param ctx Pointer to the SCE_Context struct
  * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context *const ctx);
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
 
 /**
  * @brief Outputs the best move calculated by the engine via iterative deepening with alpha beta.
@@ -106,7 +116,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
  * @param ctx Pointer to the SCE_Context struct
  * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx);
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
 
 #ifdef __cplusplus
 }
