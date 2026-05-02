@@ -28,7 +28,7 @@ DEPS=$(OBJS:.o=.d)
 
 .PHONY: all bin doc clean test
 
-bin: $(BIN)/sce_play $(BIN)/sce_engine
+bin: $(BIN)/sce_play $(BIN)/sce_uci_engine
 
 all: bin doc
 
@@ -40,7 +40,7 @@ test: $(BIN)/test
 $(BIN)/sce_play: $(OBJS) $(OBJ)/sce_play.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
-$(BIN)/sce_engine: $(OBJS) $(OBJ)/sce_engine.o
+$(BIN)/sce_uci_engine: $(OBJS) $(OBJ)/sce_uci_engine.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 $(OBJ)/test_%.o: $(TESTS)/test_%.cpp
@@ -52,7 +52,7 @@ $(OBJ)/eval_%.o: $(SRC)/eval/%.c
 $(OBJ)/sce_play.o: $(SRC)/bin/sce_play.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJ)/sce_engine.o: $(SRC)/bin/sce_engine.c
+$(OBJ)/sce_uci_engine.o: $(SRC)/bin/sce_uci_engine.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c

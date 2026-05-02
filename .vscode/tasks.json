@@ -14,6 +14,11 @@
             "command": "make bin OPTIMIZATION=-O0"
         },
         {
+            "label": "Make binaries (Debug, NodeCount)",
+            "type": "shell",
+            "command": "make bin OPTIMIZATION=-O0 CFLAGSEXTRA=-DNODE_COUNT"
+        },
+        {
             "label": "Unit test",
             "type": "shell",
             "command": "make test OPTIMIZATION=-O0"

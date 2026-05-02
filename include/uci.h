@@ -6,6 +6,33 @@ extern "C" {
 #endif
 
 #include "chess.h"
+#include "engine.h"
+
+#define SCE_MAX_THREADS 256
+
+// A struct holding pointers for thread operations
+typedef struct {
+    pthread_mutex_t stdout_mutex;
+    pthread_mutex_t context_mutex;
+    SCE_Context* ctx;
+    SCE_Engine* ptr_engine;
+    size_t n_helper_threads;
+    unsigned int depth;
+} SCE_UCI_Session;
+
+typedef enum {
+    SEARCH_TASK_MASTER,
+    SEARCH_TASK_HELPER
+} SCE_UCI_SearchTaskWorkerRole;
+
+typedef struct {
+    SCE_Context ctx;
+    SCE_Engine* ptr_engine;
+    pthread_mutex_t* ptr_stdout_mutex;
+    SCE_UCI_SearchTaskWorkerRole role;
+    SCE_Engine_SearchControl ctrl;
+    SCE_ChessMove* ptr_move;        // For master
+} __attribute__((aligned(64))) SCE_UCI_SearchTask;
 
 /**
  * @brief Convert SCE_ChessMove to UCI move string
@@ -34,10 +61,18 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string);
  * 
  * @param ctx Pointer to the SCE_Context struct.
  * @param line The entire line from position command.
- * @return true If successful
- * @return false Otherwise
+ * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
  */
-bool SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line);
+SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line);
+
+/**
+ * @brief Parse go line
+ * 
+ * @param session Pointer to the SCE_UCI_Session struct, holding pointers to context and engine.
+ * @param line The entire line from position command.
+ * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
+ */
+SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const line);
 
 #ifdef __cplusplus
 }

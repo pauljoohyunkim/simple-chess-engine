@@ -3,21 +3,23 @@
 
 #include "../include/dev.h"
 
-#define BOARD_CLEAR_SETUP(board) \
+#define BOARD_CLEAR_SETUP() \
     SCE_Context ctx; \
+    SCE_Precomputation_Tables precomputation_tables; \
+    SCE_Precomputation_Tables_init(&precomputation_tables, NULL); \
     SCE_Chessboard& board { ctx.board }; \
-    SCE_Chessboard_clear(&ctx);
+    SCE_Context_init(&ctx, &precomputation_tables); \
+    SCE_Chessboard_clear(&ctx); \
+    ctx.board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx);
 
 
-#define BOARD_SETUP(board, precpt_tbl, zobrist_table) \
+
+#define BOARD_SETUP() \
     SCE_Context ctx; \
-    SCE_PieceMovementPrecomputationTable& precpt_tbl { ctx.precomputation_table }; \
-    SCE_PieceMovementPrecompute(&ctx); \
-    SCE_Chessboard& board { ctx.board }; \
-    SCE_Chessboard_reset(&ctx); \
-    SCE_ZobristTable& zobrist_table { ctx.zobrist_table }; \
-    SCE_ZobristTable_init(&ctx, NULL); \
-    board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx);
+    SCE_Precomputation_Tables precomputation_tables; \
+    SCE_Precomputation_Tables_init(&precomputation_tables, NULL); \
+    SCE_Context_init(&ctx, &precomputation_tables); \
+    SCE_Chessboard& board { ctx.board };
 
 #define MOVE_LIST_SETUP(list, n_moves) \
     SCE_ChessMoveList list; \
