@@ -247,6 +247,8 @@ SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char
         // 1. DynamicDeepening
         if (strcmp(word, "DynamicDeepening") == 0) {
             word = strtok_r(NULL, " ", &saveptr);
+            if (word == NULL || strcmp(word, "value") != 0) return SCE_INVALID_PARAM;
+            word = strtok_r(NULL, " ", &saveptr);
             if (word) {
                 // '1' , 'yes', 'on', 'true' or 'enabled'
                 if (strcmp(word, "1") == 0 ||
@@ -308,7 +310,8 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     bool retry = false;
 
     pthread_mutex_lock(&session->context_mutex);
-    const unsigned int npp_count = COUNT_SET_BITS(SCE_Chessboard_Occupancy(session->ctx));
+    unsigned int npp_count = COUNT_SET_BITS(SCE_Chessboard_Occupancy(session->ctx) & ~session->ctx->board.bitboards[W_PAWN] & ~session->ctx->board.bitboards[B_PAWN]);
+    npp_count = npp_count > 16 ? 16 : npp_count;
     const unsigned int depth = session->depth;
     const unsigned int n_helper_threads = session->n_helper_threads;
     pthread_mutex_unlock(&session->context_mutex);
