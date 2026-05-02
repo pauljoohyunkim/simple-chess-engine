@@ -507,7 +507,6 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
             !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
             !(move & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) &&
             !(is_in_check)) {
-                reduction = 1 + ptr_ctrl->lmr_bias;  // Base reduction
                 int r_idx = legal_move_count < 64 ? legal_move_count : 63;
                 reduction = ctx->precomputation_tables->lmr_table[depth][r_idx];
                 reduction += ptr_ctrl->lmr_bias;
