@@ -296,6 +296,9 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         // Search failed. Redo the search but disable LMR
         session->ptr_master_ctrl->use_lmr = false;
         retry = true;
+        pthread_mutex_lock(&session->stdout_mutex);
+        printf("info string Search failure. Retrying without LMR\n");
+        pthread_mutex_unlock(&session->stdout_mutex);
         goto lazy_smp_search;
     }
     if (retry == true) {
