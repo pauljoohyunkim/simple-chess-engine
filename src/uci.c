@@ -254,11 +254,13 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_HELPER;
-        task->ctrl.start_depth = 1 + (i % 3);
-        task->ctrl.use_lmr = true;
-        task->ctrl.lmr_bias = i % 2 == 0 ? 0 : (i+1);
-        task->ctrl.lmr_shallow_threshold = 4;
-        task->ctrl.lmr_deep_threshold = 7;
+        task->ctrl.start_depth = 1 + (i % 4);
+        if (i % 4 == 0) {
+            task->ctrl.use_lmr = false;     // Safety
+        } else {
+            task->ctrl.use_lmr = true;
+            task->ctrl.lmr_bias = 1 + (i % 2);
+        }
 
         pthread_create(&helper_threads[i], NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }

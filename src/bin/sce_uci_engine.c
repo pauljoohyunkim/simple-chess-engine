@@ -8,8 +8,12 @@
 #include "uci.h"
 
 #define TT_TABLE_LOG_2_SIZE 24
-#define LMR_INITIAL_SHALLOW_THRESHOLD 8
-#define LMR_INITIAL_DEEP_THRESHOLD 10
+
+static const SCE_Engine_SearchControl master_ctrl_initial = {
+    .use_lmr = false,
+    .start_depth = 1,
+    .lmr_bias = 0,
+};
 
 int main(int argc, char** argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -31,13 +35,7 @@ int main(int argc, char** argv) {
     ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
     assert(ret == SCE_SUCCESS);
 
-    SCE_Engine_SearchControl master_ctrl = {
-        .use_lmr = false,
-        .start_depth = 1,
-        .lmr_bias = 0,
-        .lmr_shallow_threshold = LMR_INITIAL_SHALLOW_THRESHOLD,
-        .lmr_deep_threshold = LMR_INITIAL_DEEP_THRESHOLD,
-    };
+    SCE_Engine_SearchControl master_ctrl = master_ctrl_initial;
 
     SCE_UCI_Session session = {
         .stdout_mutex = PTHREAD_MUTEX_INITIALIZER,
@@ -58,6 +56,7 @@ int main(int argc, char** argv) {
             assert(ret == SCE_SUCCESS);
             ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
             assert(ret == SCE_SUCCESS);
+            master_ctrl = master_ctrl_initial;
         } else if (strncmp(line, "uci", 3) == 0) {
             pthread_mutex_lock(&session.stdout_mutex);
             printf("id name SimpleChessEngine\n");

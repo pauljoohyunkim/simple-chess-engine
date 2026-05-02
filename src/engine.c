@@ -504,12 +504,17 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         int reduction = 0;
         if ((ptr_ctrl->use_lmr) &&
             (depth > 2) &&
-            (legal_move_count > ptr_ctrl->lmr_shallow_threshold) &&
             !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
+            !(move & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) &&
             !(is_in_check)) {
                 reduction = 1 + ptr_ctrl->lmr_bias;  // Base reduction
+                int r_idx = legal_move_count < 64 ? legal_move_count : 63;
+                reduction = ctx->precomputation_tables->lmr_table[depth][r_idx];
+                reduction += ptr_ctrl->lmr_bias;
 
-                if (legal_move_count > ptr_ctrl->lmr_deep_threshold) reduction++;
+                // Reduction to negative depth not allowed.
+                if (reduction < 0) reduction = 0;
+                if (reduction >= depth) reduction = depth - 1;
         }
 
         int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-reduction, -beta, -alpha);

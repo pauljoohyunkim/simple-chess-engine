@@ -157,9 +157,11 @@ typedef struct {
     uint8_t castling_mask[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
 } SCE_PieceMovementPrecomputationTable;
 
+#define SCE_MAX_PLY 50
 typedef struct {
     SCE_PieceMovementPrecomputationTable pm_table;
     SCE_ZobristTable zobrist_table;
+    int lmr_table[SCE_MAX_PLY][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
 } SCE_Precomputation_Tables;
 
 typedef struct SCE_Context {
