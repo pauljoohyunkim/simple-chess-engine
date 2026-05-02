@@ -7,9 +7,31 @@
 #include <time.h>
 #include "chess.h"
 #include "uci.h"
+#include "helper.h"
+#include "eval/pst.h"
 #include "fen.h"
 
 typedef unsigned int uint;
+
+const unsigned int npp_count_to_depth_offset[] = {
+    16,     // 0
+    5,      // 1
+    5,      // 2
+    5,      // 3
+    4,      // 4
+    4,      // 5
+    3,      // 6
+    2,      // 7
+    2,      // 8
+    1,      // 9
+    1,      // 10
+    1,      // 11
+    1,      // 12
+    1,      // 13
+    0,      // 14
+    0,      // 15
+    0,      // 16
+};
 
 static void* SCE_Search_Thread_Wrapper(void* arg);
 static void* SCE_Search_Manager_Thread(void* arg);
@@ -199,6 +221,63 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
     return SCE_SUCCESS;
 }
 
+SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char* const line) {
+    if (ptr_session == NULL || line == NULL) return SCE_INVALID_PARAM;
+
+    if (strncmp(line, "setoption", 9) != 0) return SCE_INVALID_PARAM;
+    char line_cpy[BUFSIZ] = { 0 };
+    strncpy(line_cpy, line, sizeof(line_cpy)-1);
+    {
+        // Replace newline with '\0'
+        char* pos = strchr(line_cpy, '\n');
+        if (pos) {
+            *pos = '\0';
+        }
+    }
+
+    char* saveptr = NULL;
+    char* word = strtok_r(line_cpy, " ", &saveptr);         // "setoption"
+    word = strtok_r(NULL, " ", &saveptr);
+    if (word && (strcmp(word, "name") == 0)) {
+        word = strtok_r(NULL, " ", &saveptr);
+
+        // word now contains the name of the variable.
+
+        // Options:
+        // 1. DynamicDeepening
+        if (strcmp(word, "DynamicDeepening") == 0) {
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word) {
+                // '1' , 'yes', 'on', 'true' or 'enabled'
+                if (strcmp(word, "1") == 0 ||
+                    strcmp(word, "yes") == 0 ||
+                    strcmp(word, "on") == 0 ||
+                    strcmp(word, "true") == 0 ||
+                    strcmp(word, "enabled") == 0) {
+                    ptr_session->use_dynamic_deepening = true;
+                } else if (strcmp(word, "0") == 0 ||
+                           strcmp(word, "no") == 0 ||
+                           strcmp(word, "off") == 0 ||
+                           strcmp(word, "false") == 0 ||
+                           strcmp(word, "disabled") == 0) {
+                    ptr_session->use_dynamic_deepening = false;
+                } else {
+                    return SCE_INVALID_PARAM;
+                }
+            } else {
+                return SCE_INVALID_PARAM;
+            }
+        } else {
+            return SCE_INVALID_PARAM;
+        }
+
+    } else {
+        return SCE_INVALID_PARAM;
+    }
+
+    return SCE_SUCCESS;
+}
+
 static void* SCE_Search_Thread_Wrapper(void* arg) {
     if (arg == NULL) return NULL;
     SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) arg;
@@ -229,6 +308,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     bool retry = false;
 
     pthread_mutex_lock(&session->context_mutex);
+    const unsigned int npp_count = COUNT_SET_BITS(SCE_Chessboard_Occupancy(session->ctx));
     const unsigned int depth = session->depth;
     const unsigned int n_helper_threads = session->n_helper_threads;
     pthread_mutex_unlock(&session->context_mutex);
@@ -252,7 +332,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
-        task->ctx.depth = depth;
+        task->ctx.depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_HELPER;
@@ -277,6 +357,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
         task->ctx.depth = depth;
+        task->ctx.depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_MASTER;

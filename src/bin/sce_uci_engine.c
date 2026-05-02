@@ -43,7 +43,8 @@ int main(int argc, char** argv) {
         .ctx = &ctx,
         .ptr_engine = &engine,
         .n_helper_threads = 4,
-        .ptr_master_ctrl = &master_ctrl
+        .ptr_master_ctrl = &master_ctrl,
+        .use_dynamic_deepening = false
     };
 
 
@@ -61,9 +62,12 @@ int main(int argc, char** argv) {
             pthread_mutex_lock(&session.stdout_mutex);
             printf("id name SimpleChessEngine\n");
             printf("id author Paul Joo-Hyun Kim\n");
-            //printf("option name DynamicDeepening type ")
+            printf("option name DynamicDeepening type check default false\n");
             printf("uciok\n");
             pthread_mutex_unlock(&session.stdout_mutex);
+            continue;
+        } else if (strncmp(line, "setoption", 9) == 0) {
+            ret = SCE_UCI_ParseSetoption(&session, line);
             continue;
         } else if (strncmp(line, "isready", 7) == 0) {
             pthread_mutex_lock(&session.stdout_mutex);
