@@ -204,7 +204,7 @@ TEST(ChessBoard, Bitboard_To_AN) {
 }
 
 TEST(ChessBoard, Initial_Setup) {
-    BOARD_SETUP(board, precpt_tbl, zobrist_table);
+    BOARD_SETUP()
 
     // White pieces
     ASSERT_TRUE(board.bitboards[W_ROOK] & SCE_AN_To_Bitboard("A1"));
@@ -255,8 +255,7 @@ TEST(ChessBoard, Initial_Setup) {
 }
 
 TEST(ChessBoard, Square_Under_Attack_1) {
-    BOARD_CLEAR_SETUP(board);
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP();
 
     // Place a knight on A1
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_KNIGHT), SCE_SUCCESS);
@@ -267,8 +266,7 @@ TEST(ChessBoard, Square_Under_Attack_1) {
 }
 
 TEST(ChessBoard, Square_Under_Attack_2) {
-    BOARD_CLEAR_SETUP(board);
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP();
 
     // Place a white bishop at C5
     ASSERT_EQ(place_piece_on_board(&board, "C5", W_BISHOP), SCE_SUCCESS);
@@ -307,8 +305,7 @@ TEST(ChessBoard, Square_Under_Attack_2) {
 }
 
 TEST(ChessBoard, Square_Under_Attack_3) {
-    BOARD_CLEAR_SETUP(board);
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP();
 
     //   A B C D E F G H
     // 8 R N B Q K B - R
@@ -446,8 +443,7 @@ TEST(ChessBoard, Square_Under_Attack_3) {
 }
 
 TEST(MoveGeneration, MoveGeneration_Simple) {
-    BOARD_CLEAR_SETUP(board)
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP()
 
     // Place a white bishop at C5
     ASSERT_EQ(place_piece_on_board(&board, "C5", W_BISHOP), SCE_SUCCESS);
@@ -463,7 +459,7 @@ TEST(MoveGeneration, MoveGeneration_Simple) {
 }
 
 TEST(MoveGeneration, MoveGeneration_Initial) {
-    BOARD_SETUP(board, precpt_tbl, zobrist_table)
+    BOARD_SETUP()
 
     MOVE_LIST_SETUP(list, n_moves)
 
@@ -473,8 +469,7 @@ TEST(MoveGeneration, MoveGeneration_Initial) {
 
 // https://lichess.org/editor/1n6/2P3p1/1p3k2/P7/3p4/4P3/1K1P2p1/8_w_-_-_0_1?color=white
 TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
-    BOARD_CLEAR_SETUP(board)
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP()
 
     ASSERT_EQ(place_piece_on_board(&board, "B8", B_KNIGHT), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "C7", W_PAWN), SCE_SUCCESS);
@@ -495,8 +490,7 @@ TEST(MoveGeneration, MoveGeneration_Endgame_Pawn_Focused) {
 }
 
 TEST(MoveGeneration, MoveGeneration_EnPassant_WhitePawn) {
-    BOARD_CLEAR_SETUP(board);
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "D5", W_PAWN), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "D6", B_PAWN), SCE_SUCCESS);
@@ -525,8 +519,7 @@ TEST(MoveGeneration, MoveGeneration_EnPassant_WhitePawn) {
 }
 
 TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
-    BOARD_CLEAR_SETUP(board);
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "D4", W_PAWN), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "E4", B_PAWN), SCE_SUCCESS);
@@ -555,8 +548,7 @@ TEST(MoveGeneration, MoveGeneration_EnPassant_BlackPawn) {
 }
 
 TEST(MoveGeneration, MoveGeneration_White_Castling) {
-    BOARD_CLEAR_SETUP(board);
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "H1", W_ROOK), SCE_SUCCESS);
@@ -602,8 +594,7 @@ TEST(MoveGeneration, MoveGeneration_White_Castling) {
 }
 
 TEST(MoveGeneration, MoveGeneration_Black_Castling) {
-    BOARD_CLEAR_SETUP(board);
-    SCE_PieceMovementPrecompute(&ctx);
+    BOARD_CLEAR_SETUP();
 
     board.to_move = BLACK;
     ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
@@ -650,7 +641,7 @@ TEST(MoveGeneration, MoveGeneration_Black_Castling) {
 }
 
 TEST(MakeMove, MakeMove_Initial) {
-    BOARD_SETUP(board, precpt_tbl, zobrist_table)
+    BOARD_SETUP()
 
     const SCE_ChessMove move = (SCE_AN_To_Idx("E2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
@@ -661,27 +652,27 @@ TEST(MakeMove, MakeMove_Initial) {
 }
 
 TEST(Zobrist, ZobristHash) {
-    SCE_Context ctx1;
+    SCE_Precomputation_Tables precomputation_tables_1;
     uint64_t seed = 1U;
-    ASSERT_EQ(SCE_ZobristTable_init(&ctx1, &seed), SCE_SUCCESS);
+    ASSERT_EQ(SCE_ZobristTable_init(&precomputation_tables_1.zobrist_table, &seed), SCE_SUCCESS);
 
-    SCE_Context ctx2;
-    ASSERT_EQ(SCE_ZobristTable_init(&ctx2, NULL), SCE_SUCCESS);
+    SCE_Precomputation_Tables precomputation_tables_2;
+    ASSERT_EQ(SCE_ZobristTable_init(&precomputation_tables_2.zobrist_table, NULL), SCE_SUCCESS);
 
     for (unsigned int i = 0U; i < sizeof(SCE_ZobristTable) / sizeof(uint64_t); i++) {
-        const uint64_t x = *((uint64_t*) &ctx1.zobrist_table + i);
-        const uint64_t y = *((uint64_t*) &ctx2.zobrist_table + i);
+        const uint64_t x = *((uint64_t*) &precomputation_tables_1.zobrist_table + i);
+        const uint64_t y = *((uint64_t*) &precomputation_tables_2.zobrist_table + i);
         ASSERT_NE(x, y);
     }
 }
 
 TEST(Zobrist, InitialHash) {
-    BOARD_SETUP(board, precpt_tbl, zobrist_table)
+    BOARD_SETUP()
 
     SCE_Context ctx2;
     SCE_ZobristTable z_table;
     uint64_t seed = 1U;
-    ASSERT_EQ(SCE_ZobristTable_init(&ctx2, &seed), SCE_SUCCESS);
+    ASSERT_EQ(SCE_ZobristTable_init(&z_table, &seed), SCE_SUCCESS);
 
     ASSERT_NE(SCE_Chessboard_ComputeZobristHash(&ctx), 0U);
 }

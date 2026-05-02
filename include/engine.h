@@ -13,8 +13,8 @@ extern "C" {
 typedef int (*SCE_Eval)(SCE_Context* const);
 typedef int (*SCE_DeltaEval)(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move);
 
-#define SCE_ALPHA_INITIAL (INT_MIN / 2)
-#define SCE_BETA_INITIAL (INT_MAX / 2)
+#define SCE_ALPHA_INITIAL (INT32_MIN / 2)
+#define SCE_BETA_INITIAL (INT32_MAX / 2)
 
 // Alpha: Upper, Beta: Lower
 typedef enum {
@@ -23,13 +23,19 @@ typedef enum {
     SCE_TF_EXACT = 2,
 } SCE_TranspositionFlag;
 
+ // data(8) = score(4) | move(2) | depth(1) | flag(1)
 typedef struct {
-    uint64_t zobrist_hash;  // If 0, this entry is blank.
-    int32_t score;
-    SCE_ChessMove move;     // Best move at current node.
-    uint8_t depth;
-    uint8_t flag;
-} SCE_TranspositionTableEntry;
+    uint64_t zobrist_hash_chksum; // zobrist_hash ^ data.
+    uint64_t data;
+} __attribute__((aligned(16))) SCE_TranspositionTableEntry;
+#define SCE_TT_SET_SCORE << 32U
+#define SCE_TT_SET_MOVE << 16U
+#define SCE_TT_SET_DEPTH << 8U
+#define SCE_TT_SET_FLAG << 0U
+#define SCE_TT_GET_SCORE(d) (((int32_t)((d) >> 32)) & 0xFFFFFFFFULL)
+#define SCE_TT_GET_MOVE(d)  (((SCE_ChessMove)((d) >> 16)) & 0xFFFFULL)
+#define SCE_TT_GET_DEPTH(d) (((uint8_t)((d) >> 8)) & 0xFFULL)
+#define SCE_TT_GET_FLAG(d)  (((uint8_t)((d) >> 0)) & 0xFFULL)
 
 typedef struct {
     SCE_TranspositionTableEntry* entries;
@@ -38,12 +44,22 @@ typedef struct {
 
 #define SCE_MAX_PLY 50
 typedef struct {
+    volatile bool stop_searching;
     SCE_Eval eval_function;
     SCE_DeltaEval delta_eval_function;
     SCE_TranspositionTable transposition_table;
-    uint8_t depth;
     SCE_ChessMove killer_moves[SCE_MAX_PLY][2];
 } SCE_Engine;
+
+typedef struct {
+    unsigned int start_depth;   // Set to 0 unless multi-threading with helpers.
+    bool use_lmr;
+    int lmr_bias;
+    int lmr_shallow_threshold;
+    int lmr_deep_threshold;
+    //bool check_timeout;
+    //uint64_t time_limit;
+} SCE_Engine_SearchControl;
 
 /**
  * @brief Sets up SCE_Engine struct.
@@ -91,7 +107,7 @@ bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx);
  * @param ctx Pointer to the SCE_Context struct
  * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context *const ctx);
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
 
 /**
  * @brief Outputs the best move calculated by the engine via iterative deepening with alpha beta.
@@ -100,7 +116,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
  * @param ctx Pointer to the SCE_Context struct
  * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx);
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
 
 #ifdef __cplusplus
 }
