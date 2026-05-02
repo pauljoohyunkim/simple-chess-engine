@@ -584,10 +584,11 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
 
     // Zobrist-Transposition-Table Lookup
     uint64_t transposition_data;
-    const bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-    if (transposition_data_exists) {
-        best_move = SCE_TT_GET_MOVE(transposition_data);
-    }
+    bool transposition_data_exists;
+    //bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
+    //if (transposition_data_exists) {
+    //    best_move = SCE_TT_GET_MOVE(transposition_data);
+    //}
 
     // Move generation
     SCE_ChessMoveList moves;
@@ -637,10 +638,12 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
 
         // TT lookup
         uint64_t transposition_data;
-        bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-        if (transposition_data_exists) {
-            tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
-        }
+        bool transposition_data_exists;
+        //uint64_t transposition_data;
+        //bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
+        //if (transposition_data_exists) {
+        //    tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
+        //}
 
         // Call alpha beta search.
         // This saves best move to TT.
