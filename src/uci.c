@@ -226,6 +226,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
 
     SCE_UCI_Session* session = (SCE_UCI_Session*) arg;
     SCE_ChessMove move = EMPTY_MOVE;
+    bool retry = false;
 
     pthread_mutex_lock(&session->context_mutex);
     const unsigned int depth = session->depth;
@@ -234,6 +235,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
 
     pthread_t helper_threads[SCE_MAX_THREADS] = { 0 };
     pthread_t master_thread;
+    lazy_smp_search:
     for (uint i = 0; i < n_helper_threads; i++) {
         // Helper thread
         size_t task_alloc_size = sizeof(SCE_UCI_SearchTask);
@@ -288,6 +290,18 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_join(helper_threads[i], NULL);
     }
     pthread_join(master_thread, NULL);
+
+    bool first_try_lmr = session->ptr_master_ctrl->use_lmr;
+    if (move == EMPTY_MOVE && retry == false && first_try_lmr == true) {
+        // Search failed. Redo the search but disable LMR
+        session->ptr_master_ctrl->use_lmr = false;
+        retry = true;
+        goto lazy_smp_search;
+    }
+    if (retry == true) {
+        // Restore setting
+        session->ptr_master_ctrl->use_lmr = first_try_lmr;
+    }
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     double exe_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;

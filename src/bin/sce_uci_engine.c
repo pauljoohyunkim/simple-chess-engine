@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
             pthread_mutex_lock(&session.stdout_mutex);
             printf("id name SimpleChessEngine\n");
             printf("id author Paul Joo-Hyun Kim\n");
+            //printf("option name DynamicDeepening type ")
             printf("uciok\n");
             pthread_mutex_unlock(&session.stdout_mutex);
             continue;
