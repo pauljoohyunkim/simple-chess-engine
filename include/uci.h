@@ -18,6 +18,7 @@ typedef struct {
     SCE_Engine* ptr_engine;
     size_t n_helper_threads;
     unsigned int depth;
+    SCE_Engine_SearchControl* ptr_master_ctrl;
 } SCE_UCI_Session;
 
 typedef enum {

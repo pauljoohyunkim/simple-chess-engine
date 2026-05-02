@@ -277,11 +277,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_MASTER;
         task->ptr_move = &move;
-        task->ctrl.start_depth = 1;
-        task->ctrl.use_lmr = true;
-        task->ctrl.lmr_bias = 0;
-        task->ctrl.lmr_shallow_threshold = 8;
-        task->ctrl.lmr_deep_threshold = 10;
+        task->ctrl = *session->ptr_master_ctrl;
 
         pthread_create(&master_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }
