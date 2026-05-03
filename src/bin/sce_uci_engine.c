@@ -7,7 +7,7 @@
 #include "eval/sef.h"
 #include "uci.h"
 
-#define TT_TABLE_LOG_2_SIZE 24
+#define TT_TABLE_LOG_2_SIZE 26
 
 static const SCE_Engine_SearchControl master_ctrl_initial = {
     .use_lmr = false,

@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdalign.h>
 #include "return_code.h"
 
 #define CHESSBOARD_DIMENSION 8U
@@ -159,9 +160,9 @@ typedef struct {
 
 #define SCE_MAX_PLY 50
 typedef struct {
-    SCE_PieceMovementPrecomputationTable pm_table;
-    SCE_ZobristTable zobrist_table;
-    int lmr_table[SCE_MAX_PLY][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
+    alignas(64) SCE_PieceMovementPrecomputationTable pm_table;
+    alignas(64) SCE_ZobristTable zobrist_table;
+    alignas(64) int lmr_table[SCE_MAX_PLY][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
 } SCE_Precomputation_Tables;
 
 typedef struct SCE_Context {

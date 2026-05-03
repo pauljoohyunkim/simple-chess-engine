@@ -11,6 +11,8 @@
 #include "eval/pst.h"
 #include "fen.h"
 
+#define NPP_WEIGHT_STOP_LMR 2000
+
 typedef unsigned int uint;
 
 const unsigned int npp_count_to_depth_offset[] = {
@@ -33,6 +35,7 @@ const unsigned int npp_count_to_depth_offset[] = {
     0,      // 16
 };
 
+static unsigned int calculate_npp_weight(const SCE_Context* const ctx);
 static void* SCE_Search_Thread_Wrapper(void* arg);
 static void* SCE_Search_Manager_Thread(void* arg);
 
@@ -301,6 +304,18 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
     return NULL;
 }
 
+static unsigned int calculate_npp_weight(const SCE_Context* const ctx) {
+    if (ctx == NULL) return 0;
+
+    unsigned int val = 0;
+    val += KNIGHT_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_KNIGHT] | ctx->board.bitboards[B_KNIGHT]);
+    val += BISHOP_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_BISHOP] | ctx->board.bitboards[B_BISHOP]);
+    val += ROOK_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_ROOK] | ctx->board.bitboards[B_ROOK]);
+    val += QUEEN_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_QUEEN] | ctx->board.bitboards[B_QUEEN]);
+
+    return val;
+}
+
 static void* SCE_Search_Manager_Thread(void* arg) {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -314,6 +329,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     npp_count = npp_count > 16 ? 16 : npp_count;
     const unsigned int depth = session->depth;
     const unsigned int n_helper_threads = session->n_helper_threads;
+    const unsigned int npp_weight = calculate_npp_weight(session->ctx);
     pthread_mutex_unlock(&session->context_mutex);
 
     pthread_t helper_threads[SCE_MAX_THREADS] = { 0 };
@@ -347,6 +363,11 @@ static void* SCE_Search_Manager_Thread(void* arg) {
             task->ctrl.lmr_bias = 1 + (i % 2);
         }
 
+        // In the case of dynamic deepening with npp weight small, override the use of LMR.
+        if (session->use_dynamic_deepening && npp_weight < NPP_WEIGHT_STOP_LMR) {
+            task->ctrl.use_lmr = false;
+        }
+
         pthread_create(&helper_threads[i], NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }
 
@@ -359,13 +380,17 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
-        task->ctx.depth = depth;
         task->ctx.depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_MASTER;
         task->ptr_move = &move;
         task->ctrl = *session->ptr_master_ctrl;
+
+        // In the case of dynamic deepening with npp weight small, override the use of LMR.
+        if (session->use_dynamic_deepening && npp_weight < NPP_WEIGHT_STOP_LMR) {
+            task->ctrl.use_lmr = false;
+        }
 
         pthread_create(&master_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }
