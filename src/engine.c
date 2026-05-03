@@ -7,23 +7,23 @@
 
 typedef unsigned int uint;
 
-inline static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move);
-static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
-static bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
-static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply);
-static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply);
-static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
-                                        SCE_Context* const ctx,
-                                        int alpha,
-                                        int beta);
-static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
-                                       SCE_Context* const ctx,
-                                       const SCE_Engine_SearchControl* const ptr_ctrl,
-                                       const unsigned int depth,
-                                       int alpha,
-                                       int beta);
+static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move);
+static inline bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag);
+static inline bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* const ptr_engine, const uint64_t zobrist_hash);
+static inline int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply);
+static inline SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply);
+static inline int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
+                                               SCE_Context* const ctx,
+                                               int alpha,
+                                               int beta);
+static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
+                                              SCE_Context* const ctx,
+                                              const SCE_Engine_SearchControl* const ptr_ctrl,
+                                              const unsigned int depth,
+                                              int alpha,
+                                              int beta);
 
-inline static SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
+static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
     if (ctx == NULL || ptr_engine == NULL || move == EMPTY_MOVE) return SCE_INVALID_PARAM;
 
     // 1. Take snapshot of eval states
@@ -82,7 +82,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
 }
 
 // Returns true if succeeded.
-static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag) {
+static inline bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag) {
     if (ptr_engine == NULL || zobrist_hash == 0U) return false;
 
     // Hash the zobrist hash for hash map.
@@ -110,7 +110,7 @@ static bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint
     return true;
 }
 
-static bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* const ptr_engine, const uint64_t zobrist_hash) {
+static inline bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* const ptr_engine, const uint64_t zobrist_hash) {
     if (data == NULL || ptr_engine == NULL || zobrist_hash == 0U) return false;
 
     const uint64_t key = zobrist_hash & (ptr_engine->transposition_table.table_size - 1U);
@@ -138,7 +138,7 @@ static bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* const pt
 #define QUEEN_VALUE 900
 #define KING_VALUE 1000
 #define FLIP(x) ((x)^56)
-static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply) {
+static inline int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard* const ptr_board, const SCE_ChessMove move, const int ply) {
     assert(ptr_engine != NULL);
     assert(ptr_board != NULL);
     
@@ -224,7 +224,7 @@ static int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboa
     }
 }
 
-static SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply) {
+static inline SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* const ptr_movelist, const SCE_Engine* const ptr_engine, const SCE_Chessboard* const ptr_board, const int tt_hint_move, const int ply) {
     if (ptr_movelist == NULL) return SCE_INVALID_BOARD_STATE;
 
     // Keeps track of how many elements are sorted.
@@ -337,10 +337,10 @@ bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx) {
 }
 
 #define DUMMY_VALUE_FROM_STOPPING_SEARCH 0
-static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
-                                        SCE_Context* const ctx,
-                                        int alpha,
-                                        int beta) {
+static inline int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
+                                               SCE_Context* const ctx,
+                                               int alpha,
+                                               int beta) {
     #ifdef NODE_COUNT
     ctx->node_count++;
     #endif NODE_COUNT
@@ -400,12 +400,12 @@ static int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
 #define SCE_EVAL_DRAW (0)
 #define SCE_EVAL_CHECKMATE (-100000)
 #define SCE_MATE_THRESHOLD (90000)
-static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
-                                       SCE_Context* const ctx,
-                                       const SCE_Engine_SearchControl* const ptr_ctrl,
-                                       const unsigned int depth,
-                                       int alpha,
-                                       int beta) {
+static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
+                                              SCE_Context* const ctx,
+                                              const SCE_Engine_SearchControl* const ptr_ctrl,
+                                              const unsigned int depth,
+                                              int alpha,
+                                              int beta) {
     #ifdef NODE_COUNT
     ctx->node_count++;
     #endif NODE_COUNT
@@ -504,12 +504,16 @@ static int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         int reduction = 0;
         if ((ptr_ctrl->use_lmr) &&
             (depth > 2) &&
-            (legal_move_count > ptr_ctrl->lmr_shallow_threshold) &&
             !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
+            !(move & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) &&
             !(is_in_check)) {
-                reduction = 1 + ptr_ctrl->lmr_bias;  // Base reduction
+                int r_idx = legal_move_count < 64 ? legal_move_count : 63;
+                reduction = ctx->precomputation_tables->lmr_table[depth][r_idx];
+                reduction += ptr_ctrl->lmr_bias;
 
-                if (legal_move_count > ptr_ctrl->lmr_deep_threshold) reduction++;
+                // Reduction to negative depth not allowed.
+                if (reduction < 0) reduction = 0;
+                if (reduction >= depth) reduction = depth - 1;
         }
 
         int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-reduction, -beta, -alpha);
@@ -579,10 +583,11 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
 
     // Zobrist-Transposition-Table Lookup
     uint64_t transposition_data;
-    const bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-    if (transposition_data_exists) {
-        best_move = SCE_TT_GET_MOVE(transposition_data);
-    }
+    bool transposition_data_exists;
+    //bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
+    //if (transposition_data_exists) {
+    //    best_move = SCE_TT_GET_MOVE(transposition_data);
+    //}
 
     // Move generation
     SCE_ChessMoveList moves;
@@ -632,10 +637,12 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
 
         // TT lookup
         uint64_t transposition_data;
-        bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-        if (transposition_data_exists) {
-            tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
-        }
+        bool transposition_data_exists;
+        //uint64_t transposition_data;
+        //bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
+        //if (transposition_data_exists) {
+        //    tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
+        //}
 
         // Call alpha beta search.
         // This saves best move to TT.

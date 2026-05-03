@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 #include <time.h>
 #include "helper.h"
 #include "chess.h"
@@ -32,6 +33,12 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
 
     RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(&ptr_precomputation_tables->zobrist_table, ptr_seed), "Could not initialize Zobrist hash table.");
     RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(&ptr_precomputation_tables->pm_table), "Could not precompute piece movement table.");
+    const double K = 0.5;    // Aggression; higher K = more reduction
+    for (int depth = 1; depth < SCE_MAX_PLY; depth++) {
+        for (int i = 1; i < CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION; i++) {
+            ptr_precomputation_tables->lmr_table[depth][i] = (int)(K + log(depth) * log(i) / 3.0);
+        }
+    }
 
     return SCE_SUCCESS;
 }

@@ -42,7 +42,6 @@ typedef struct {
     size_t table_size;
 } SCE_TranspositionTable;
 
-#define SCE_MAX_PLY 50
 typedef struct {
     volatile bool stop_searching;
     SCE_Eval eval_function;
@@ -55,8 +54,6 @@ typedef struct {
     unsigned int start_depth;   // Set to 0 unless multi-threading with helpers.
     bool use_lmr;
     int lmr_bias;
-    int lmr_shallow_threshold;
-    int lmr_deep_threshold;
     //bool check_timeout;
     //uint64_t time_limit;
 } SCE_Engine_SearchControl;

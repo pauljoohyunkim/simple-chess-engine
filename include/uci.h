@@ -18,6 +18,8 @@ typedef struct {
     SCE_Engine* ptr_engine;
     size_t n_helper_threads;
     unsigned int depth;
+    SCE_Engine_SearchControl* ptr_master_ctrl;
+    bool use_dynamic_deepening;
 } SCE_UCI_Session;
 
 typedef enum {
@@ -64,6 +66,15 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string);
  * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
  */
 SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line);
+
+/**
+ * @brief Parse setoption line
+ * 
+ * @param ptr_session Pointer to the SCE_UCI_Session struct.
+ * @param line The entire line from position command.
+ * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
+ */
+SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char* const line);
 
 /**
  * @brief Parse go line

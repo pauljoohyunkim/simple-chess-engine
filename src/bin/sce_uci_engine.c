@@ -7,7 +7,13 @@
 #include "eval/sef.h"
 #include "uci.h"
 
-#define TT_TABLE_LOG_2_SIZE 24
+#define TT_TABLE_LOG_2_SIZE 26
+
+static const SCE_Engine_SearchControl master_ctrl_initial = {
+    .use_lmr = false,
+    .start_depth = 1,
+    .lmr_bias = 0,
+};
 
 int main(int argc, char** argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -29,13 +35,18 @@ int main(int argc, char** argv) {
     ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
     assert(ret == SCE_SUCCESS);
 
+    SCE_Engine_SearchControl master_ctrl = master_ctrl_initial;
+
     SCE_UCI_Session session = {
         .stdout_mutex = PTHREAD_MUTEX_INITIALIZER,
         .context_mutex = PTHREAD_MUTEX_INITIALIZER,
         .ctx = &ctx,
         .ptr_engine = &engine,
-        .n_helper_threads = 4
+        .n_helper_threads = 4,
+        .ptr_master_ctrl = &master_ctrl,
+        .use_dynamic_deepening = false
     };
+
 
     char line[BUFSIZ] = { 0 };
     while (fgets(line, sizeof(line)-1, stdin)) {
@@ -46,12 +57,17 @@ int main(int argc, char** argv) {
             assert(ret == SCE_SUCCESS);
             ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
             assert(ret == SCE_SUCCESS);
+            master_ctrl = master_ctrl_initial;
         } else if (strncmp(line, "uci", 3) == 0) {
             pthread_mutex_lock(&session.stdout_mutex);
             printf("id name SimpleChessEngine\n");
             printf("id author Paul Joo-Hyun Kim\n");
+            printf("option name DynamicDeepening type check default false\n");
             printf("uciok\n");
             pthread_mutex_unlock(&session.stdout_mutex);
+            continue;
+        } else if (strncmp(line, "setoption", 9) == 0) {
+            ret = SCE_UCI_ParseSetoption(&session, line);
             continue;
         } else if (strncmp(line, "isready", 7) == 0) {
             pthread_mutex_lock(&session.stdout_mutex);
