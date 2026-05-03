@@ -66,9 +66,8 @@ where
 9. Update the estimated ELO and repeat the process again if wanted.
 
 ### Benchmark Results
-Using 28 threads and 30 as my TT table size parameter (as these numbers may affect the accuracy).
 
 | depth | R    | W  | D  | N   | dR     | Approx ELO    |
 |-------|------|----|----|-----|--------|---------------|
 | 7     | 2100 | 77 | 16 | 100 | 301.33 | 2401.3+/-82.6 |
-| 8     | 2100 | Ongoing   | Ongoing   | 100 | Ongoing       | Ongoing              |
+| 8     | 2100 | 80 | 18 | 100 | 363.2  | 2463.2+/-84.3 |
