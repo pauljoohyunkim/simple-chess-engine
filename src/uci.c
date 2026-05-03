@@ -7,10 +7,35 @@
 #include <time.h>
 #include "chess.h"
 #include "uci.h"
+#include "helper.h"
+#include "eval/pst.h"
 #include "fen.h"
+
+#define NPP_WEIGHT_STOP_LMR 2000
 
 typedef unsigned int uint;
 
+const unsigned int npp_count_to_depth_offset[] = {
+    16,     // 0
+    5,      // 1
+    5,      // 2
+    5,      // 3
+    4,      // 4
+    4,      // 5
+    3,      // 6
+    2,      // 7
+    2,      // 8
+    1,      // 9
+    1,      // 10
+    1,      // 11
+    1,      // 12
+    1,      // 13
+    0,      // 14
+    0,      // 15
+    0,      // 16
+};
+
+static unsigned int calculate_npp_weight(const SCE_Context* const ctx);
 static void* SCE_Search_Thread_Wrapper(void* arg);
 static void* SCE_Search_Manager_Thread(void* arg);
 
@@ -199,6 +224,65 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
     return SCE_SUCCESS;
 }
 
+SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char* const line) {
+    if (ptr_session == NULL || line == NULL) return SCE_INVALID_PARAM;
+
+    if (strncmp(line, "setoption", 9) != 0) return SCE_INVALID_PARAM;
+    char line_cpy[BUFSIZ] = { 0 };
+    strncpy(line_cpy, line, sizeof(line_cpy)-1);
+    {
+        // Replace newline with '\0'
+        char* pos = strchr(line_cpy, '\n');
+        if (pos) {
+            *pos = '\0';
+        }
+    }
+
+    char* saveptr = NULL;
+    char* word = strtok_r(line_cpy, " ", &saveptr);         // "setoption"
+    word = strtok_r(NULL, " ", &saveptr);
+    if (word && (strcmp(word, "name") == 0)) {
+        word = strtok_r(NULL, " ", &saveptr);
+
+        // word now contains the name of the variable.
+
+        // Options:
+        // 1. DynamicDeepening
+        if (strcmp(word, "DynamicDeepening") == 0) {
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word == NULL || strcmp(word, "value") != 0) return SCE_INVALID_PARAM;
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word) {
+                // '1' , 'yes', 'on', 'true' or 'enabled'
+                if (strcmp(word, "1") == 0 ||
+                    strcmp(word, "yes") == 0 ||
+                    strcmp(word, "on") == 0 ||
+                    strcmp(word, "true") == 0 ||
+                    strcmp(word, "enabled") == 0) {
+                    ptr_session->use_dynamic_deepening = true;
+                } else if (strcmp(word, "0") == 0 ||
+                           strcmp(word, "no") == 0 ||
+                           strcmp(word, "off") == 0 ||
+                           strcmp(word, "false") == 0 ||
+                           strcmp(word, "disabled") == 0) {
+                    ptr_session->use_dynamic_deepening = false;
+                } else {
+                    return SCE_INVALID_PARAM;
+                }
+            } else {
+                return SCE_INVALID_PARAM;
+            }
+        } else {
+            return SCE_INVALID_PARAM;
+        }
+
+    } else {
+        return SCE_INVALID_PARAM;
+    }
+
+    return SCE_SUCCESS;
+}
+
 static void* SCE_Search_Thread_Wrapper(void* arg) {
     if (arg == NULL) return NULL;
     SCE_UCI_SearchTask* task = (SCE_UCI_SearchTask*) arg;
@@ -220,20 +304,37 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
     return NULL;
 }
 
+static unsigned int calculate_npp_weight(const SCE_Context* const ctx) {
+    if (ctx == NULL) return 0;
+
+    unsigned int val = 0;
+    val += KNIGHT_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_KNIGHT] | ctx->board.bitboards[B_KNIGHT]);
+    val += BISHOP_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_BISHOP] | ctx->board.bitboards[B_BISHOP]);
+    val += ROOK_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_ROOK] | ctx->board.bitboards[B_ROOK]);
+    val += QUEEN_WEIGHT * COUNT_SET_BITS(ctx->board.bitboards[W_QUEEN] | ctx->board.bitboards[B_QUEEN]);
+
+    return val;
+}
+
 static void* SCE_Search_Manager_Thread(void* arg) {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     SCE_UCI_Session* session = (SCE_UCI_Session*) arg;
     SCE_ChessMove move = EMPTY_MOVE;
+    bool retry = false;
 
     pthread_mutex_lock(&session->context_mutex);
+    unsigned int npp_count = COUNT_SET_BITS(SCE_Chessboard_Occupancy(session->ctx) & ~session->ctx->board.bitboards[W_PAWN] & ~session->ctx->board.bitboards[B_PAWN]);
+    npp_count = npp_count > 16 ? 16 : npp_count;
     const unsigned int depth = session->depth;
     const unsigned int n_helper_threads = session->n_helper_threads;
+    const unsigned int npp_weight = calculate_npp_weight(session->ctx);
     pthread_mutex_unlock(&session->context_mutex);
 
     pthread_t helper_threads[SCE_MAX_THREADS] = { 0 };
     pthread_t master_thread;
+    lazy_smp_search:
     for (uint i = 0; i < n_helper_threads; i++) {
         // Helper thread
         size_t task_alloc_size = sizeof(SCE_UCI_SearchTask);
@@ -250,15 +351,22 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
-        task->ctx.depth = depth;
+        task->ctx.depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_HELPER;
-        task->ctrl.start_depth = 1 + (i % 3);
-        task->ctrl.use_lmr = true;
-        task->ctrl.lmr_bias = i % 2 == 0 ? 0 : (i+1);
-        task->ctrl.lmr_shallow_threshold = 4;
-        task->ctrl.lmr_deep_threshold = 7;
+        task->ctrl.start_depth = 1 + (i % 4);
+        if (i % 4 == 0) {
+            task->ctrl.use_lmr = false;     // Safety
+        } else {
+            task->ctrl.use_lmr = true;
+            task->ctrl.lmr_bias = 1 + (i % 2);
+        }
+
+        // In the case of dynamic deepening with npp weight small, override the use of LMR.
+        if (session->use_dynamic_deepening && npp_weight < NPP_WEIGHT_STOP_LMR) {
+            task->ctrl.use_lmr = false;
+        }
 
         pthread_create(&helper_threads[i], NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }
@@ -272,16 +380,17 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
-        task->ctx.depth = depth;
+        task->ctx.depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_MASTER;
         task->ptr_move = &move;
-        task->ctrl.start_depth = 1;
-        task->ctrl.use_lmr = true;
-        task->ctrl.lmr_bias = 0;
-        task->ctrl.lmr_shallow_threshold = 8;
-        task->ctrl.lmr_deep_threshold = 10;
+        task->ctrl = *session->ptr_master_ctrl;
+
+        // In the case of dynamic deepening with npp weight small, override the use of LMR.
+        if (session->use_dynamic_deepening && npp_weight < NPP_WEIGHT_STOP_LMR) {
+            task->ctrl.use_lmr = false;
+        }
 
         pthread_create(&master_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }
@@ -290,6 +399,21 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_join(helper_threads[i], NULL);
     }
     pthread_join(master_thread, NULL);
+
+    bool first_try_lmr = session->ptr_master_ctrl->use_lmr;
+    if (move == EMPTY_MOVE && retry == false && first_try_lmr == true) {
+        // Search failed. Redo the search but disable LMR
+        session->ptr_master_ctrl->use_lmr = false;
+        retry = true;
+        pthread_mutex_lock(&session->stdout_mutex);
+        printf("info string Search failure. Retrying without LMR\n");
+        pthread_mutex_unlock(&session->stdout_mutex);
+        goto lazy_smp_search;
+    }
+    if (retry == true) {
+        // Restore setting
+        session->ptr_master_ctrl->use_lmr = first_try_lmr;
+    }
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     double exe_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;

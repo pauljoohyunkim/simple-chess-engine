@@ -32,8 +32,6 @@ SCE_Engine_SearchControl ctrl = {
     .start_depth = 1,
     .use_lmr = false,
     .lmr_bias = 0,
-    .lmr_shallow_threshold = 4,
-    .lmr_deep_threshold = 7,
 };
 
 typedef enum {

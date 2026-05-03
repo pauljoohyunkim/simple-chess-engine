@@ -9,7 +9,7 @@ CFLAGS+=`pkg-config --cflags $(PKG_DEPS)`
 CFLAGS+=$(CFLAGSEXTRA)
 CXX=g++
 CXXFLAGS=$(CFLAGS)
-LDLIBS=`pkg-config --libs $(PKG_DEPS)`
+LDLIBS=`pkg-config --libs $(PKG_DEPS)` -lm
 
 BIN=bin
 OBJ=obj
