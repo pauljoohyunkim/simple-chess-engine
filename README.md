@@ -32,11 +32,13 @@ There are clearly a lot of work to do, but so far I think it is of good quality 
 Here are the steps taken for the measurements.
 I acknowledge that the measurement could be more formal,
 but I do not want to pull my hair out for this hobby project.
+
+Note that most of the internal calculation is done by Cutechess anyways.
 #### Prerequisites
 * Stockfish
 * Cutechess
 
-0. Take an estimate of the ELO for SCE.
+0. Take an estimate ($R$) of the ELO for SCE.
 1. Download and install Stockfish and Cutechess.
 2. Open Cutechess GUI
     * I wanted to use Cutechess CLI, but it seems to be buggy on my machine...
@@ -61,5 +63,12 @@ where
 ```
 
 8. Add this $\Delta R$ to the estimated ELO.
+9. Update the estimated ELO and repeat the process again if wanted.
 
-    
+### Benchmark Results
+Using 28 threads and 30 as my TT table size parameter (as these numbers may affect the accuracy).
+
+| depth | R    | W  | D  | N   | dR     | Approx ELO    |
+|-------|------|----|----|-----|--------|---------------|
+| 7     | 2100 | 77 | 16 | 100 | 301.33 | 2401.3+/-82.6 |
+| 8     | 2100 | Ongoing   | Ongoing   | 100 | Ongoing       | Ongoing              |
