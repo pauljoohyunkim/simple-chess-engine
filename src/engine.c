@@ -83,6 +83,29 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
     return SCE_SUCCESS;
 }
 
+inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns) {
+    if (ptr_engine == NULL || pawn_zobrist_hash == 0U) return false;
+
+    const uint64_t key = pawn_zobrist_hash & (sizeof(ptr_engine->pawn_hash_table)/sizeof(ptr_engine->pawn_hash_table[0]) - 1U);
+    const uint64_t table_score_data = ptr_engine->pawn_hash_table[key].score_data;
+    const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
+    const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
+    const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
+    if ((table_score_data ^ table_passed_pawns ^ table_weak_pawns ^ table_chksum) != pawn_zobrist_hash) {
+        // Unassigned. Safe to add.
+        const uint64_t score_data = (mg_score SCE_PHT_SET_MG_SCORE) | (eg_score SCE_PHT_SET_EG_SCORE);
+        ptr_engine->pawn_hash_table[key].score_data = score_data;
+        ptr_engine->pawn_hash_table[key].weak_pawns = weak_pawns;
+        ptr_engine->pawn_hash_table[key].passed_pawns = passed_pawns;
+        __atomic_thread_fence(__ATOMIC_RELEASE);
+        ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum = pawn_zobrist_hash ^ score_data ^ weak_pawns ^ passed_pawns;
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
 // Returns true if succeeded.
 static inline bool SCE_Engine_AddTransposition(SCE_Engine* const ptr_engine, const uint64_t zobrist_hash, const int score, const uint8_t depth, const SCE_ChessMove move, const uint8_t flag) {
     if (ptr_engine == NULL || zobrist_hash == 0U) return false;

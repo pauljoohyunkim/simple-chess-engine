@@ -157,7 +157,7 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_6) {
 #ifndef UNITTEST_FULL
     DeltaEvalTest(&ctx, &engine, 4);
 #else
-    DeltaEvalTest(&ctx, 6);
+    DeltaEvalTest(&ctx, &engine, 6);
 #endif
 
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);

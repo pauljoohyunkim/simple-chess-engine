@@ -99,6 +99,20 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
 SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
 
 /**
+ * @brief Add pawn hash entry to pawn hash table
+ * 
+ * @param ptr_engine Pointer to hte SCE_Engine struct.
+ * @param pawn_zobrist_hash Zobrist hash only accounting locations of pawns.
+ * @param mg_score Middlegame score
+ * @param eg_score Endgame score
+ * @param passed_pawns Bitboard of passed pawns
+ * @param weak_pawns Bitboard of weak pawns (backward, isolated, etc.)
+ * @return true Successful
+ * @return false Failure
+ */
+inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns);
+
+/**
  * @brief Returns whether or not there has been a repetition (for draw rule)
  * 
  * @param ctx Pointer to the SCE_Context struct.
