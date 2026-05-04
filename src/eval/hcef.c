@@ -7,7 +7,7 @@
 typedef unsigned int uint;
 
 static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const SCE_Chessboard* const ptr_board);
-static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const SCE_Chessboard* const ptr_board);
+static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const SCE_Context* const ctx);
 
 #define DOUBLE_PAWN_PENALTY_MG (15)
 #define DOUBLE_PAWN_PENALTY_EG (20)
@@ -39,27 +39,45 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_scor
     *eg_score = local_eg_score;
 }
 
-static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const SCE_Chessboard* const ptr_board) {
+static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const SCE_Context* const ctx) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
     assert(passed_pawns != NULL);
-    assert(ptr_board != NULL);
+    assert(ctx != NULL);
 
     *passed_pawns = 0U;
+    int local_mg_score = 0;
+    int local_eg_score = 0;
     for (uint i = 0U; i < CHESSBOARD_DIMENSION; i++) {
-        uint64_t w_pawns_in_file = ptr_board->bitboards[W_PAWN] & ChessboardFileMasks[i];
-        uint64_t b_pawns_in_file = ptr_board->bitboards[B_PAWN] & ChessboardFileMasks[i];
+        uint64_t w_pawns_in_file = ctx->board.bitboards[W_PAWN] & ChessboardFileMasks[i];
+        uint64_t b_pawns_in_file = ctx->board.bitboards[B_PAWN] & ChessboardFileMasks[i];
         // White pawn
         if (w_pawns_in_file) {
-            uint leading_pawn_idx = (63U - COUNT_LEADING_ZEROS(w_pawns_in_file));
-            // TODO: Use Precomputation table.
-            //uint64_t passed_pawn_mask = 
-            // Check if enemy (black) pawn exists in the front and adjacent files.
+            const uint leading_pawn_idx = (63U - COUNT_LEADING_ZEROS(w_pawns_in_file));
+            const uint col = leading_pawn_idx % 8;
+            uint64_t passed_pawn_mask = ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx];
+            // Check the two adjacent files.
+            if (col == 0U) {
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx+1U];
+            } else if (col == 7U) {
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx-1U];
+            } else {
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx+1U];
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx-1U];
+            }
+            // Check if enemy (black) pawn exists
+            if (!(passed_pawn_mask & ctx->board.bitboards[B_PAWN])) {
+                // Add it to passed pawns.
+                *passed_pawns |= (1ULL << leading_pawn_idx);
+                // TODO: Give point boost.
+            }
         }
 
         // Black pawn
         if (b_pawns_in_file) {
-            uint leading_pawn_idx = COUNT_TRAILING_ZEROS(b_pawns_in_file);
+            const uint leading_pawn_idx = COUNT_TRAILING_ZEROS(b_pawns_in_file);
+            const uint col = leading_pawn_idx % 8;
+            uint64_t passed_pawn_mask = ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx];
         }
     }
 }
