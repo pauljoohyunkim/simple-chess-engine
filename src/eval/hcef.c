@@ -25,12 +25,12 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_scor
         const uint b_setbits = COUNT_SET_BITS(file_mask & ctx->board.bitboards[B_PAWN]);
 
         if (w_setbits >= 2U) {
-            local_mg_score -= DOUBLE_PAWN_PENALTY_MG;
-            local_eg_score -= DOUBLE_PAWN_PENALTY_EG;
+            local_mg_score -= (w_setbits - 1U) * DOUBLE_PAWN_PENALTY_MG;
+            local_eg_score -= (w_setbits - 1U) * DOUBLE_PAWN_PENALTY_EG;
         }
         if (b_setbits >= 2U) {
-            local_mg_score += DOUBLE_PAWN_PENALTY_MG;
-            local_eg_score += DOUBLE_PAWN_PENALTY_EG;
+            local_mg_score += (b_setbits - 1U) * DOUBLE_PAWN_PENALTY_MG;
+            local_eg_score += (b_setbits - 1U) * DOUBLE_PAWN_PENALTY_EG;
         }
     }
 
@@ -54,6 +54,7 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
 
     return (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
 }
+
 int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
     assert(ptr_board != NULL);
     assert(ptr_eval_state != NULL);
