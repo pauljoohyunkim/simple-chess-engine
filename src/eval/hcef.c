@@ -46,14 +46,18 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
     assert(ctx != NULL);
 
     *passed_pawns = 0U;
+    int mg_weights[] = { 0, 0, 0, 5, 15, 40, 80, 0 };
+    int eg_weights[] = { 0, 5, 5, 20, 40, 80, 150, 0 };
     int local_mg_score = 0;
     int local_eg_score = 0;
+    const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
     for (uint i = 0U; i < CHESSBOARD_DIMENSION; i++) {
         uint64_t w_pawns_in_file = ctx->board.bitboards[W_PAWN] & ChessboardFileMasks[i];
         uint64_t b_pawns_in_file = ctx->board.bitboards[B_PAWN] & ChessboardFileMasks[i];
         // White pawn
         if (w_pawns_in_file) {
             const uint leading_pawn_idx = (63U - COUNT_LEADING_ZEROS(w_pawns_in_file));
+            const uint row = leading_pawn_idx / 8;
             const uint col = leading_pawn_idx % 8;
             uint64_t passed_pawn_mask = ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx];
             // Check the two adjacent files.
@@ -69,17 +73,55 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
             if (!(passed_pawn_mask & ctx->board.bitboards[B_PAWN])) {
                 // Add it to passed pawns.
                 *passed_pawns |= (1ULL << leading_pawn_idx);
-                // TODO: Give point boost.
+
+                // Blockage penalty (passed pawn being blocked right in front is not as good)
+                if ((1ULL << (leading_pawn_idx + CHESSBOARD_DIMENSION)) & occupancy) {
+                    local_mg_score += mg_weights[row] / 2;
+                    local_eg_score += eg_weights[row] / 2;
+                } else {
+                    // Normal point
+                    local_mg_score += mg_weights[row];
+                    local_eg_score += eg_weights[row];
+                }
+                
             }
         }
 
         // Black pawn
         if (b_pawns_in_file) {
             const uint leading_pawn_idx = COUNT_TRAILING_ZEROS(b_pawns_in_file);
+            const uint row = leading_pawn_idx / 8;
             const uint col = leading_pawn_idx % 8;
             uint64_t passed_pawn_mask = ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx];
+            // Check the two adjacent files.
+            if (col == 0U) {
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx+1U];
+            } else if (col == 7U) {
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx-1U];
+            } else {
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx+1U];
+                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx-1U];
+            }
+            // Check if enemy (white) pawn exists
+            if (!(passed_pawn_mask & ctx->board.bitboards[W_PAWN])) {
+                // Add it to passed pawns.
+                *passed_pawns |= (1ULL << leading_pawn_idx);
+
+                // Blockage penalty
+                if ((1ULL << (leading_pawn_idx - CHESSBOARD_DIMENSION)) & occupancy) {
+                    local_mg_score -= mg_weights[7-row] / 2;
+                    local_eg_score -= eg_weights[7-row] / 2;
+                } else {
+                    // Point
+                    local_mg_score -= mg_weights[7-row];
+                    local_eg_score -= eg_weights[7-row];
+                }
+            }
         }
     }
+
+    *mg_score = local_mg_score;
+    *eg_score = local_eg_score;
 }
 
 int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
