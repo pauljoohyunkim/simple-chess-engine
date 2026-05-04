@@ -46,7 +46,18 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
 
     int double_pawn_mg;
     int double_pawn_eg;
-    SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, ctx);
+    SCE_PawnHashTableEntry pht_entry;
+    if (SCE_Engine_GetPawnHashData(&pht_entry, ptr_engine, ctx->board.pawn_zobrist_hash)) {
+        // Read success
+        double_pawn_mg = SCE_PHT_GET_MG_SCORE(pht_entry.score_data);
+        double_pawn_eg = SCE_PHT_GET_EG_SCORE(pht_entry.score_data);
+    } else {
+        SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, ctx);
+        // Cache
+        // For now, 0U: Not taking into account for weak pawns or passed pawns yet for testing.
+        SCE_Engine_AddPawnHashData(ptr_engine, ctx->board.pawn_zobrist_hash, double_pawn_mg, double_pawn_eg, 0U, 0U);
+    }
+    
 
     const int phase = ctx->eval_state.phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score + double_pawn_mg;
