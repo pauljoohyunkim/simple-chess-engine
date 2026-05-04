@@ -110,7 +110,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * @return true Successful
  * @return false Failure
  */
-inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns);
+bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns);
 
 /**
  * @brief Get pawn hash entry from pawn hash table
@@ -121,7 +121,7 @@ inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint6
  * @return true Successful
  * @return false Failure
  */
-inline bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash);
+bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash);
 
 /**
  * @brief Returns whether or not there has been a repetition (for draw rule)
