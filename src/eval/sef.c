@@ -14,7 +14,7 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
 static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color, const bool is_mg);
 
-int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx) {
+int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     assert(ctx != NULL);
     int material_sum = 0;
     int pst_sum = 0;
@@ -151,7 +151,7 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return part_sum;
 }
 
-int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move) {
+int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
     const int flag = move SCE_CHESSMOVE_GET_FLAG;

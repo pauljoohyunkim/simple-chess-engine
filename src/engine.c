@@ -30,7 +30,7 @@ static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE
     SCE_EvalState eval_state = ctx->eval_state;
 
     // 2. Use delta evaluation on the eval states
-    int score = ptr_engine->delta_eval_function(&ctx->board, &eval_state, move);
+    int score = ptr_engine->delta_eval_function(&ctx->board, &eval_state, ptr_engine, move);
 
     // 3. Try MakeMove.
     SCE_Return ret = SCE_MakeMove(ctx, move);
@@ -54,6 +54,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     memset(ptr_engine->transposition_table.entries, 0, n_entries * sizeof(SCE_TranspositionTableEntry));
     if (ptr_engine->transposition_table.entries == NULL) return SCE_INTERNAL_ERROR;
     ptr_engine->transposition_table.table_size = n_entries;
+    memset(ptr_engine->pawn_hash_table, 0, sizeof(ptr_engine->pawn_hash_table));
 
     ptr_engine->stop_searching = false;
     ptr_engine->eval_function = eval_func;
@@ -64,7 +65,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     }
 
     // Compute the initial evaluation
-    ptr_engine->eval_function(ctx);
+    ptr_engine->eval_function(ctx, ptr_engine);
 
     return SCE_SUCCESS;
 }
@@ -73,6 +74,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
     if (ptr_engine == NULL) return SCE_INVALID_PARAM;
 
     free(ptr_engine->transposition_table.entries);
+    memset(ptr_engine->pawn_hash_table, 0, sizeof(ptr_engine->pawn_hash_table));
     ptr_engine->transposition_table.entries = NULL;
     ptr_engine->transposition_table.table_size = 0;
     ptr_engine->eval_function = NULL;

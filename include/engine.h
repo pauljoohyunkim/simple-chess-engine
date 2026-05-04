@@ -10,8 +10,12 @@ extern "C" {
 #include <stdint.h>
 #include "chess.h"
 
-typedef int (*SCE_Eval)(SCE_Context* const);
-typedef int (*SCE_DeltaEval)(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move);
+// Forward declare SCE_Engine
+struct SCE_Engine;
+typedef struct SCE_Engine SCE_Engine;
+
+typedef int (*SCE_Eval)(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+typedef int (*SCE_DeltaEval)(SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
 
 #define SCE_ALPHA_INITIAL (INT32_MIN / 2)
 #define SCE_BETA_INITIAL (INT32_MAX / 2)
@@ -38,17 +42,32 @@ typedef struct {
 #define SCE_TT_GET_FLAG(d)  (((uint8_t)((d) >> 0)) & 0xFFULL)
 
 typedef struct {
+    uint64_t pawn_zobrist_hash_chksum;  // zobrist_hash ^ score_data ^ passed_pawns ^ weak_pawns
+    uint64_t score_data;    // score_data(8) =  mg_score(4) | eg_score(4)
+    uint64_t passed_pawns;  // Bitboard of passed pawns of both colors
+    uint64_t weak_pawns;    // Bitboard of weak pawns (backward, isolated, etc.)
+} __attribute__((aligned(32))) SCE_PawnHashTableEntry;
+#define SCE_PHT_SET_MG_SCORE << 32U
+#define SCE_PHT_SET_EG_SCORE << 0U
+#define SCE_PHT_GET_MG_SCORE(d) (((int32_t)((d) >> 32)) & 0xFFFFFFFFULL)
+#define SCE_PHT_GET_EG_SCORE(d) (((int32_t)((d) >> 0)) & 0xFFFFFFFFULL)
+
+typedef struct {
     SCE_TranspositionTableEntry* entries;
     size_t table_size;
 } SCE_TranspositionTable;
 
-typedef struct {
+#define PHT_N_ENTRIES_LOG_2 (16)
+typedef SCE_PawnHashTableEntry SCE_PawnHashTable[1 << PHT_N_ENTRIES_LOG_2];
+
+struct SCE_Engine {
     volatile bool stop_searching;
     SCE_Eval eval_function;
     SCE_DeltaEval delta_eval_function;
     SCE_TranspositionTable transposition_table;
+    SCE_PawnHashTable pawn_hash_table;
     SCE_ChessMove killer_moves[SCE_MAX_PLY][2];
-} SCE_Engine;
+};
 
 typedef struct {
     unsigned int start_depth;   // Set to 0 unless multi-threading with helpers.
