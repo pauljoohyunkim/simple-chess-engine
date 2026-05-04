@@ -11,6 +11,17 @@
 
 #define MIN(x, y) ((x) > (y) ? (y) : (x))
 
+const uint64_t ChessboardFileMasks[] = {
+    A_MASK,
+    B_MASK,
+    C_MASK,
+    D_MASK,
+    E_MASK,
+    F_MASK,
+    G_MASK,
+    H_MASK
+};
+
 typedef unsigned int uint;
 
 static uint64_t xorshift(uint64_t x);

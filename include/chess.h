@@ -52,6 +52,8 @@ typedef enum {
     H_MASK = 0x8080808080808080ULL
 } ChessboardFileMask;
 
+extern const uint64_t ChessboardFileMasks[CHESSBOARD_DIMENSION];
+
 typedef enum {
     WHITE = 0,
     BLACK = 1
