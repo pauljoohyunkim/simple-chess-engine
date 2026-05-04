@@ -51,6 +51,7 @@ SCE_Return SCE_Context_init(SCE_Context* const ctx, const SCE_Precomputation_Tab
 
     ctx->precomputation_tables = ptr_precomputation_tables;
     ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
+    ctx->board.pawn_zobrist_hash = SCE_Chessboard_ComputePawnZobristHash(ctx);
     ctx->depth = 0U;
     ctx->current_search_depth = 0U;
     #ifdef NODE_COUNT
@@ -115,6 +116,7 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
     ctx->board.castling_rights = SCE_CASTLING_RIGHTS_WK | SCE_CASTLING_RIGHTS_WQ | SCE_CASTLING_RIGHTS_BK | SCE_CASTLING_RIGHTS_BQ;
     ctx->board.half_move_clock = 0U;
     ctx->board.zobrist_hash = 0U;
+    ctx->board.pawn_zobrist_hash = 0U;
     {
         // Mailbox
         ctx->board.mailbox[0U] = W_ROOK;
@@ -187,7 +189,7 @@ SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, cons
 
 #define SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY (8U)
 uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx) {
-    if (ctx == NULL) return SCE_INVALID_PARAM;
+    if (ctx == NULL) return 0U;
 
     uint64_t hash = 0U;
 
@@ -217,6 +219,28 @@ uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx) {
     // Side
     if (ctx->board.to_move == BLACK) {
         hash ^= ctx->precomputation_tables->zobrist_table.side_key;
+    }
+
+    return hash;
+}
+
+uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* const ctx) {
+    if (ctx == NULL) return 0U;
+
+    uint64_t hash = 0U;
+    const PieceType piece_types[] = { W_PAWN, B_PAWN };
+
+    // Board
+    for (uint piece_type_idx = 0; piece_type_idx < sizeof(piece_types) / sizeof(piece_types[0]); piece_type_idx++) {
+        // Find the pieces.
+        const PieceType piece_type = piece_types[piece_type_idx];
+        uint64_t pieces = ctx->board.bitboards[piece_type];
+        while (pieces) {
+            // Get index of pieces one by one.
+            const uint idx = COUNT_TRAILING_ZEROS(pieces);
+            hash ^= ctx->precomputation_tables->zobrist_table.piece_key[piece_type][idx];
+            pieces &= ~(1ULL << idx);
+        }
     }
 
     return hash;
@@ -1696,6 +1720,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         ctx->board.undo_states[ctx->board.history.count].castling_rights = ctx->board.castling_rights;
         ctx->board.undo_states[ctx->board.history.count].half_move_clock = ctx->board.half_move_clock;
         ctx->board.undo_states[ctx->board.history.count].zobrist_hash = ctx->board.zobrist_hash;
+        ctx->board.undo_states[ctx->board.history.count].pawn_zobrist_hash = ctx->board.pawn_zobrist_hash;
         ctx->board.undo_states[ctx->board.history.count].eval_state = ctx->eval_state;
         // This automatically increments the count
         RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ctx->board.history), "Adding to list failed!");
@@ -1715,13 +1740,21 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
                 ctx->board.mailbox[captured_piece_idx] = UNASSIGNED;    // Clear out the capture square
 
                 // Zobrist: Captured piece
-                ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][COUNT_TRAILING_ZEROS(captured_piece)];
+                ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][captured_piece_idx];
+                if (captured_piece_type == W_PAWN || captured_piece_type == B_PAWN) {
+                    // Update pawn zobrist hash key
+                    ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][captured_piece_idx];
+                }
             } else {
                 ctx->board.bitboards[captured_piece_type] ^= dst;
                 ctx->board.mailbox[dst_idx] = UNASSIGNED;    // Clear out the capture square
 
                 // Zobrist: Captured piece
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][dst_idx];
+                if (captured_piece_type == W_PAWN || captured_piece_type == B_PAWN) {
+                    // Update pawn zobrist hash key
+                    ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][dst_idx];
+                }
             }
         }
 
@@ -1734,6 +1767,10 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
             // Zobrist: Source piece move
             ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[moving_piece_type][src_idx];
             ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[moving_piece_type][dst_idx];
+            if (moving_piece_type == W_PAWN || moving_piece_type == B_PAWN) {
+                ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[moving_piece_type][src_idx];
+                ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[moving_piece_type][dst_idx];
+            }
         }
 
 
@@ -1751,6 +1788,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
 
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_KNIGHT : B_KNIGHT][dst_idx];
+                ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 break;
             case SCE_CHESSMOVE_FLAG_BISHOP_PROMOTION:
             case SCE_CHESSMOVE_FLAG_BISHOP_PROMO_CAPTURE:
@@ -1760,6 +1798,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
 
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_BISHOP : B_BISHOP][dst_idx];
+                ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 break;
             case SCE_CHESSMOVE_FLAG_ROOK_PROMOTION:
             case SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE:
@@ -1769,6 +1808,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
 
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK][dst_idx];
+                ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 break;
             case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
             case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
@@ -1778,6 +1818,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
 
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_QUEEN : B_QUEEN][dst_idx];
+                ctx->board.pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN][dst_idx];
                 break;
             // 3. Castling
             case SCE_CHESSMOVE_FLAG_KING_CASTLE:
@@ -1890,6 +1931,7 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
     ctx->board.castling_rights = ctx->board.undo_states[move_idx].castling_rights;
     ctx->board.half_move_clock = ctx->board.undo_states[move_idx].half_move_clock;
     ctx->board.zobrist_hash = ctx->board.undo_states[move_idx].zobrist_hash;
+    ctx->board.pawn_zobrist_hash = ctx->board.undo_states[move_idx].pawn_zobrist_hash;
     ctx->eval_state = ctx->board.undo_states[move_idx].eval_state;
 
     // Restoration

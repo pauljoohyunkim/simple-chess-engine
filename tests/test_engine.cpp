@@ -13,7 +13,10 @@ TEST(Engine_SEF, AlphaBetaBestMove) {
 
     ctx.depth = 8;
 
-    SCE_ChessMove move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
+    SCE_Engine_SearchControl ctrl = {
+        .use_lmr = false,
+    };
+    SCE_ChessMove move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx, &ctrl);
 
     ASSERT_NE(move, EMPTY_MOVE);
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
@@ -26,8 +29,11 @@ TEST(Engine_SEF, IterativeDeepeningBestMove) {
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
     ctx.depth = 8;
+    SCE_Engine_SearchControl ctrl = {
+        .use_lmr = false,
+    };
 
-    SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(&engine, &ctx);
+    SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(&engine, &ctx, &ctrl);
 
     ASSERT_NE(move, EMPTY_MOVE);
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);

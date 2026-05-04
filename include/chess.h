@@ -107,6 +107,7 @@ typedef struct {
     uint8_t castling_rights;
     unsigned int half_move_clock;       // 50-move rule
     uint64_t zobrist_hash;
+    uint64_t pawn_zobrist_hash;
 
     SCE_EvalState eval_state;           // For engine
 } SCE_UndoState;
@@ -132,6 +133,7 @@ typedef struct {
     uint8_t castling_rights;
     unsigned int half_move_clock;
     uint64_t zobrist_hash;
+    uint64_t pawn_zobrist_hash;
     PieceType mailbox[CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
     SCE_ChessMoveList history;
     SCE_UndoState undo_states[N_MAX_MOVES];
@@ -228,6 +230,14 @@ SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, cons
  * @return uint64_t Zobrist hash of the board if successful, or 0 for failure.
  */
 uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx);
+
+/**
+ * @brief Compute the Zobrist hash of the current board only for pawns. Requires Zobrist table to be precomputed by SCE_ZobristTable_init
+ * 
+ * @param ctx Pointer to the SCE_Context struct.
+ * @return uint64_t Zobrist hash of the board for pawns if successful, or 0 for failure.
+ */
+uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* const ctx);
 
 /**
  * @brief Returns the bitboard of occupancy information.
