@@ -101,7 +101,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
 /**
  * @brief Add pawn hash entry to pawn hash table
  * 
- * @param ptr_engine Pointer to hte SCE_Engine struct.
+ * @param ptr_engine Pointer to the SCE_Engine struct.
  * @param pawn_zobrist_hash Zobrist hash only accounting locations of pawns.
  * @param mg_score Middlegame score
  * @param eg_score Endgame score
@@ -111,6 +111,17 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * @return false Failure
  */
 inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns);
+
+/**
+ * @brief Get pawn hash entry from pawn hash table
+ * 
+ * @param entry Pointer to the SCE_PawnHashTableEntry struct where the lookup will be written if successful.
+ * @param ptr_engine Pointer to the SCE_Engine struct.
+ * @param pawn_zobrist_hash Zobrist hash of only pawn locations
+ * @return true Successful
+ * @return false Failure
+ */
+inline bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash);
 
 /**
  * @brief Returns whether or not there has been a repetition (for draw rule)

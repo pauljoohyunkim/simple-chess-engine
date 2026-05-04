@@ -91,19 +91,35 @@ inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint6
     const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
     const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
     const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
-    if ((table_score_data ^ table_passed_pawns ^ table_weak_pawns ^ table_chksum) != pawn_zobrist_hash) {
-        // Unassigned. Safe to add.
-        const uint64_t score_data = (mg_score SCE_PHT_SET_MG_SCORE) | (eg_score SCE_PHT_SET_EG_SCORE);
-        ptr_engine->pawn_hash_table[key].score_data = score_data;
-        ptr_engine->pawn_hash_table[key].weak_pawns = weak_pawns;
-        ptr_engine->pawn_hash_table[key].passed_pawns = passed_pawns;
-        __atomic_thread_fence(__ATOMIC_RELEASE);
-        ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum = pawn_zobrist_hash ^ score_data ^ weak_pawns ^ passed_pawns;
+    const uint64_t score_data = (((uint64_t)mg_score) SCE_PHT_SET_MG_SCORE) | (((uint64_t)eg_score) SCE_PHT_SET_EG_SCORE);
+    ptr_engine->pawn_hash_table[key].score_data = score_data;
+    ptr_engine->pawn_hash_table[key].weak_pawns = weak_pawns;
+    ptr_engine->pawn_hash_table[key].passed_pawns = passed_pawns;
+    __atomic_thread_fence(__ATOMIC_RELEASE);
+    ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum = pawn_zobrist_hash ^ score_data ^ weak_pawns ^ passed_pawns;
+
+    return true;
+}
+
+inline bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash) {
+    if (entry == NULL || ptr_engine == NULL || pawn_zobrist_hash == 0U) return false;
+
+    const uint64_t key = pawn_zobrist_hash & (sizeof(ptr_engine->pawn_hash_table)/sizeof(ptr_engine->pawn_hash_table[0]) - 1U);
+    const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
+    __atomic_thread_fence(__ATOMIC_ACQUIRE);
+    const uint64_t table_score_data = ptr_engine->pawn_hash_table[key].score_data;
+    const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
+    const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
+
+    if ((table_chksum ^ table_score_data ^ table_weak_pawns ^ table_passed_pawns) == pawn_zobrist_hash) {
+        entry->pawn_zobrist_hash_chksum = table_chksum;
+        entry->score_data = table_score_data;
+        entry->passed_pawns = table_passed_pawns;
+        entry->weak_pawns = table_weak_pawns;
+        return true;
     } else {
         return false;
     }
-
-    return true;
 }
 
 // Returns true if succeeded.
