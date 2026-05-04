@@ -15,7 +15,7 @@ struct SCE_Engine;
 typedef struct SCE_Engine SCE_Engine;
 
 typedef int (*SCE_Eval)(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-typedef int (*SCE_DeltaEval)(SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
+typedef int (*SCE_DeltaEval)(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
 
 #define SCE_ALPHA_INITIAL (INT32_MIN / 2)
 #define SCE_BETA_INITIAL (INT32_MAX / 2)

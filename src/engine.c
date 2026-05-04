@@ -30,7 +30,7 @@ static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE
     SCE_EvalState eval_state = ctx->eval_state;
 
     // 2. Use delta evaluation on the eval states
-    int score = ptr_engine->delta_eval_function(&ctx->board, &eval_state, ptr_engine, move);
+    int score = ptr_engine->delta_eval_function(ctx, &eval_state, ptr_engine, move);
 
     // 3. Try MakeMove.
     SCE_Return ret = SCE_MakeMove(ctx, move);

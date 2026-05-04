@@ -9,7 +9,7 @@ extern "C" {
 
 int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 
-int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
+int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
 
 #ifdef __cplusplus
 }

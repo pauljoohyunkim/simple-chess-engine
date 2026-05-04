@@ -21,7 +21,7 @@ void DeltaEvalTest(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const i
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx->eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx->board, &temp_eval_state, ptr_engine, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(ctx, &temp_eval_state, ptr_engine, move);
 
         ASSERT_EQ(SCE_MakeMove(ctx, move), SCE_SUCCESS);
         ctx->eval_state = temp_eval_state;
@@ -70,7 +70,7 @@ TEST(SEF, DeltaEval_Initial) {
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx.eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state, &engine, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state, &engine, move);
 
         ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
         ctx.eval_state = temp_eval_state;
@@ -106,7 +106,7 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx.eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state, &engine, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state, &engine, move);
         ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
         ctx.eval_state = temp_eval_state;
         {
@@ -120,7 +120,7 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
                 const SCE_ChessMove move2 = movelist2.moves[j];
 
                 SCE_EvalState temp_eval_state_2 = ctx.eval_state;
-                const int delta_evaluated2 = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state_2, &engine, move2);
+                const int delta_evaluated2 = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state_2, &engine, move2);
 
                 ASSERT_EQ(SCE_MakeMove(&ctx, move2), SCE_SUCCESS);
                 const int full_evaluated2 = SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine);
