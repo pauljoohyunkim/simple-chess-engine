@@ -21,6 +21,7 @@ TEST(HCEF, Initial) {
     ret = SCE_Chessboard_FEN_setup(&ctx, "3k4/pp3p2/8/8/8/1P6/1P6/4K3 w - - 0 1");
     ASSERT_EQ(ret, SCE_SUCCESS);
 
-    SCE_Eval_HandcraftedEvaluationFunction(&ctx, &engine);
-    SCE_Eval_HandcraftedEvaluationFunction(&ctx, &engine);
+    const int score1 = SCE_Eval_HandcraftedEvaluationFunction(&ctx, &engine);
+    const int score2 = SCE_Eval_HandcraftedEvaluationFunction(&ctx, &engine);
+    ASSERT_EQ(score1, score2);
 }
