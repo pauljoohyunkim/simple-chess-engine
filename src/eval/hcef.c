@@ -4,12 +4,15 @@
 #include "eval/hcef.h"
 #include "helper.h"
 
+static const int passed_pawn_mg_weights[] = { 0, 0, 0, 5, 15, 40, 80, 0 };
+static const int passed_pawn_eg_weights[] = { 0, 5, 5, 20, 40, 80, 150, 0 };
+
 typedef unsigned int uint;
 
 static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn);
 static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const uint64_t w_pawn, const uint64_t b_pawn, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
-static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
+static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
+static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, const uint64_t occupancy_w, const uint64_t occupancy_b);
 
 #define DOUBLE_PAWN_PENALTY_MG (15)
 #define DOUBLE_PAWN_PENALTY_EG (20)
@@ -47,8 +50,6 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
     assert(ptr_precomputation_tables != NULL);
 
     *passed_pawns = 0U;
-    int mg_weights[] = { 0, 0, 0, 5, 15, 40, 80, 0 };
-    int eg_weights[] = { 0, 5, 5, 20, 40, 80, 150, 0 };
     int local_mg_score = 0;
     int local_eg_score = 0;
     for (uint i = 0U; i < CHESSBOARD_DIMENSION; i++) {
@@ -74,8 +75,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
                 }
                 */
                 // Normal point
-                local_mg_score += mg_weights[row];
-                local_eg_score += eg_weights[row];
+                local_mg_score += passed_pawn_mg_weights[row];
+                local_eg_score += passed_pawn_eg_weights[row];
                 
             }
         }
@@ -102,8 +103,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
                     local_eg_score -= eg_weights[CHESSBOARD_DIMENSION-1U-row];
                 }
                 */
-                local_mg_score -= mg_weights[CHESSBOARD_DIMENSION-1U-row];
-                local_eg_score -= eg_weights[CHESSBOARD_DIMENSION-1U-row];
+                local_mg_score -= passed_pawn_mg_weights[CHESSBOARD_DIMENSION-1U-row];
+                local_eg_score -= passed_pawn_eg_weights[CHESSBOARD_DIMENSION-1U-row];
             }
         }
     }
@@ -112,19 +113,19 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
     *eg_score = local_eg_score;
 }
 
-static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
     assert(passed_pawns != NULL);
-    assert(ctx != NULL);
+    assert(pawn_zobrist_hash != 0);
     assert(ptr_engine != NULL);
+    assert(ptr_precomputation_tables != NULL);
 
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
-    SCE_PawnHashTableEntry pht_entry;
     {
         SCE_PawnHashTableEntry pht_entry;
-        if (SCE_Engine_GetPawnHashData(&pht_entry, ptr_engine, ctx->board.pawn_zobrist_hash)) {
+        if (SCE_Engine_GetPawnHashData(&pht_entry, ptr_engine, pawn_zobrist_hash)) {
             // Read success
             pawn_contrib_mg = SCE_PHT_GET_MG_SCORE(pht_entry.score_data);
             pawn_contrib_eg = SCE_PHT_GET_EG_SCORE(pht_entry.score_data);
@@ -134,7 +135,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 // Double pawns
                 int double_pawn_mg = 0;
                 int double_pawn_eg = 0;
-                SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, ctx->board.bitboards[W_PAWN], ctx->board.bitboards[B_PAWN]);
+                SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, w_pawn, b_pawn);
                 pawn_contrib_mg += double_pawn_mg;
                 pawn_contrib_eg += double_pawn_eg;
             }
@@ -142,7 +143,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 // Passed pawns
                 int passed_pawn_mg = 0;
                 int passed_pawn_eg = 0;
-                SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(&passed_pawn_mg, &passed_pawn_eg, passed_pawns, ctx);
+                SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(&passed_pawn_mg, &passed_pawn_eg, passed_pawns, w_pawn, b_pawn, ptr_precomputation_tables);
                 pawn_contrib_mg += passed_pawn_mg;
                 pawn_contrib_eg += passed_pawn_eg;
             }
@@ -151,27 +152,52 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
             }
             // Cache
             // For now, 0U: Not taking into account for weak pawns yet for testing.
-            SCE_Engine_AddPawnHashData(ptr_engine, ctx->board.pawn_zobrist_hash, pawn_contrib_mg, pawn_contrib_eg, *passed_pawns, 0U);
+            SCE_Engine_AddPawnHashData(ptr_engine, pawn_zobrist_hash, pawn_contrib_mg, pawn_contrib_eg, *passed_pawns, 0U);
         }
     }
+    *mg_score = pawn_contrib_mg;
+    *eg_score = pawn_contrib_eg;
 }
 
-static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
+static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, const uint64_t occupancy_w, const uint64_t occupancy_b) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
-    assert(ctx != NULL);
-    assert(ptr_engine != NULL);
 
+    *mg_score = 0;
+    *eg_score = 0;
 
-    // TODO: Check for blockage of passed pawn.
+    const uint64_t occupancy = occupancy_w | occupancy_b;
+
     while (passed_pawns) {
         // Bit scan
         // 1. Get index.
         // 2. Get the type
-        // 3. Check for 
-        
-    }
+        // 3. Check for blockage.
+        // 4. Update
+        const uint idx = COUNT_TRAILING_ZEROS(passed_pawns);
+        const uint row = idx / CHESSBOARD_DIMENSION;
+        const uint64_t passed_pawn = 1ULL << idx;
+        assert(passed_pawn & occupancy);
 
+        if (passed_pawn & occupancy_w) {
+            // White pawn
+            if ((1ULL << (idx + CHESSBOARD_DIMENSION)) & occupancy) {
+                // Blocked
+                *mg_score -= passed_pawn_mg_weights[row] / 2;
+                *eg_score -= passed_pawn_mg_weights[row] / 2;
+            }
+        } else {
+            // Black pawn
+            if ((1ULL << (idx - CHESSBOARD_DIMENSION)) & occupancy) {
+                // Blocked
+                *mg_score += passed_pawn_mg_weights[CHESSBOARD_DIMENSION - 1U - row] / 2;
+                *eg_score += passed_pawn_eg_weights[CHESSBOARD_DIMENSION - 1U - row] / 2;
+            }
+        }
+
+        // Remove from the passed pawns for scanning.
+        passed_pawns &= ~passed_pawn;
+    }
 }
 
 int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
@@ -183,7 +209,23 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
     uint64_t passed_pawns = 0U;
-    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, &passed_pawns, ctx, ptr_engine);
+    {
+        int pawn_contrib_pht_mg = 0;
+        int pawn_contrib_pht_eg = 0;
+        // This updates passed_pawns
+        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_mg, &pawn_contrib_pht_eg, &passed_pawns, ctx->board.pawn_zobrist_hash, ctx->board.bitboards[W_PAWN], ctx->board.bitboards[B_PAWN], ptr_engine, ctx->precomputation_tables);
+        pawn_contrib_mg += pawn_contrib_pht_mg;
+        pawn_contrib_eg += pawn_contrib_pht_eg;
+    }
+    {
+        int pawn_contrib_dynamic_mg = 0;
+        int pawn_contrib_dynamic_eg = 0;
+        const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
+        const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
+        SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(&pawn_contrib_dynamic_mg, &pawn_contrib_dynamic_eg, passed_pawns, occupancy_w, occupancy_b);
+        pawn_contrib_mg += pawn_contrib_dynamic_mg;
+        pawn_contrib_eg += pawn_contrib_dynamic_eg;
+    }
     
 
     const int phase = ctx->eval_state.phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ctx->eval_state.phase;
@@ -203,7 +245,7 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
     uint64_t passed_pawns = 0U;
-    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, &passed_pawns, ctx, ptr_engine);
+    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, &passed_pawns, ctx->board.pawn_zobrist_hash, ctx->board.bitboards[W_PAWN], ctx->board.bitboards[B_PAWN], ptr_engine, ctx->precomputation_tables);
 
     const int phase = ptr_eval_state->phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ptr_eval_state->phase;
     const int mg_score = ptr_eval_state->mg_score + pawn_contrib_mg;
