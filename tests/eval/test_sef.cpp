@@ -7,7 +7,7 @@
 
 #define DEBUG_TT_N_SIZE (24U)
 
-void DeltaEvalTest(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const int depth) {
+static void DeltaEvalTest(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const int depth) {
     if (depth == 0) {
         return;
     }
