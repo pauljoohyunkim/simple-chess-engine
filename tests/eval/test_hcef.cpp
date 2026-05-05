@@ -18,7 +18,7 @@ TEST(HCEF, Initial) {
     SCE_Engine engine;
     memset(&engine.pawn_hash_table, 0, sizeof(engine.pawn_hash_table));
 
-    ret = SCE_Chessboard_FEN_setup(&ctx, "3k4/pp3p2/8/8/8/1P6/1P6/4K3 w - - 0 1");
+    ret = SCE_Chessboard_FEN_setup(&ctx, "1k6/3p4/4p3/8/2P4p/7P/1PP2p2/5K2 w - - 0 1");
     ASSERT_EQ(ret, SCE_SUCCESS);
 
     const int score1 = SCE_Eval_HandcraftedEvaluationFunction(&ctx, &engine);
