@@ -59,16 +59,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
             const uint leading_pawn_idx = (63U - COUNT_LEADING_ZEROS(w_pawns_in_file));
             const uint row = leading_pawn_idx / 8;
             const uint col = leading_pawn_idx % 8;
-            uint64_t passed_pawn_mask = ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx];
-            // Check the two adjacent files.
-            if (col == 0U) {
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx+1U];
-            } else if (col == 7U) {
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx-1U];
-            } else {
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx+1U];
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[NORTH][leading_pawn_idx-1U];
-            }
+            uint64_t passed_pawn_mask = ctx->precomputation_tables->front_span_masks[WHITE][leading_pawn_idx];
             // Check if enemy (black) pawn exists
             if (!(passed_pawn_mask & ctx->board.bitboards[B_PAWN])) {
                 // Add it to passed pawns.
@@ -92,16 +83,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
             const uint leading_pawn_idx = COUNT_TRAILING_ZEROS(b_pawns_in_file);
             const uint row = leading_pawn_idx / 8;
             const uint col = leading_pawn_idx % 8;
-            uint64_t passed_pawn_mask = ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx];
-            // Check the two adjacent files.
-            if (col == 0U) {
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx+1U];
-            } else if (col == 7U) {
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx-1U];
-            } else {
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx+1U];
-                passed_pawn_mask |= ctx->precomputation_tables->pm_table.rays[SOUTH][leading_pawn_idx-1U];
-            }
+            uint64_t passed_pawn_mask = ctx->precomputation_tables->front_span_masks[BLACK][leading_pawn_idx];
             // Check if enemy (white) pawn exists
             if (!(passed_pawn_mask & ctx->board.bitboards[W_PAWN])) {
                 // Add it to passed pawns.
@@ -109,12 +91,12 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
 
                 // Blockage penalty
                 if ((1ULL << (leading_pawn_idx - CHESSBOARD_DIMENSION)) & occupancy) {
-                    local_mg_score -= mg_weights[7-row] / 2;
-                    local_eg_score -= eg_weights[7-row] / 2;
+                    local_mg_score -= mg_weights[CHESSBOARD_DIMENSION-1U-row] / 2;
+                    local_eg_score -= eg_weights[CHESSBOARD_DIMENSION-1U-row] / 2;
                 } else {
                     // Point
-                    local_mg_score -= mg_weights[7-row];
-                    local_eg_score -= eg_weights[7-row];
+                    local_mg_score -= mg_weights[CHESSBOARD_DIMENSION-1U-row];
+                    local_eg_score -= eg_weights[CHESSBOARD_DIMENSION-1U-row];
                 }
             }
         }
@@ -133,21 +115,36 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
     {
-        int double_pawn_mg = 0;
-        int double_pawn_eg = 0;
         SCE_PawnHashTableEntry pht_entry;
         if (SCE_Engine_GetPawnHashData(&pht_entry, ptr_engine, ctx->board.pawn_zobrist_hash)) {
             // Read success
-            double_pawn_mg = SCE_PHT_GET_MG_SCORE(pht_entry.score_data);
-            double_pawn_eg = SCE_PHT_GET_EG_SCORE(pht_entry.score_data);
+            pawn_contrib_mg = SCE_PHT_GET_MG_SCORE(pht_entry.score_data);
+            pawn_contrib_eg = SCE_PHT_GET_EG_SCORE(pht_entry.score_data);
         } else {
-            SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, &ctx->board);
+            uint64_t passed_pawns = 0U;
+            {
+                // Double pawns
+                int double_pawn_mg = 0;
+                int double_pawn_eg = 0;
+                SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, &ctx->board);
+                pawn_contrib_mg += double_pawn_mg;
+                pawn_contrib_eg += double_pawn_eg;
+            }
+            {
+                // Passed pawns
+                int passed_pawn_mg = 0;
+                int passed_pawn_eg = 0;
+                SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(&passed_pawn_mg, &passed_pawn_eg, &passed_pawns, ctx);
+                pawn_contrib_mg += passed_pawn_mg;
+                pawn_contrib_eg += passed_pawn_eg;
+            }
+            {
+                // TODO: Weak pawns
+            }
             // Cache
-            // For now, 0U: Not taking into account for weak pawns or passed pawns yet for testing.
-            SCE_Engine_AddPawnHashData(ptr_engine, ctx->board.pawn_zobrist_hash, double_pawn_mg, double_pawn_eg, 0U, 0U);
+            // For now, 0U: Not taking into account for weak pawns yet for testing.
+            SCE_Engine_AddPawnHashData(ptr_engine, ctx->board.pawn_zobrist_hash, pawn_contrib_mg, pawn_contrib_eg, passed_pawns, 0U);
         }
-        pawn_contrib_mg += double_pawn_mg;
-        pawn_contrib_eg += double_pawn_eg;
     }
     
 

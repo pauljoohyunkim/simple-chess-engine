@@ -36,10 +36,10 @@ typedef struct {
 #define SCE_TT_SET_MOVE << 16U
 #define SCE_TT_SET_DEPTH << 8U
 #define SCE_TT_SET_FLAG << 0U
-#define SCE_TT_GET_SCORE(d) (((int32_t)((d) >> 32)) & 0xFFFFFFFFULL)
-#define SCE_TT_GET_MOVE(d)  (((SCE_ChessMove)((d) >> 16)) & 0xFFFFULL)
-#define SCE_TT_GET_DEPTH(d) (((uint8_t)((d) >> 8)) & 0xFFULL)
-#define SCE_TT_GET_FLAG(d)  (((uint8_t)((d) >> 0)) & 0xFFULL)
+#define SCE_TT_GET_SCORE(d) (((int32_t)((d) >> 32)))
+#define SCE_TT_GET_MOVE(d)  (((SCE_ChessMove)((d) >> 16)) & 0xFFFFU)
+#define SCE_TT_GET_DEPTH(d) (((uint8_t)((d) >> 8)) & 0xFFU)
+#define SCE_TT_GET_FLAG(d)  (((uint8_t)((d) >> 0)) & 0xFFU)
 
 typedef struct {
     uint64_t pawn_zobrist_hash_chksum;  // zobrist_hash ^ score_data ^ passed_pawns ^ weak_pawns
@@ -49,8 +49,8 @@ typedef struct {
 } __attribute__((aligned(32))) SCE_PawnHashTableEntry;
 #define SCE_PHT_SET_MG_SCORE << 32U
 #define SCE_PHT_SET_EG_SCORE << 0U
-#define SCE_PHT_GET_MG_SCORE(d) (((int32_t)((d) >> 32)) & 0xFFFFFFFFULL)
-#define SCE_PHT_GET_EG_SCORE(d) (((int32_t)((d) >> 0)) & 0xFFFFFFFFULL)
+#define SCE_PHT_GET_MG_SCORE(d) (((int32_t)((uint64_t)(d) >> 32)))
+#define SCE_PHT_GET_EG_SCORE(d) ((int32_t)((uint32_t)(d)))
 
 typedef struct {
     SCE_TranspositionTableEntry* entries;

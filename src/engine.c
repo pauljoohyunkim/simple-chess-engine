@@ -91,7 +91,7 @@ bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t paw
     const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
     const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
     const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
-    const uint64_t score_data = (((uint64_t)mg_score) SCE_PHT_SET_MG_SCORE) | (((uint64_t)eg_score) SCE_PHT_SET_EG_SCORE);
+    const uint64_t score_data = (((uint64_t)mg_score) SCE_PHT_SET_MG_SCORE) | (((uint64_t)eg_score & 0xFFFFFFFFULL) SCE_PHT_SET_EG_SCORE);
     ptr_engine->pawn_hash_table[key].score_data = score_data;
     ptr_engine->pawn_hash_table[key].weak_pawns = weak_pawns;
     ptr_engine->pawn_hash_table[key].passed_pawns = passed_pawns;
