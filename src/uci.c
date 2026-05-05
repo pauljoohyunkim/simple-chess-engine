@@ -9,6 +9,8 @@
 #include "uci.h"
 #include "helper.h"
 #include "eval/pst.h"
+#include "eval/sef.h"
+#include "eval/hcef.h"
 #include "fen.h"
 
 #define NPP_WEIGHT_STOP_LMR 2000
@@ -224,6 +226,8 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
     return SCE_SUCCESS;
 }
 
+#define FUNC_IDX_SEF (0)
+#define FUNC_IDX_HCEF (1)
 SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char* const line) {
     if (ptr_session == NULL || line == NULL) return SCE_INVALID_PARAM;
 
@@ -272,6 +276,36 @@ SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char
             } else {
                 return SCE_INVALID_PARAM;
             }
+        } else if (strcmp(word, "EvalFunc") == 0) {
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word == NULL || strcmp(word, "value") != 0) return SCE_INVALID_PARAM;
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word) {
+                const uint func_idx = atoi(word);
+                switch (func_idx) {
+                    case FUNC_IDX_SEF:
+                        {
+                            SCE_Return ret = SCE_Engine_release(ptr_session->ptr_engine);
+                            if (ret != SCE_SUCCESS) return SCE_INTERNAL_ERROR;
+                            ret = SCE_Engine_init(ptr_session->ctx, ptr_session->ptr_engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_HandcraftedEvaluationFunction, UCI_TT_TABLE_LOG_2_SIZE);
+                            if (ret != SCE_SUCCESS) return SCE_INTERNAL_ERROR;
+                        }
+                        break;
+                    case FUNC_IDX_HCEF:
+                        {
+                            SCE_Return ret = SCE_Engine_release(ptr_session->ptr_engine);
+                            if (ret != SCE_SUCCESS) return SCE_INTERNAL_ERROR;
+                            ret = SCE_Engine_init(ptr_session->ctx, ptr_session->ptr_engine, SCE_Eval_HandcraftedEvaluationFunction, SCE_DeltaEval_HandcraftedEvaluationFunction, UCI_TT_TABLE_LOG_2_SIZE);
+                            if (ret != SCE_SUCCESS) return SCE_INTERNAL_ERROR;
+                        }
+                        break;
+                    default:
+                        return SCE_INVALID_PARAM;
+                }
+            } else {
+                return SCE_INVALID_PARAM;
+            }
+
         } else {
             return SCE_INVALID_PARAM;
         }
