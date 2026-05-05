@@ -391,13 +391,26 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
         }
     }
 
-    int delta_score = SCE_DeltaEval_SimplifiedEvaluationFunction(ctx, ptr_eval_state, ptr_engine, move);
+    SCE_DeltaEval_SimplifiedEvaluationFunction(ctx, ptr_eval_state, ptr_engine, move);
 
-    // TODO: Check if move involves pawns.
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
     uint64_t passed_pawns = 0U;
-    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, &passed_pawns, ctx->board.pawn_zobrist_hash, ctx->board.bitboards[W_PAWN], ctx->board.bitboards[B_PAWN], ptr_engine, ctx->precomputation_tables);
+    {
+        int pawn_contrib_pht_mg = 0;
+        int pawn_contrib_pht_eg = 0;
+        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_eg, &pawn_contrib_mg, &passed_pawns, pawn_zobrist_hash, w_pawns, b_pawns, ptr_engine, ctx->precomputation_tables);
+        pawn_contrib_mg += pawn_contrib_pht_mg;
+        pawn_contrib_eg += pawn_contrib_pht_eg;
+    }
+    {
+        
+        int pawn_contrib_dynamic_mg = 0;
+        int pawn_contrib_dynamic_eg = 0;
+        SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(&pawn_contrib_dynamic_mg, &pawn_contrib_dynamic_eg, passed_pawns, occupancy_w, occupancy_b);
+        pawn_contrib_mg += pawn_contrib_dynamic_mg;
+        pawn_contrib_eg += pawn_contrib_dynamic_eg;
+    }
 
     const int phase = ptr_eval_state->phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ptr_eval_state->phase;
     const int mg_score = ptr_eval_state->mg_score + pawn_contrib_mg;
