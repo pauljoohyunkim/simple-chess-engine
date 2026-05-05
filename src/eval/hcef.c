@@ -3,6 +3,7 @@
 #include "eval/sef.h"
 #include "eval/hcef.h"
 #include "helper.h"
+#include "dev.h"
 
 static const int passed_pawn_mg_weights[] = { 0, 0, 0, 5, 15, 40, 80, 0 };
 static const int passed_pawn_eg_weights[] = { 0, 5, 5, 20, 40, 80, 150, 0 };
@@ -269,7 +270,7 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
 
         // Determine captured piece type.
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
-            captured_idx = ctx->board.en_passant_idx;
+            captured_idx = IS_WHITE(src_piece_type) ? ctx->board.en_passant_idx - CHESSBOARD_DIMENSION : ctx->board.en_passant_idx + CHESSBOARD_DIMENSION;
             captured_piece_type = ctx->board.mailbox[captured_idx];
         } else {
             captured_idx = dst_idx;
@@ -399,7 +400,7 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
     {
         int pawn_contrib_pht_mg = 0;
         int pawn_contrib_pht_eg = 0;
-        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_eg, &pawn_contrib_mg, &passed_pawns, pawn_zobrist_hash, w_pawns, b_pawns, ptr_engine, ctx->precomputation_tables);
+        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_mg, &pawn_contrib_pht_eg, &passed_pawns, pawn_zobrist_hash, w_pawns, b_pawns, ptr_engine, ctx->precomputation_tables);
         pawn_contrib_mg += pawn_contrib_pht_mg;
         pawn_contrib_eg += pawn_contrib_pht_eg;
     }

@@ -2,6 +2,7 @@
 #include "chess.h"
 #include "engine.h"
 #include "eval/hcef.h"
+#include "dev.h"
 #include "fen.h"
 
 #define DEBUG_TT_N_SIZE (24U)
@@ -96,23 +97,6 @@ TEST(HCEF, DeltaEval_Initial) {
     }
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }
-
-TEST(HCEF, DeltaEval_Kiwipete_TEST_DEBUG) {
-    SCE_Context ctx;
-    SCE_Precomputation_Tables precomputation_tables;
-    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
-    ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
-    ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
-
-    // While engine generation is not needed, this is used for precomputing the first evaluation.
-    SCE_Engine engine;
-    ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_HandcraftedEvaluationFunction, SCE_DeltaEval_HandcraftedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
-
-    DeltaEvalTest(&ctx, &engine, 1);
-
-    ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
-}
-
 
 #ifndef UNITTEST_FULL
 TEST(HCEF, DeltaEval_Kiwipete_Depth_4) {
