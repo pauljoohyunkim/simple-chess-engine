@@ -30,7 +30,7 @@ static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE
     SCE_EvalState eval_state = ctx->eval_state;
 
     // 2. Use delta evaluation on the eval states
-    int score = ptr_engine->delta_eval_function(&ctx->board, &eval_state, ptr_engine, move);
+    int score = ptr_engine->delta_eval_function(ctx, &eval_state, ptr_engine, move);
 
     // 3. Try MakeMove.
     SCE_Return ret = SCE_MakeMove(ctx, move);
@@ -83,7 +83,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
     return SCE_SUCCESS;
 }
 
-inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns) {
+bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns) {
     if (ptr_engine == NULL || pawn_zobrist_hash == 0U) return false;
 
     const uint64_t key = pawn_zobrist_hash & (sizeof(ptr_engine->pawn_hash_table)/sizeof(ptr_engine->pawn_hash_table[0]) - 1U);
@@ -91,7 +91,7 @@ inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint6
     const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
     const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
     const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
-    const uint64_t score_data = (((uint64_t)mg_score) SCE_PHT_SET_MG_SCORE) | (((uint64_t)eg_score) SCE_PHT_SET_EG_SCORE);
+    const uint64_t score_data = (((uint64_t)mg_score) SCE_PHT_SET_MG_SCORE) | (((uint64_t)eg_score & 0xFFFFFFFFULL) SCE_PHT_SET_EG_SCORE);
     ptr_engine->pawn_hash_table[key].score_data = score_data;
     ptr_engine->pawn_hash_table[key].weak_pawns = weak_pawns;
     ptr_engine->pawn_hash_table[key].passed_pawns = passed_pawns;
@@ -101,7 +101,7 @@ inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint6
     return true;
 }
 
-inline bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash) {
+bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash) {
     if (entry == NULL || ptr_engine == NULL || pawn_zobrist_hash == 0U) return false;
 
     const uint64_t key = pawn_zobrist_hash & (sizeof(ptr_engine->pawn_hash_table)/sizeof(ptr_engine->pawn_hash_table[0]) - 1U);

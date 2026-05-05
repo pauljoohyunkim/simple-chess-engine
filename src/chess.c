@@ -50,6 +50,37 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
             ptr_precomputation_tables->lmr_table[depth][i] = (int)(K + log(depth) * log(i) / 3.0);
         }
     }
+    // FrontSpanMask: For passed pawn detection.
+    for (uint idx = 0; idx < CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION; idx++) {
+        const uint row = idx / 8;
+        const uint col = idx % 8;
+        if (row == 0U || row == 7U) {
+            ptr_precomputation_tables->front_span_masks[WHITE][idx] = 0U;
+            continue;
+        }
+        if (col == 0U) {
+            ptr_precomputation_tables->front_span_masks[WHITE][idx] = ptr_precomputation_tables->pm_table.rays[NORTH][idx] | ptr_precomputation_tables->pm_table.rays[NORTH][idx+1U];
+        } else if (col == 7U) {
+            ptr_precomputation_tables->front_span_masks[WHITE][idx] = ptr_precomputation_tables->pm_table.rays[NORTH][idx] | ptr_precomputation_tables->pm_table.rays[NORTH][idx-1U];
+        } else {
+            ptr_precomputation_tables->front_span_masks[WHITE][idx] = ptr_precomputation_tables->pm_table.rays[NORTH][idx] | ptr_precomputation_tables->pm_table.rays[NORTH][idx+1U] | ptr_precomputation_tables->pm_table.rays[NORTH][idx-1U];
+        }
+    }
+    for (uint idx = 0; idx < CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION; idx++) {
+        const uint row = idx / 8;
+        const uint col = idx % 8;
+        if (row == 0U || row == 7U) {
+            ptr_precomputation_tables->front_span_masks[BLACK][idx] = 0U;
+            continue;
+        }
+        if (col == 0U) {
+            ptr_precomputation_tables->front_span_masks[BLACK][idx] = ptr_precomputation_tables->pm_table.rays[SOUTH][idx] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx+1U];
+        } else if (col == 7U) {
+            ptr_precomputation_tables->front_span_masks[BLACK][idx] = ptr_precomputation_tables->pm_table.rays[SOUTH][idx] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx-1U];
+        } else {
+            ptr_precomputation_tables->front_span_masks[BLACK][idx] = ptr_precomputation_tables->pm_table.rays[SOUTH][idx] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx+1U] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx-1U];
+        }
+    }
 
     return SCE_SUCCESS;
 }

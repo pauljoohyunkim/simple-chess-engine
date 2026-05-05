@@ -15,7 +15,7 @@ struct SCE_Engine;
 typedef struct SCE_Engine SCE_Engine;
 
 typedef int (*SCE_Eval)(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-typedef int (*SCE_DeltaEval)(SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
+typedef int (*SCE_DeltaEval)(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
 
 #define SCE_ALPHA_INITIAL (INT32_MIN / 2)
 #define SCE_BETA_INITIAL (INT32_MAX / 2)
@@ -36,10 +36,10 @@ typedef struct {
 #define SCE_TT_SET_MOVE << 16U
 #define SCE_TT_SET_DEPTH << 8U
 #define SCE_TT_SET_FLAG << 0U
-#define SCE_TT_GET_SCORE(d) (((int32_t)((d) >> 32)) & 0xFFFFFFFFULL)
-#define SCE_TT_GET_MOVE(d)  (((SCE_ChessMove)((d) >> 16)) & 0xFFFFULL)
-#define SCE_TT_GET_DEPTH(d) (((uint8_t)((d) >> 8)) & 0xFFULL)
-#define SCE_TT_GET_FLAG(d)  (((uint8_t)((d) >> 0)) & 0xFFULL)
+#define SCE_TT_GET_SCORE(d) (((int32_t)((d) >> 32)))
+#define SCE_TT_GET_MOVE(d)  (((SCE_ChessMove)((d) >> 16)) & 0xFFFFU)
+#define SCE_TT_GET_DEPTH(d) (((uint8_t)((d) >> 8)) & 0xFFU)
+#define SCE_TT_GET_FLAG(d)  (((uint8_t)((d) >> 0)) & 0xFFU)
 
 typedef struct {
     uint64_t pawn_zobrist_hash_chksum;  // zobrist_hash ^ score_data ^ passed_pawns ^ weak_pawns
@@ -49,8 +49,8 @@ typedef struct {
 } __attribute__((aligned(32))) SCE_PawnHashTableEntry;
 #define SCE_PHT_SET_MG_SCORE << 32U
 #define SCE_PHT_SET_EG_SCORE << 0U
-#define SCE_PHT_GET_MG_SCORE(d) (((int32_t)((d) >> 32)) & 0xFFFFFFFFULL)
-#define SCE_PHT_GET_EG_SCORE(d) (((int32_t)((d) >> 0)) & 0xFFFFFFFFULL)
+#define SCE_PHT_GET_MG_SCORE(d) (((int32_t)((uint64_t)(d) >> 32)))
+#define SCE_PHT_GET_EG_SCORE(d) ((int32_t)((uint32_t)(d)))
 
 typedef struct {
     SCE_TranspositionTableEntry* entries;
@@ -110,7 +110,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * @return true Successful
  * @return false Failure
  */
-inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns);
+bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns);
 
 /**
  * @brief Get pawn hash entry from pawn hash table
@@ -121,7 +121,7 @@ inline bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint6
  * @return true Successful
  * @return false Failure
  */
-inline bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash);
+bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash);
 
 /**
  * @brief Returns whether or not there has been a repetition (for draw rule)
