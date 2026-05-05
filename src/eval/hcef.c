@@ -6,17 +6,16 @@
 
 typedef unsigned int uint;
 
-static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const SCE_Chessboard* const ptr_board);
+static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn);
 static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const SCE_Context* const ctx);
 static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
 
 #define DOUBLE_PAWN_PENALTY_MG (15)
 #define DOUBLE_PAWN_PENALTY_EG (20)
-static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const SCE_Chessboard* const ptr_board) {
+static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
-    assert(ptr_board != NULL);
 
     int local_mg_score = 0;
     int local_eg_score = 0;
@@ -24,8 +23,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_scor
     for (uint i = 0U; i < CHESSBOARD_DIMENSION; i++) {
         const uint64_t file_mask = ChessboardFileMasks[i];
 
-        const uint w_setbits = COUNT_SET_BITS(file_mask & ptr_board->bitboards[W_PAWN]);
-        const uint b_setbits = COUNT_SET_BITS(file_mask & ptr_board->bitboards[B_PAWN]);
+        const uint w_setbits = COUNT_SET_BITS(file_mask & w_pawn);
+        const uint b_setbits = COUNT_SET_BITS(file_mask & b_pawn);
 
         if (w_setbits >= 2U) {
             local_mg_score -= (w_setbits - 1U) * DOUBLE_PAWN_PENALTY_MG;
@@ -136,7 +135,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 // Double pawns
                 int double_pawn_mg = 0;
                 int double_pawn_eg = 0;
-                SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, &ctx->board);
+                SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(&double_pawn_mg, &double_pawn_eg, ctx->board.bitboards[W_PAWN], ctx->board.bitboards[B_PAWN]);
                 pawn_contrib_mg += double_pawn_mg;
                 pawn_contrib_eg += double_pawn_eg;
             }
@@ -158,13 +157,23 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
     }
 }
 
-static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
     assert(ctx != NULL);
     assert(ptr_engine != NULL);
 
-    // Check for blockage of passed pawn.
+    // TODO: If empty move, no change in board.
+
+
+    // TODO: Check for blockage of passed pawn.
+    while (passed_pawns) {
+        // Bit scan
+        // 1. Get index.
+        // 2. Get the type
+        // 3. Check for 
+        
+    }
 
 }
 
