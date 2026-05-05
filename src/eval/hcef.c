@@ -8,7 +8,8 @@ typedef unsigned int uint;
 
 static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const SCE_Chessboard* const ptr_board);
 static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const SCE_Context* const ctx);
-static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 
 #define DOUBLE_PAWN_PENALTY_MG (15)
 #define DOUBLE_PAWN_PENALTY_EG (20)
@@ -113,9 +114,10 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
     *eg_score = local_eg_score;
 }
 
-static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
+    assert(passed_pawns != NULL);
     assert(ctx != NULL);
     assert(ptr_engine != NULL);
 
@@ -128,8 +130,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
             // Read success
             pawn_contrib_mg = SCE_PHT_GET_MG_SCORE(pht_entry.score_data);
             pawn_contrib_eg = SCE_PHT_GET_EG_SCORE(pht_entry.score_data);
+            *passed_pawns = pht_entry.passed_pawns;
         } else {
-            uint64_t passed_pawns = 0U;
             {
                 // Double pawns
                 int double_pawn_mg = 0;
@@ -142,7 +144,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 // Passed pawns
                 int passed_pawn_mg = 0;
                 int passed_pawn_eg = 0;
-                SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(&passed_pawn_mg, &passed_pawn_eg, &passed_pawns, ctx);
+                SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(&passed_pawn_mg, &passed_pawn_eg, passed_pawns, ctx);
                 pawn_contrib_mg += passed_pawn_mg;
                 pawn_contrib_eg += passed_pawn_eg;
             }
@@ -151,9 +153,19 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
             }
             // Cache
             // For now, 0U: Not taking into account for weak pawns yet for testing.
-            SCE_Engine_AddPawnHashData(ptr_engine, ctx->board.pawn_zobrist_hash, pawn_contrib_mg, pawn_contrib_eg, passed_pawns, 0U);
+            SCE_Engine_AddPawnHashData(ptr_engine, ctx->board.pawn_zobrist_hash, pawn_contrib_mg, pawn_contrib_eg, *passed_pawns, 0U);
         }
     }
+}
+
+static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+    assert(mg_score != NULL);
+    assert(eg_score != NULL);
+    assert(ctx != NULL);
+    assert(ptr_engine != NULL);
+
+    // Check for blockage of passed pawn.
+
 }
 
 int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
@@ -164,7 +176,8 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
 
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
-    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, ctx, ptr_engine);
+    uint64_t passed_pawns = 0U;
+    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, &passed_pawns, ctx, ptr_engine);
     
 
     const int phase = ctx->eval_state.phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ctx->eval_state.phase;
@@ -183,7 +196,8 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
     // TODO: Check if move involves pawns.
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
-    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, ctx, ptr_engine);
+    uint64_t passed_pawns = 0U;
+    SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_mg, &pawn_contrib_eg, &passed_pawns, ctx, ptr_engine);
 
     const int phase = ptr_eval_state->phase > TOTAL_PHASE_WEIGHT ? TOTAL_PHASE_WEIGHT : ptr_eval_state->phase;
     const int mg_score = ptr_eval_state->mg_score + pawn_contrib_mg;
