@@ -77,5 +77,7 @@ It turns out I could use CLI for this, which is probably better for testing (as 
 
 Here is a reference command I could use
 ```bash
-cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2100 -each proto=uci tc=inf depth=8 -games 10 -repeat
+# 4 Concurrent games where SCE uses depth 5 and Stockfish is at ELO 2100 with move time limit set to 2100.
+# Playing ten games. Since 10 is even, the color switches back and forth.
+cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=5 -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2100 sc=0.3 -each proto=uci tc=inf -games 10 -repeat -concurrency 4
 ```
