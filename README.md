@@ -76,6 +76,7 @@ where
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 237 | 141 | 500 | 66.8   | 2266.8+/-26.9 |
+| 6     | 2200 | 293 | 118 | 500 | 150.5  | 2350.5+/-28.3 |
 
 ### Methodology in the Future
 It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
