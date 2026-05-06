@@ -14,7 +14,7 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
 static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color, const bool is_mg);
 
-int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx) {
+int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     assert(ctx != NULL);
     int material_sum = 0;
     int pst_sum = 0;
@@ -151,11 +151,11 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return part_sum;
 }
 
-int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_board, SCE_EvalState* const ptr_eval_state, const SCE_ChessMove move) {
+int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
     const int flag = move SCE_CHESSMOVE_GET_FLAG;
-    const PieceType src_piece_type = ptr_board->mailbox[src_idx];
+    const PieceType src_piece_type = ctx->board.mailbox[src_idx];
     assert(src_piece_type != UNASSIGNED_PIECE_TYPE);
 
     const PieceColor src_color = src_piece_type < B_PAWN ? WHITE : BLACK;
@@ -190,7 +190,7 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_b
         // 2.1.1 En passant
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
             const PieceType captured_piece_type = src_color == WHITE ? B_PAWN : W_PAWN;
-            const uint captured_piece_idx = src_color == WHITE ? ptr_board->en_passant_idx - CHESSBOARD_DIMENSION : ptr_board->en_passant_idx + CHESSBOARD_DIMENSION;
+            const uint captured_piece_idx = src_color == WHITE ? ctx->board.en_passant_idx - CHESSBOARD_DIMENSION : ctx->board.en_passant_idx + CHESSBOARD_DIMENSION;
             const int* pst = PST[PST_PAWN];
             // PST
             ptr_eval_state->mg_score += src_color == WHITE ? pst[FLIP(captured_piece_idx)] : -pst[captured_piece_idx];
@@ -199,7 +199,7 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(const SCE_Chessboard* const ptr_b
             ptr_eval_state->mg_score += src_color == WHITE ? PAWN_WEIGHT : -PAWN_WEIGHT;
             ptr_eval_state->eg_score += src_color == WHITE ? PAWN_WEIGHT : -PAWN_WEIGHT;
         } else {
-            const PieceType captured_piece_type = ptr_board->mailbox[dst_idx];
+            const PieceType captured_piece_type = ctx->board.mailbox[dst_idx];
             assert(captured_piece_type != W_KING && captured_piece_type != B_KING);
             
             // Non-king piece

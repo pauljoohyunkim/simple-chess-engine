@@ -10,6 +10,8 @@ extern "C" {
 
 #define SCE_MAX_THREADS 256
 
+#define UCI_TT_TABLE_LOG_2_SIZE 26
+
 // A struct holding pointers for thread operations
 typedef struct {
     pthread_mutex_t stdout_mutex;

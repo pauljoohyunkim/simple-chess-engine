@@ -232,7 +232,9 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
 
     fen_step_finish:
         ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
+        ctx->board.pawn_zobrist_hash = SCE_Chessboard_ComputePawnZobristHash(ctx);
         if (ctx->board.zobrist_hash == 0) return SCE_INTERNAL_ERROR;
+        if (ctx->board.pawn_zobrist_hash == 0) return SCE_INTERNAL_ERROR;
     return SCE_SUCCESS;
 }
 

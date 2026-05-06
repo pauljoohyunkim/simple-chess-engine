@@ -7,7 +7,7 @@
 
 #define DEBUG_TT_N_SIZE (24U)
 
-void DeltaEvalTest(SCE_Context* const ctx, const int depth) {
+static void DeltaEvalTest(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const int depth) {
     if (depth == 0) {
         return;
     }
@@ -21,12 +21,12 @@ void DeltaEvalTest(SCE_Context* const ctx, const int depth) {
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx->eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx->board, &temp_eval_state, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(ctx, &temp_eval_state, ptr_engine, move);
 
         ASSERT_EQ(SCE_MakeMove(ctx, move), SCE_SUCCESS);
         ctx->eval_state = temp_eval_state;
 
-        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(ctx);
+        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(ctx, ptr_engine);
         ASSERT_EQ(delta_evaluated, full_evaluated);
         ASSERT_EQ(temp_eval_state.eg_score, ctx->eval_state.eg_score);
         ASSERT_EQ(temp_eval_state.mg_score, ctx->eval_state.mg_score);
@@ -34,7 +34,7 @@ void DeltaEvalTest(SCE_Context* const ctx, const int depth) {
         //ASSERT_TRUE(temp_eval_state.phase <= 24);
         //ASSERT_TRUE(ctx->eval_state.phase <= 24);
 
-        DeltaEvalTest(ctx, depth-1);
+        DeltaEvalTest(ctx, ptr_engine, depth-1);
 
 
         ASSERT_EQ(SCE_UnmakeMove(ctx), SCE_SUCCESS);
@@ -43,8 +43,10 @@ void DeltaEvalTest(SCE_Context* const ctx, const int depth) {
 
 TEST(SEF, Initial) {
     BOARD_SETUP();
+    SCE_Engine engine;
+    ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
-    ASSERT_EQ(SCE_Eval_SimplifiedEvaluationFunction(&ctx), 0);
+    ASSERT_EQ(SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine), 0);
 }
 
 TEST(SEF, DeltaEval_Initial) {
@@ -68,11 +70,11 @@ TEST(SEF, DeltaEval_Initial) {
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx.eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state, &engine, move);
 
         ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
         ctx.eval_state = temp_eval_state;
-        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx);
+        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine);
 
         assert(delta_evaluated == full_evaluated);
         ASSERT_EQ(delta_evaluated, full_evaluated);
@@ -104,7 +106,7 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx.eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state, &engine, move);
         ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
         ctx.eval_state = temp_eval_state;
         {
@@ -118,17 +120,17 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
                 const SCE_ChessMove move2 = movelist2.moves[j];
 
                 SCE_EvalState temp_eval_state_2 = ctx.eval_state;
-                const int delta_evaluated2 = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state_2, move2);
+                const int delta_evaluated2 = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state_2, &engine, move2);
 
                 ASSERT_EQ(SCE_MakeMove(&ctx, move2), SCE_SUCCESS);
-                const int full_evaluated2 = SCE_Eval_SimplifiedEvaluationFunction(&ctx);
+                const int full_evaluated2 = SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine);
                 
                 ASSERT_EQ(delta_evaluated2, full_evaluated2);
                 ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
             }
             
         }
-        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx);
+        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine);
 
         ASSERT_EQ(delta_evaluated, full_evaluated);
 
@@ -153,9 +155,9 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_6) {
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
 #ifndef UNITTEST_FULL
-    DeltaEvalTest(&ctx, 4);
+    DeltaEvalTest(&ctx, &engine, 4);
 #else
-    DeltaEvalTest(&ctx, 6);
+    DeltaEvalTest(&ctx, &engine, 6);
 #endif
 
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);

@@ -41,8 +41,18 @@ typedef enum {
 #define KING_INITIAL_ROW (1ULL << 4U)
 
 // Masks for file A and file H
-#define A_MASK 0x101010101010101ULL
-#define H_MASK 0x8080808080808080ULL
+typedef enum {
+    A_MASK = 0x101010101010101ULL,
+    B_MASK = 0x0202020202020202ULL,
+    C_MASK = 0x0404040404040404ULL,
+    D_MASK = 0x0808080808080808ULL,
+    E_MASK = 0x1010101010101010ULL,
+    F_MASK = 0x2020202020202020ULL,
+    G_MASK = 0x4040404040404040ULL,
+    H_MASK = 0x8080808080808080ULL
+} ChessboardFileMask;
+
+extern const uint64_t ChessboardFileMasks[CHESSBOARD_DIMENSION];
 
 typedef enum {
     WHITE = 0,
@@ -107,6 +117,7 @@ typedef struct {
     uint8_t castling_rights;
     unsigned int half_move_clock;       // 50-move rule
     uint64_t zobrist_hash;
+    uint64_t pawn_zobrist_hash;
 
     SCE_EvalState eval_state;           // For engine
 } SCE_UndoState;
@@ -132,6 +143,7 @@ typedef struct {
     uint8_t castling_rights;
     unsigned int half_move_clock;
     uint64_t zobrist_hash;
+    uint64_t pawn_zobrist_hash;
     PieceType mailbox[CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
     SCE_ChessMoveList history;
     SCE_UndoState undo_states[N_MAX_MOVES];
@@ -163,6 +175,7 @@ typedef struct {
     alignas(64) SCE_PieceMovementPrecomputationTable pm_table;
     alignas(64) SCE_ZobristTable zobrist_table;
     alignas(64) int lmr_table[SCE_MAX_PLY][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
+    alignas(64) uint64_t front_span_masks[2][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
 } SCE_Precomputation_Tables;
 
 typedef struct SCE_Context {
@@ -228,6 +241,14 @@ SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, cons
  * @return uint64_t Zobrist hash of the board if successful, or 0 for failure.
  */
 uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx);
+
+/**
+ * @brief Compute the Zobrist hash of the current board only for pawns. Requires Zobrist table to be precomputed by SCE_ZobristTable_init
+ * 
+ * @param ctx Pointer to the SCE_Context struct.
+ * @return uint64_t Zobrist hash of the board for pawns if successful, or 0 for failure.
+ */
+uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* const ctx);
 
 /**
  * @brief Returns the bitboard of occupancy information.

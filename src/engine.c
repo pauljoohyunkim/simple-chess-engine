@@ -30,7 +30,7 @@ static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE
     SCE_EvalState eval_state = ctx->eval_state;
 
     // 2. Use delta evaluation on the eval states
-    int score = ptr_engine->delta_eval_function(&ctx->board, &eval_state, move);
+    int score = ptr_engine->delta_eval_function(ctx, &eval_state, ptr_engine, move);
 
     // 3. Try MakeMove.
     SCE_Return ret = SCE_MakeMove(ctx, move);
@@ -54,6 +54,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     memset(ptr_engine->transposition_table.entries, 0, n_entries * sizeof(SCE_TranspositionTableEntry));
     if (ptr_engine->transposition_table.entries == NULL) return SCE_INTERNAL_ERROR;
     ptr_engine->transposition_table.table_size = n_entries;
+    memset(ptr_engine->pawn_hash_table, 0, sizeof(ptr_engine->pawn_hash_table));
 
     ptr_engine->stop_searching = false;
     ptr_engine->eval_function = eval_func;
@@ -64,7 +65,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
     }
 
     // Compute the initial evaluation
-    ptr_engine->eval_function(ctx);
+    ptr_engine->eval_function(ctx, ptr_engine);
 
     return SCE_SUCCESS;
 }
@@ -73,12 +74,52 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine) {
     if (ptr_engine == NULL) return SCE_INVALID_PARAM;
 
     free(ptr_engine->transposition_table.entries);
+    memset(ptr_engine->pawn_hash_table, 0, sizeof(ptr_engine->pawn_hash_table));
     ptr_engine->transposition_table.entries = NULL;
     ptr_engine->transposition_table.table_size = 0;
     ptr_engine->eval_function = NULL;
     ptr_engine->delta_eval_function = NULL;
 
     return SCE_SUCCESS;
+}
+
+bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns) {
+    if (ptr_engine == NULL || pawn_zobrist_hash == 0U) return false;
+
+    const uint64_t key = pawn_zobrist_hash & (sizeof(ptr_engine->pawn_hash_table)/sizeof(ptr_engine->pawn_hash_table[0]) - 1U);
+    const uint64_t table_score_data = ptr_engine->pawn_hash_table[key].score_data;
+    const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
+    const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
+    const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
+    const uint64_t score_data = (((uint64_t)mg_score) SCE_PHT_SET_MG_SCORE) | (((uint64_t)eg_score & 0xFFFFFFFFULL) SCE_PHT_SET_EG_SCORE);
+    ptr_engine->pawn_hash_table[key].score_data = score_data;
+    ptr_engine->pawn_hash_table[key].weak_pawns = weak_pawns;
+    ptr_engine->pawn_hash_table[key].passed_pawns = passed_pawns;
+    __atomic_thread_fence(__ATOMIC_RELEASE);
+    ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum = pawn_zobrist_hash ^ score_data ^ weak_pawns ^ passed_pawns;
+
+    return true;
+}
+
+bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash) {
+    if (entry == NULL || ptr_engine == NULL || pawn_zobrist_hash == 0U) return false;
+
+    const uint64_t key = pawn_zobrist_hash & (sizeof(ptr_engine->pawn_hash_table)/sizeof(ptr_engine->pawn_hash_table[0]) - 1U);
+    const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
+    __atomic_thread_fence(__ATOMIC_ACQUIRE);
+    const uint64_t table_score_data = ptr_engine->pawn_hash_table[key].score_data;
+    const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
+    const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
+
+    if ((table_chksum ^ table_score_data ^ table_weak_pawns ^ table_passed_pawns) == pawn_zobrist_hash) {
+        entry->pawn_zobrist_hash_chksum = table_chksum;
+        entry->score_data = table_score_data;
+        entry->passed_pawns = table_passed_pawns;
+        entry->weak_pawns = table_weak_pawns;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // Returns true if succeeded.

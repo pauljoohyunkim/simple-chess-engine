@@ -5,9 +5,9 @@
 #include "chess.h"
 #include "engine.h"
 #include "eval/sef.h"
+#include "eval/hcef.h"
 #include "uci.h"
 
-#define TT_TABLE_LOG_2_SIZE 26
 
 static const SCE_Engine_SearchControl master_ctrl_initial = {
     .use_lmr = false,
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     assert(ret == SCE_SUCCESS);
 
     SCE_Engine engine;
-    ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
+    ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_HandcraftedEvaluationFunction, SCE_DeltaEval_HandcraftedEvaluationFunction, UCI_TT_TABLE_LOG_2_SIZE);
     assert(ret == SCE_SUCCESS);
 
     SCE_Engine_SearchControl master_ctrl = master_ctrl_initial;
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
             assert(ret == SCE_SUCCESS);
             ret = SCE_Context_init(&ctx, &precomputation_tables);
             assert(ret == SCE_SUCCESS);
-            ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
+            ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, UCI_TT_TABLE_LOG_2_SIZE);
             assert(ret == SCE_SUCCESS);
             master_ctrl = master_ctrl_initial;
         } else if (strncmp(line, "uci", 3) == 0) {
@@ -63,6 +63,7 @@ int main(int argc, char** argv) {
             printf("id name SimpleChessEngine\n");
             printf("id author Paul Joo-Hyun Kim\n");
             printf("option name DynamicDeepening type check default false\n");
+            printf("option name EvalFunc type spin default 1 min 0 max 1\n");
             printf("uciok\n");
             pthread_mutex_unlock(&session.stdout_mutex);
             continue;
