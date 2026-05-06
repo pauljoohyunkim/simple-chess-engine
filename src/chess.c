@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -115,9 +116,9 @@ SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
 SCE_Return SCE_Chessboard_clear(SCE_Context* const ctx) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
 
-    for (uint i = 0U; i < N_TYPES_PIECES; i++) {
-        ctx->board.bitboards[i] = 0U;
-    }
+    memset(&ctx->board.bitboards, 0, sizeof(ctx->board.bitboards));
+    ctx->board.occupancy_w = 0U;
+    ctx->board.occupancy_b = 0U;
 
     ctx->board.en_passant_idx = UNASSIGNED;
     ctx->board.to_move = WHITE;
@@ -152,6 +153,20 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
     ctx->board.bitboards[B_ROOK] = ROOK_INITIAL_ROW << (8U * 7U);
     ctx->board.bitboards[B_QUEEN] = QUEEN_INITIAL_ROW << (8U * 7U);
     ctx->board.bitboards[B_KING] = KING_INITIAL_ROW << (8U * 7U);
+
+    // Occupancy
+    ctx->board.occupancy_w = ctx->board.bitboards[W_PAWN] |
+                             ctx->board.bitboards[W_KNIGHT] |
+                             ctx->board.bitboards[W_BISHOP] |
+                             ctx->board.bitboards[W_ROOK] |
+                             ctx->board.bitboards[W_QUEEN] |
+                             ctx->board.bitboards[W_KING];
+    ctx->board.occupancy_b = ctx->board.bitboards[B_PAWN] |
+                             ctx->board.bitboards[B_KNIGHT] |
+                             ctx->board.bitboards[B_BISHOP] |
+                             ctx->board.bitboards[B_ROOK] |
+                             ctx->board.bitboards[B_QUEEN] |
+                             ctx->board.bitboards[B_KING];
 
     ctx->board.en_passant_idx = UNASSIGNED;
     ctx->board.to_move = WHITE;
@@ -296,6 +311,7 @@ uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx) {
         occupancy ^= ctx->board.bitboards[piece_type];
     }
 
+    assert(occupancy == ctx->board.occupancy_b ^ ctx->board.occupancy_w);
     return occupancy;
 }
 
@@ -315,6 +331,7 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
         }
     }
 
+    assert(occupancy == (color == WHITE ? ctx->board.occupancy_w : ctx->board.occupancy_b));
     return occupancy;
 }
 
@@ -1781,6 +1798,15 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
                 ctx->board.bitboards[captured_piece_type] ^= captured_piece;
                 ctx->board.mailbox[captured_piece_idx] = UNASSIGNED;    // Clear out the capture square
 
+                // Clear out the occupancy
+                if (ctx->board.to_move == WHITE) {
+                    // Black captured
+                    ctx->board.occupancy_b ^= captured_piece;
+                } else {
+                    // White captured
+                    ctx->board.occupancy_w ^= captured_piece;
+                }
+
                 // Zobrist: Captured piece
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][captured_piece_idx];
                 if (captured_piece_type == W_PAWN || captured_piece_type == B_PAWN) {
@@ -1790,6 +1816,15 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
             } else {
                 ctx->board.bitboards[captured_piece_type] ^= dst;
                 ctx->board.mailbox[dst_idx] = UNASSIGNED;    // Clear out the capture square
+
+                // Clear out the occupancy
+                if (ctx->board.to_move == WHITE) {
+                    // Black captured
+                    ctx->board.occupancy_b ^= dst;
+                } else {
+                    // White captured
+                    ctx->board.occupancy_w ^= dst;
+                }
 
                 // Zobrist: Captured piece
                 ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][dst_idx];
@@ -1804,6 +1839,11 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         ctx->board.bitboards[moving_piece_type] ^= src | dst;
         ctx->board.mailbox[src_idx] = UNASSIGNED;
         ctx->board.mailbox[dst_idx] = moving_piece_type;
+        if (ctx->board.to_move == WHITE) {
+            ctx->board.occupancy_w ^= src | dst;
+        } else {
+            ctx->board.occupancy_b ^= src | dst;
+        }
 
         {
             // Zobrist: Source piece move
@@ -1873,6 +1913,12 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
                     ctx->board.mailbox[rook_idx_src] = UNASSIGNED;
                     ctx->board.mailbox[rook_idx_dst] = ctx->board.to_move == WHITE ? W_ROOK : B_ROOK;
 
+                    if (ctx->board.to_move == WHITE) {
+                        ctx->board.occupancy_w ^= rook_src ^ rook_dst;
+                    } else {
+                        ctx->board.occupancy_b ^= rook_src ^ rook_dst;
+                    }
+
                     ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_src];
                     ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_dst];
                 }
@@ -1886,6 +1932,12 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
                     ctx->board.bitboards[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
                     ctx->board.mailbox[rook_idx_src] = UNASSIGNED;
                     ctx->board.mailbox[rook_idx_dst] = ctx->board.to_move == WHITE ? W_ROOK : B_ROOK;
+
+                    if (ctx->board.to_move == WHITE) {
+                        ctx->board.occupancy_w ^= rook_src ^ rook_dst;
+                    } else {
+                        ctx->board.occupancy_b ^= rook_src ^ rook_dst;
+                    }
 
                     ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_src];
                     ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK][rook_idx_dst];
@@ -2019,6 +2071,11 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
                 ctx->board.bitboards[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
                 ctx->board.mailbox[rook_idx_src] = ctx->board.to_move == WHITE ? W_ROOK : B_ROOK;
                 ctx->board.mailbox[rook_idx_dst] = UNASSIGNED;
+                if (ctx->board.to_move == WHITE) {
+                    ctx->board.occupancy_w ^= rook_src ^ rook_dst;
+                } else {
+                    ctx->board.occupancy_b ^= rook_src ^ rook_dst;
+                }
             }
             break;
         case SCE_CHESSMOVE_FLAG_QUEEN_CASTLE:
@@ -2030,6 +2087,11 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
                 ctx->board.bitboards[ctx->board.to_move == WHITE ? W_ROOK : B_ROOK] ^= (rook_src ^ rook_dst);
                 ctx->board.mailbox[rook_idx_src] = ctx->board.to_move == WHITE ? W_ROOK : B_ROOK;
                 ctx->board.mailbox[rook_idx_dst] = UNASSIGNED;
+                if (ctx->board.to_move == WHITE) {
+                    ctx->board.occupancy_w ^= rook_src ^ rook_dst;
+                } else {
+                    ctx->board.occupancy_b ^= rook_src ^ rook_dst;
+                }
             }
             break;
         default:
@@ -2041,15 +2103,30 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
     ctx->board.bitboards[moving_piece] ^= src | dst;
     ctx->board.mailbox[dst_idx] = UNASSIGNED;
     ctx->board.mailbox[src_idx] = moving_piece;
+    if (ctx->board.to_move == WHITE) {
+        ctx->board.occupancy_w ^= src ^ dst;
+    } else {
+        ctx->board.occupancy_b ^= src ^ dst;
+    }
 
     if (captured_piece != UNASSIGNED) {
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
             const uint captured_idx = ctx->board.to_move == WHITE ? (dst_idx - CHESSBOARD_DIMENSION) : (dst_idx + CHESSBOARD_DIMENSION);
             ctx->board.bitboards[captured_piece] ^= (1ULL << captured_idx);
             ctx->board.mailbox[captured_idx] = captured_piece;
+            if (ctx->board.to_move == WHITE) {
+                ctx->board.occupancy_b ^= (1ULL << captured_idx);
+            } else {
+                ctx->board.occupancy_w ^= (1ULL << captured_idx);
+            }
         } else {
             ctx->board.bitboards[captured_piece] ^= dst;
             ctx->board.mailbox[dst_idx] = captured_piece;
+            if (ctx->board.to_move == WHITE) {
+                ctx->board.occupancy_b ^= dst;
+            } else {
+                ctx->board.occupancy_w ^= dst;
+            }
         }
     }
 
