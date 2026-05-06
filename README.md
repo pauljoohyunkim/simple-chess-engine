@@ -65,9 +65,17 @@ where
 8. Add this $\Delta R$ to the estimated ELO.
 9. Update the estimated ELO and repeat the process again if wanted.
 
-### Benchmark Results
+### Benchmark Results (SEF)
 
 | depth | R    | W  | D  | N   | dR     | Approx ELO    |
 |-------|------|----|----|-----|--------|---------------|
 | 7     | 2100 | 77 | 16 | 100 | 301.33 | 2401.3+/-82.6 |
 | 8     | 2100 | 80 | 18 | 100 | 363.2  | 2463.2+/-84.3 |
+
+### Methodology in the Future
+It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
+
+Here is a reference command I could use
+```bash
+cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2100 -each proto=uci tc=inf depth=8 -games 10 -repeat
+```
