@@ -306,6 +306,7 @@ uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* const ctx) {
 uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx) {
     if (ctx == NULL) return 0U;
 
+    #ifndef NDEBUG
     uint64_t occupancy = 0ULL;
     for (uint piece_type = 0U; piece_type < N_TYPES_PIECES; piece_type++) {
         occupancy ^= ctx->board.bitboards[piece_type];
@@ -313,11 +314,15 @@ uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx) {
 
     assert(occupancy == ctx->board.occupancy_b ^ ctx->board.occupancy_w);
     return occupancy;
+    #else
+    return ctx->board.occupancy_b ^ ctx->board.occupancy_w;
+    #endif
 }
 
 uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const PieceColor color) {
     if (ctx == NULL || (color != WHITE && color != BLACK)) return 0U;
 
+    #ifndef NDEBUG
     uint64_t occupancy = 0ULL;
     if (color == WHITE) {
         // White
@@ -333,6 +338,10 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
 
     assert(occupancy == (color == WHITE ? ctx->board.occupancy_w : ctx->board.occupancy_b));
     return occupancy;
+    #else
+    return color == WHITE ? ctx->board.occupancy_w : ctx->board.occupancy_b;
+    #endif  // NDEBUG
+
 }
 
 SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
