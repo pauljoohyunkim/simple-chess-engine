@@ -138,6 +138,8 @@ typedef struct {
  */
 typedef struct {
     uint64_t bitboards[N_TYPES_PIECES];
+    uint64_t occupancy_w;
+    uint64_t occupancy_b;
     int en_passant_idx;
     PieceColor to_move;
     uint8_t castling_rights;

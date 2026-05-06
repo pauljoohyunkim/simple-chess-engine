@@ -233,6 +233,18 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     fen_step_finish:
         ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
         ctx->board.pawn_zobrist_hash = SCE_Chessboard_ComputePawnZobristHash(ctx);
+        ctx->board.occupancy_w = ctx->board.bitboards[W_PAWN] |
+                                ctx->board.bitboards[W_KNIGHT] |
+                                ctx->board.bitboards[W_BISHOP] |
+                                ctx->board.bitboards[W_ROOK] |
+                                ctx->board.bitboards[W_QUEEN] |
+                                ctx->board.bitboards[W_KING];
+        ctx->board.occupancy_b = ctx->board.bitboards[B_PAWN] |
+                                ctx->board.bitboards[B_KNIGHT] |
+                                ctx->board.bitboards[B_BISHOP] |
+                                ctx->board.bitboards[B_ROOK] |
+                                ctx->board.bitboards[B_QUEEN] |
+                                ctx->board.bitboards[B_KING];
         if (ctx->board.zobrist_hash == 0) return SCE_INTERNAL_ERROR;
         if (ctx->board.pawn_zobrist_hash == 0) return SCE_INTERNAL_ERROR;
     return SCE_SUCCESS;
