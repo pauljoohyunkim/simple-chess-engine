@@ -72,6 +72,11 @@ where
 | 7     | 2100 | 77 | 16 | 100 | 301.33 | 2401.3+/-82.6 |
 | 8     | 2100 | 80 | 18 | 100 | 363.2  | 2463.2+/-84.3 |
 
+### Benchmark Results (HCEF)
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 237 | 141 | 500 | 66.8   | 2266.8+/-26.9 |
+
 ### Methodology in the Future
 It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
 
