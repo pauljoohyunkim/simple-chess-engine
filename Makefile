@@ -25,10 +25,16 @@ OBJS = $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS)) \
 TEST_SRCS=$(wildcard $(TESTS)/*.cpp)
 TEST_EVAL_SRCS=$(wildcard $(TESTS)/eval/*.cpp)
 TEST_OBJS=$(patsubst $(TESTS)/%.cpp,$(OBJ)/%.o, $(TEST_SRCS)) \
-		  $(patsubst $(TESTS)/eval/%.c, $(OBJ)/eval_%.o, $(TEST_EVAL_SRCS))
+          $(patsubst $(TESTS)/eval/%.c, $(OBJ)/eval_%.o, $(TEST_EVAL_SRCS))
 DEPS=$(OBJS:.o=.d)
 
-.PHONY: all bin doc clean test
+# Benchmark settings
+BENCH_DEPTH ?= 5
+BENCH_GAMES ?= 10
+BENCH_ELO ?= 2200
+BENCH_CONCURRENCY ?= 1
+
+.PHONY: all bin doc clean test benchmark
 
 bin: $(BIN)/sce_play $(BIN)/sce_uci_engine
 
@@ -68,3 +74,7 @@ $(BIN)/test: $(OBJS_UNITTEST)
 
 clean:
 	$(RM) -r $(OBJ)/*.{o,d} $(BIN)/* $(HTML)
+
+benchmark: $(BIN)/sce_uci_engine
+	@echo "Running benchmark: depth=$(BENCH_DEPTH) games=$(BENCH_GAMES) ELO=$(BENCH_ELO) concurrency=$(BENCH_CONCURRENCY)"
+	cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=$(BENCH_DEPTH) tc=inf -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=$(BENCH_ELO) tc=0/1 -each proto=uci -games $(BENCH_GAMES) -repeat -concurrency $(BENCH_CONCURRENCY)
