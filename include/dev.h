@@ -20,7 +20,7 @@ SCE_Return print_move_to_AN(const SCE_ChessMove move);
 SCE_Return debug_print_board(const SCE_Context* const ctx);
 
 // Returns number of PERFT count from the current board. 0 for failure.
-unsigned long long perft_count(const SCE_Context* const ctx, const uint depth, const bool root);
+unsigned long long perft_count(SCE_Context* const ctx, const uint depth, const bool root);
 
 #ifdef __cplusplus
 }

@@ -182,7 +182,7 @@ typedef struct {
 
 typedef struct SCE_Context {
     SCE_Chessboard board;
-    SCE_Precomputation_Tables* precomputation_tables;
+    const SCE_Precomputation_Tables* precomputation_tables;
 
     // For Engine
     uint8_t depth;
@@ -277,7 +277,7 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
  * @param color Color to print from perspective of.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
-SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color);
+SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color);
 
 /**
  * @brief Fill the movement precomputation table.

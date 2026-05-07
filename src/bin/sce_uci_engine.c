@@ -15,7 +15,7 @@ static const SCE_Engine_SearchControl master_ctrl_initial = {
     .lmr_bias = 0,
 };
 
-int main(int argc, char** argv) {
+int main() {
     setvbuf(stdout, NULL, _IONBF, 0);
     SCE_Context ctx;
 

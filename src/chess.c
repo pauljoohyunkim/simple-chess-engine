@@ -312,7 +312,7 @@ uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx) {
         occupancy ^= ctx->board.bitboards[piece_type];
     }
 
-    assert(occupancy == ctx->board.occupancy_b ^ ctx->board.occupancy_w);
+    assert(occupancy == (ctx->board.occupancy_b ^ ctx->board.occupancy_w));
     return occupancy;
     #else
     return ctx->board.occupancy_b ^ ctx->board.occupancy_w;
@@ -344,7 +344,7 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
 
 }
 
-SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
+SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
     if (color != WHITE && color != BLACK) return SCE_INVALID_PARAM;
 
