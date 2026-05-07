@@ -42,7 +42,9 @@ static void DeltaEvalTest(SCE_Context* const ctx, SCE_Engine* const ptr_engine, 
 }
 
 TEST(SEF, Initial) {
-    BOARD_SETUP();
+    BOARD_SETUP()
+    (void)board;
+
     SCE_Engine engine;
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 

@@ -12,6 +12,7 @@ TEST(PERFT, Initial_Depth_1_to_5) {
     const ull testvector[5U] = { 20, 400, 8902, 197281, 4865609 };
     for (uint depth = 1U; depth <= 5U; depth++) {
         BOARD_SETUP()
+        (void)board;
 
         const ull count = perft_count(&ctx, depth, false);
 

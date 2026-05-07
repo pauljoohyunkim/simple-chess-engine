@@ -668,8 +668,8 @@ TEST(Zobrist, ZobristHash) {
 
 TEST(Zobrist, InitialHash) {
     BOARD_SETUP()
+    (void)board;
 
-    SCE_Context ctx2;
     SCE_ZobristTable z_table;
     uint64_t seed = 1U;
     ASSERT_EQ(SCE_ZobristTable_init(&z_table, &seed), SCE_SUCCESS);
