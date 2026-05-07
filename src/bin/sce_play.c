@@ -183,7 +183,7 @@ static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) 
         const SCE_ChessMove legal_move = legal_move_list.moves[i];
         const unsigned int legal_src_idx = legal_move SCE_CHESSMOVE_GET_SRC;
         const unsigned int legal_dst_idx = legal_move SCE_CHESSMOVE_GET_DST;
-        if (legal_src_idx == src_idx && legal_dst_idx == dst_idx) {
+        if ((int)legal_src_idx == src_idx && (int)legal_dst_idx == dst_idx) {
             ret = SCE_AddToMoveList(legal_move, &movelist);
         }
     }

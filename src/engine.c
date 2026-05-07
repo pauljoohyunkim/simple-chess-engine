@@ -554,7 +554,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
 
                 // Reduction to negative depth not allowed.
                 if (reduction < 0) reduction = 0;
-                if (reduction >= depth) reduction = depth - 1;
+                if (reduction >= (int)depth) reduction = depth - 1;
         }
 
         int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-reduction, -beta, -alpha);
