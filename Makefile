@@ -1,7 +1,7 @@
 CFLAGSEXTRA=
 OPTIMIZATION?=-O3
 INCLUDES=-Iinclude
-CFLAGS=-g -Wall -Wextra $(OPTIMIZATION) -pedantic -MMD -MP $(INCLUDES) -flto -march=native
+CFLAGS=-g -Wall -Wextra $(OPTIMIZATION) -pedantic -MMD -MP $(INCLUDES) -flto=$(shell nproc) -march=native
 CFLAGS+=$(CFLAGSEXTRA)
 CXX=g++
 
