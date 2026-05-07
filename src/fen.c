@@ -64,7 +64,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     uint row = 7U;
     uint col = 0U;
 
-    fen_step_piece_placement:
+    // fen_step_piece_placement:
         size_t len = strlen(piece_placement_str);
         for (uint i = 0U; i < len; i++) {
             const char c = piece_placement_str[i];
@@ -133,7 +133,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
         }
         if (row != 0 || col != CHESSBOARD_DIMENSION) return SCE_INVALID_PARAM;
 
-    fen_step_active_color:
+    // fen_step_active_color:
         if (active_color_str == NULL) {
             ctx->board.to_move = WHITE;
             goto fen_step_finish;
@@ -153,7 +153,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
         }
 
 
-    fen_step_castling_rights:
+    // fen_step_castling_rights:
         if (castling_rights_str == NULL) {
             // Default to no castling rights.
             ctx->board.castling_rights = 0U;
@@ -189,7 +189,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
         }
 
 
-    fen_step_en_passant_target_square:
+    // fen_step_en_passant_target_square:
         if (en_passant_target_square_str == NULL) {
             ctx->board.en_passant_idx = UNASSIGNED;
             goto fen_step_finish;
@@ -207,7 +207,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
             ctx->board.en_passant_idx = idx;
         }
 
-    fen_step_halfmove_clock:
+    // fen_step_halfmove_clock:
         if (halfmove_clock_str == NULL) {
             ctx->board.half_move_clock = 0;
             goto fen_step_finish;
@@ -222,7 +222,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
 
         ctx->board.half_move_clock = atoi(halfmove_clock_str);
 
-    fen_step_fullmove_number:
+    // fen_step_fullmove_number:
         // Fullmove number is not handled.
         // if (fen_step != FEN_STEP_FULLMOVE_NUMBER) return SCE_INVALID_PARAM;
         if (fullmove_number_str == NULL) {
