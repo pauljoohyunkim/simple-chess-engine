@@ -93,13 +93,14 @@ You can run the benchmark using the provided Makefile target:
 ```bash
 make benchmark
 ```
-This will run the engine against Stockfish using the following default parameters:
+This will build the engine with optimizations enabled (release build with `-DNDEBUG`) and run it against Stockfish using the following default parameters:
 - Depth: 5
 - Number of games: 10
-- Stockfish ELO: 2100
-- Concurrency: 4 concurrent games
+- Stockfish ELO: 2200
+- Concurrency: 1 concurrent game
 
 You can override these parameters by setting the corresponding make variables:
 ```bash
 make benchmark BENCH_DEPTH=7 BENCH_GAMES=20 BENCH_ELO=2200 BENCH_CONCURRENCY=8
 ```
+Note that `BENCH_GAMES` must be an even number for a "meaningful" benchmark.
