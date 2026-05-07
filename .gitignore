@@ -270,3 +270,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Unnecessary MD files.
+todo.md
