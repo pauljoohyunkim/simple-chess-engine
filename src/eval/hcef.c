@@ -60,7 +60,6 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
         if (w_pawns_in_file) {
             const uint leading_pawn_idx = (63U - COUNT_LEADING_ZEROS(w_pawns_in_file));
             const uint row = leading_pawn_idx / 8;
-            const uint col = leading_pawn_idx % 8;
             uint64_t passed_pawn_mask = ptr_precomputation_tables->front_span_masks[WHITE][leading_pawn_idx];
             // Check if enemy (black) pawn exists
             if (!(passed_pawn_mask & b_pawn)) {
@@ -86,7 +85,6 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
         if (b_pawns_in_file) {
             const uint leading_pawn_idx = COUNT_TRAILING_ZEROS(b_pawns_in_file);
             const uint row = leading_pawn_idx / 8;
-            const uint col = leading_pawn_idx % 8;
             uint64_t passed_pawn_mask = ptr_precomputation_tables->front_span_masks[BLACK][leading_pawn_idx];
             // Check if enemy (white) pawn exists
             if (!(passed_pawn_mask & w_pawn)) {

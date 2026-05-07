@@ -670,7 +670,7 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
     for (uint iter_depth = ptr_ctrl->start_depth; iter_depth <= ctx->depth; iter_depth++) {
         int alpha = SCE_ALPHA_INITIAL;
         int beta = SCE_BETA_INITIAL;
-        SCE_ChessMove tt_hint_move = EMPTY_MOVE;
+        // SCE_ChessMove tt_hint_move = EMPTY_MOVE;
         ctx->current_search_depth = iter_depth;
 
         // TT lookup
