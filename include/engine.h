@@ -107,8 +107,8 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * @param eg_score Endgame score
  * @param passed_pawns Bitboard of passed pawns
  * @param weak_pawns Bitboard of weak pawns (backward, isolated, etc.)
- * @return true Successful
- * @return false Failure
+ * @return true If successful
+ * @return false If failed
  */
 bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t weak_pawns);
 
@@ -118,8 +118,8 @@ bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t paw
  * @param entry Pointer to the SCE_PawnHashTableEntry struct where the lookup will be written if successful.
  * @param ptr_engine Pointer to the SCE_Engine struct.
  * @param pawn_zobrist_hash Zobrist hash of only pawn locations
- * @return true Successful
- * @return false Failure
+ * @return true If successful
+ * @return false If failed
  */
 bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash);
 
@@ -144,18 +144,20 @@ bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx);
 /**
  * @brief Outputs the best move calculated by engine via simple alpha beta search.
  * 
- * @param ptr_engine Pointer to to the SCE_Engine struct
+ * @param ptr_engine Pointer to the SCE_Engine struct
  * @param ctx Pointer to the SCE_Context struct
- * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
+ * @param ptr_ctrl Pointer to the search control structure
+ * @return SCE_ChessMove Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
 SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
 
 /**
  * @brief Outputs the best move calculated by the engine via iterative deepening with alpha beta.
  * 
- * @param ptr_engine Pointer to to the SCE_Engine struct
+ * @param ptr_engine Pointer to the SCE_Engine struct
  * @param ctx Pointer to the SCE_Context struct
- * @return int Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
+ * @param ptr_ctrl Pointer to the search control structure
+ * @return SCE_ChessMove Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
 SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
 

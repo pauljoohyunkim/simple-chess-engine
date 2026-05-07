@@ -199,6 +199,7 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
  * @brief Initializes SCE_Context with default setting.
  * 
  * @param ctx Pointer to the SCE_Context struct.
+ * @param ptr_precomputation_tables Pointer to the precomputation tables.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_Context_init(SCE_Context* const ctx, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
@@ -230,8 +231,8 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx);
 /**
  * @brief Initialize a table to be used for Zobrist hashing.
  * 
- * @param ctx Pointer to the SCE_Context struct.
- * @param seed Pointer to seed value for random number generation. NULL for randomly picked seed.
+ * @param ptr_zobrist_table Pointer to the Zobrist table.
+ * @param ptr_seed Pointer to seed value for random number generation. NULL for randomly picked seed.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
@@ -255,7 +256,7 @@ uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* const ctx);
 /**
  * @brief Returns the bitboard of occupancy information.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @return uint64_t bitboard where set bits are occupied, or 0 for error.
  */
 uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx);
@@ -263,8 +264,8 @@ uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx);
 /**
  * @brief Returns the bitboard of occupancy by color information.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct
- * @param color Color of the piece
+ * @param ctx Pointer to the SCE_Context struct.
+ * @param color Color of the piece.
  * @return uint64_t bitboard where set bits are occupied, or 0 for error.
  */
 uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const PieceColor color);
@@ -272,7 +273,8 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
 /**
  * @brief Print the board to console.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
+ * @param ctx Pointer to the SCE_Context struct.
+ * @param color Color to print from perspective of.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color);
@@ -307,8 +309,7 @@ SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
 /**
  * @brief Checks if the square is under attack by certain color.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @param square uint64_t value with a single bit active marking the square. It is paramount that only a single bit is active.
  * @param attacked_by Color of the piece attacking the square.
  * @return true The square is under attack.
@@ -336,7 +337,7 @@ uint64_t SCE_AN_To_Bitboard(const char* an);
  * @brief Converts bitboard with single bit to algebraic notation
  * 
  * @param an_out Char array. Needs at least three spaces (for null terminator)
- * @param bitboard uin64_t representation of board. Only single bit must be set.
+ * @param bitboard uint64_t representation of board. Only single bit must be set.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
@@ -344,8 +345,7 @@ SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
 /**
  * @brief Attempt to make move. Note that this does not check for pseudo legal moves, hence for human input, must be verified if it is a pseudo legal move.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @param move 
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  * 
@@ -356,8 +356,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move);
 /**
  * @brief Unmake move.
  * 
- * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @param ptr_precomputation_table Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_UnmakeMove(SCE_Context* const ctx);
@@ -366,8 +365,7 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx);
  * @brief Generate all legal moves from current position.
  * 
  * @param ptr_movelist List of moves
- * @param ptr_board Pointer to the SCE_Chessboard struct.
- * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
+ * @param ctx Pointer to the SCE_Context struct.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  * 
  * In the case of failure, the attempted move will be reverted back.
