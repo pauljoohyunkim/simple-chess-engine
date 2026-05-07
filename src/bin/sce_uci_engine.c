@@ -15,7 +15,7 @@ static const SCE_Engine_SearchControl master_ctrl_initial = {
     .lmr_bias = 0,
 };
 
-int main(int argc, char** argv) {
+int main() {
     setvbuf(stdout, NULL, _IONBF, 0);
     SCE_Context ctx;
 
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         } else if (strncmp(line, "print", 5) == 0) {
             pthread_mutex_lock(&session.stdout_mutex);
             ret = SCE_Chessboard_print(&ctx, WHITE);
-            assert(ret = SCE_SUCCESS);
+            assert(ret == SCE_SUCCESS);
             pthread_mutex_unlock(&session.stdout_mutex);
             continue;
         } else if (strncmp(line, "quit", 4) == 0) {

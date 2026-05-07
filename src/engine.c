@@ -30,7 +30,7 @@ static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE
     SCE_EvalState eval_state = ctx->eval_state;
 
     // 2. Use delta evaluation on the eval states
-    int score = ptr_engine->delta_eval_function(ctx, &eval_state, ptr_engine, move);
+    ptr_engine->delta_eval_function(ctx, &eval_state, ptr_engine, move);
 
     // 3. Try MakeMove.
     SCE_Return ret = SCE_MakeMove(ctx, move);
@@ -87,10 +87,10 @@ bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t paw
     if (ptr_engine == NULL || pawn_zobrist_hash == 0U) return false;
 
     const uint64_t key = pawn_zobrist_hash & (sizeof(ptr_engine->pawn_hash_table)/sizeof(ptr_engine->pawn_hash_table[0]) - 1U);
-    const uint64_t table_score_data = ptr_engine->pawn_hash_table[key].score_data;
-    const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
-    const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
-    const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
+    // const uint64_t table_score_data = ptr_engine->pawn_hash_table[key].score_data;
+    // const uint64_t table_passed_pawns = ptr_engine->pawn_hash_table[key].passed_pawns;
+    // const uint64_t table_weak_pawns = ptr_engine->pawn_hash_table[key].weak_pawns;
+    // const uint64_t table_chksum = ptr_engine->pawn_hash_table[key].pawn_zobrist_hash_chksum;
     const uint64_t score_data = (((uint64_t)mg_score) SCE_PHT_SET_MG_SCORE) | (((uint64_t)eg_score & 0xFFFFFFFFULL) SCE_PHT_SET_EG_SCORE);
     ptr_engine->pawn_hash_table[key].score_data = score_data;
     ptr_engine->pawn_hash_table[key].weak_pawns = weak_pawns;
@@ -187,7 +187,6 @@ static inline int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_C
     
     const uint flag = move SCE_CHESSMOVE_GET_FLAG;
     const uint moving_piece_idx = move SCE_CHESSMOVE_GET_SRC;
-    const uint64_t moving_piece = 1ULL << moving_piece_idx;
     int moving_piece_type = UNASSIGNED;
     int captured_piece_type = UNASSIGNED;
     const int piece_values[] = {
@@ -384,7 +383,7 @@ static inline int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
                                                int beta) {
     #ifdef NODE_COUNT
     ctx->node_count++;
-    #endif NODE_COUNT
+    #endif
     if (ptr_engine->stop_searching) return DUMMY_VALUE_FROM_STOPPING_SEARCH;
     const int phase = ctx->eval_state.phase;
     const int mg_score = ctx->eval_state.mg_score;
@@ -449,7 +448,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                               int beta) {
     #ifdef NODE_COUNT
     ctx->node_count++;
-    #endif NODE_COUNT
+    #endif
     if (ptr_engine->stop_searching) return DUMMY_VALUE_FROM_STOPPING_SEARCH;
     if (ctx->board.half_move_clock >= HALF_MOVE_CUTOFF) return SCE_EVAL_DRAW;
     if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;
@@ -554,7 +553,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
 
                 // Reduction to negative depth not allowed.
                 if (reduction < 0) reduction = 0;
-                if (reduction >= depth) reduction = depth - 1;
+                if (reduction >= (int)depth) reduction = depth - 1;
         }
 
         int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-reduction, -beta, -alpha);
@@ -623,12 +622,10 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
     SCE_ChessMove best_move = EMPTY_MOVE;
 
     // Zobrist-Transposition-Table Lookup
-    uint64_t transposition_data;
-    bool transposition_data_exists;
-    //bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-    //if (transposition_data_exists) {
-    //    best_move = SCE_TT_GET_MOVE(transposition_data);
-    //}
+    // bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
+    // if (transposition_data_exists) {
+    //     best_move = SCE_TT_GET_MOVE(transposition_data);
+    // }
 
     // Move generation
     SCE_ChessMoveList moves;
@@ -673,21 +670,21 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
     for (uint iter_depth = ptr_ctrl->start_depth; iter_depth <= ctx->depth; iter_depth++) {
         int alpha = SCE_ALPHA_INITIAL;
         int beta = SCE_BETA_INITIAL;
-        SCE_ChessMove tt_hint_move = EMPTY_MOVE;
+        // SCE_ChessMove tt_hint_move = EMPTY_MOVE;
         ctx->current_search_depth = iter_depth;
 
         // TT lookup
         uint64_t transposition_data;
         bool transposition_data_exists;
-        //uint64_t transposition_data;
-        //bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-        //if (transposition_data_exists) {
-        //    tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
-        //}
+        // uint64_t transposition_data;
+        // bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
+        // if (transposition_data_exists) {
+        //     tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
+        // }
 
         // Call alpha beta search.
         // This saves best move to TT.
-        const int score = SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, iter_depth, alpha, beta);
+        SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, iter_depth, alpha, beta);
 
         if (ptr_engine->stop_searching) break;
 

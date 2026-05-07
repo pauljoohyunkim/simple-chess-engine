@@ -15,6 +15,7 @@ static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor 
 static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color, const bool is_mg);
 
 int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+    (void)ptr_engine;       // For compiler warning suppression about unused variable.
     assert(ctx != NULL);
     int material_sum = 0;
     int pst_sum = 0;
@@ -152,6 +153,7 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
 }
 
 int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
+    (void)ptr_engine;
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
     const int flag = move SCE_CHESSMOVE_GET_FLAG;
@@ -159,9 +161,6 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_EvalS
     assert(src_piece_type != UNASSIGNED_PIECE_TYPE);
 
     const PieceColor src_color = src_piece_type < B_PAWN ? WHITE : BLACK;
-    const int sign = src_color == WHITE ? 1 : -1;
-
-    const uint src_adjusted_pst_idx = src_color == WHITE ? src_idx : FLIP(src_idx);
 
     // 1. "Subtract" piece value from old square
     if (src_piece_type != W_KING && src_piece_type != B_KING) {
@@ -189,7 +188,6 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_EvalS
     if (flag & SCE_CHESSMOVE_FLAG_CAPTURE) {
         // 2.1.1 En passant
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
-            const PieceType captured_piece_type = src_color == WHITE ? B_PAWN : W_PAWN;
             const uint captured_piece_idx = src_color == WHITE ? ctx->board.en_passant_idx - CHESSBOARD_DIMENSION : ctx->board.en_passant_idx + CHESSBOARD_DIMENSION;
             const int* pst = PST[PST_PAWN];
             // PST

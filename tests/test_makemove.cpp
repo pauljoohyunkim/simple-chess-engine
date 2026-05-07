@@ -129,6 +129,7 @@ TEST(MakeMove, Black_Castling_Kingside_White_Castling_Queenside) {
 
 TEST(MakeMove, FoolsMate) {
     BOARD_SETUP()
+    (void)board;
 
     // W: F2 -> F3
     SCE_ChessMove move = (SCE_AN_To_Idx("F2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F3") SCE_CHESSMOVE_SET_DST);

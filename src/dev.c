@@ -130,7 +130,7 @@ SCE_Return debug_print_board(const SCE_Context* const ctx) {
     return SCE_SUCCESS;
 }
 
-unsigned long long perft_count(const SCE_Context* const ctx, const uint depth, const bool root) {
+unsigned long long perft_count(SCE_Context* const ctx, const uint depth, const bool root) {
     if (ctx == NULL) return 0U;
     if (depth == 0U) return 1U;
 

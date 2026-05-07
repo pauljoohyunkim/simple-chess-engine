@@ -66,7 +66,6 @@ where
 9. Update the estimated ELO and repeat the process again if wanted.
 
 ### Benchmark Results (SEF)
-
 | depth | R    | W  | D  | N   | dR     | Approx ELO    |
 |-------|------|----|----|-----|--------|---------------|
 | 7     | 2100 | 77 | 16 | 100 | 301.33 | 2401.3+/-82.6 |
@@ -88,3 +87,20 @@ Here is a reference command I could use
 # Playing ten games. Since 10 is even, the color switches back and forth.
 cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=5 tc=inf -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2100 tc=0/1 -each proto=uci -games 10 -repeat -concurrency 4
 ```
+
+### Using Makefile for Benchmark
+You can run the benchmark using the provided Makefile target:
+```bash
+make benchmark
+```
+This will build the engine with optimizations enabled (release build with `-DNDEBUG`) and run it against Stockfish using the following default parameters:
+- Depth: 5
+- Number of games: 10
+- Stockfish ELO: 2200
+- Concurrency: 1 concurrent game
+
+You can override these parameters by setting the corresponding make variables:
+```bash
+make benchmark BENCH_DEPTH=7 BENCH_GAMES=20 BENCH_ELO=2200 BENCH_CONCURRENCY=8
+```
+Note that `BENCH_GAMES` must be an even number for a "meaningful" benchmark.

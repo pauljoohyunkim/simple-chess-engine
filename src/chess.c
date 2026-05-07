@@ -47,7 +47,7 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
     RETURN_IF_SCE_FAILURE(SCE_PieceMovementPrecompute(&ptr_precomputation_tables->pm_table), "Could not precompute piece movement table.");
     const double K = 0.5;    // Aggression; higher K = more reduction
     for (int depth = 1; depth < SCE_MAX_PLY; depth++) {
-        for (int i = 1; i < CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION; i++) {
+        for (uint i = 1U; i < CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION; i++) {
             ptr_precomputation_tables->lmr_table[depth][i] = (int)(K + log(depth) * log(i) / 3.0);
         }
     }
@@ -312,7 +312,7 @@ uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx) {
         occupancy ^= ctx->board.bitboards[piece_type];
     }
 
-    assert(occupancy == ctx->board.occupancy_b ^ ctx->board.occupancy_w);
+    assert(occupancy == (ctx->board.occupancy_b ^ ctx->board.occupancy_w));
     return occupancy;
     #else
     return ctx->board.occupancy_b ^ ctx->board.occupancy_w;
@@ -344,7 +344,7 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
 
 }
 
-SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
+SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
     if (color != WHITE && color != BLACK) return SCE_INVALID_PARAM;
 
@@ -369,8 +369,6 @@ SCE_Return SCE_Chessboard_print(SCE_Context* const ctx, PieceColor color) {
             if (color == BLACK) {
                 shift = 63U - shift;
             }
-            uint64_t pos = 1ULL << shift;
-
             const PieceType piece_in_square = ctx->board.mailbox[shift];
 
             switch (piece_in_square) {
@@ -970,7 +968,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
-    uint piece_types[3U] = { 0 };
+    PieceType piece_types[3U] = { 0 };
 
     if (ctx->board.to_move == WHITE) {
         piece_types[0] = W_ROOK;
@@ -983,7 +981,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     }
 
     for (uint i = 0U; i < sizeof(piece_types)/sizeof(piece_types[0]); i++) {
-        const uint moving_piece_type = piece_types[i];
+        const PieceType moving_piece_type = piece_types[i];
         const PieceColor moving_piece_color = (moving_piece_type >= W_PAWN && moving_piece_type <= W_KING) ? WHITE : BLACK;
 
         uint64_t pieces = ctx->board.bitboards[moving_piece_type];
@@ -1097,7 +1095,6 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
                 case B_QUEEN:
                     if (blockers[NORTHEAST]) {
                         uint blocker_idx = blockers_idx[NORTHEAST];
-                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
                         // Check color
                         if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
@@ -1113,7 +1110,6 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
 
                     if (blockers[NORTHWEST]) {
                         uint blocker_idx = blockers_idx[NORTHWEST];
-                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
                         // Check color
                         if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
@@ -1129,7 +1125,6 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
 
                     if (blockers[SOUTHEAST]) {
                         uint blocker_idx = blockers_idx[SOUTHEAST];
-                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
                         // Check color
                         if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {
@@ -1145,7 +1140,6 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
 
                     if (blockers[SOUTHWEST]) {
                         uint blocker_idx = blockers_idx[SOUTHWEST];
-                        uint blocker_row = blocker_idx / CHESSBOARD_DIMENSION;
                         uint blocker_col = blocker_idx % CHESSBOARD_DIMENSION;
                         // Check color
                         if ((1ULL << blocker_idx) & (moving_piece_color == WHITE ? occupancy_w : occupancy_b)) {

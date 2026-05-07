@@ -51,7 +51,7 @@ typedef enum {
 static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static Signal check_draw(SCE_Context* const ctx);
-static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+static void deepen(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
 static bool deepen_depth(SCE_Context* const ctx, const int new_depth);
 static unsigned int calculate_npp(const SCE_Context* const ctx);
 
@@ -183,7 +183,7 @@ static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) 
         const SCE_ChessMove legal_move = legal_move_list.moves[i];
         const unsigned int legal_src_idx = legal_move SCE_CHESSMOVE_GET_SRC;
         const unsigned int legal_dst_idx = legal_move SCE_CHESSMOVE_GET_DST;
-        if (legal_src_idx == src_idx && legal_dst_idx == dst_idx) {
+        if ((int)legal_src_idx == src_idx && (int)legal_dst_idx == dst_idx) {
             ret = SCE_AddToMoveList(legal_move, &movelist);
         }
     }
@@ -223,7 +223,7 @@ static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) 
             }
         }
         printf("Choice: ");
-        scanf("%d", &choice);
+        scanf("%d", (int*) &choice);
         if (choice >= movelist.count) {
             fprintf(stderr, "Wrong index!\n");
             return SIGNAL_CONTINUE;
@@ -338,7 +338,7 @@ static Signal check_draw(SCE_Context* const ctx) {
     return SIGNAL_OK;
 }
 
-static void deepen(const SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static void deepen(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     assert(ptr_engine != NULL);
 
     // Clamp npp_count to below 16
