@@ -149,6 +149,9 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
             }
             {
                 // TODO: Weak pawns
+                // 1. Isolated
+                // 2. Backwards
+                // 3. Hanging
             }
             // Cache
             // For now, 0U: Not taking into account for weak pawns yet for testing.
