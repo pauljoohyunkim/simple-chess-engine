@@ -654,10 +654,10 @@ TEST(MakeMove, MakeMove_Initial) {
 TEST(Zobrist, ZobristHash) {
     SCE_Precomputation_Tables precomputation_tables_1;
     uint64_t seed = 1U;
-    ASSERT_EQ(SCE_ZobristTable_init(&precomputation_tables_1.zobrist_table, &seed), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables_1, &seed), SCE_SUCCESS);
 
     SCE_Precomputation_Tables precomputation_tables_2;
-    ASSERT_EQ(SCE_ZobristTable_init(&precomputation_tables_2.zobrist_table, NULL), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables_2, NULL), SCE_SUCCESS);
 
     for (unsigned int i = 0U; i < sizeof(SCE_ZobristTable) / sizeof(uint64_t); i++) {
         const uint64_t x = *((uint64_t*) &precomputation_tables_1.zobrist_table + i);
@@ -670,9 +670,15 @@ TEST(Zobrist, InitialHash) {
     BOARD_SETUP()
     (void)board;
 
-    SCE_ZobristTable z_table;
+    SCE_Precomputation_Tables pt;
     uint64_t seed = 1U;
-    ASSERT_EQ(SCE_ZobristTable_init(&z_table, &seed), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&pt, &seed), SCE_SUCCESS);
+    // Temporarily assign the pt to ctx for the hash computation
+    const SCE_Precomputation_Tables* old_pt = ctx.precomputation_tables;
+    ctx.precomputation_tables = &pt;
 
     ASSERT_NE(SCE_Chessboard_ComputeZobristHash(&ctx), 0U);
+
+    // Restore original pointer
+    ctx.precomputation_tables = old_pt;
 }
