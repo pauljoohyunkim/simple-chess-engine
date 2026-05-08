@@ -84,6 +84,18 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
             ptr_precomputation_tables->front_span_masks[BLACK][idx] = ptr_precomputation_tables->pm_table.rays[SOUTH][idx] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx+1U] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx-1U];
         }
     }
+    for (uint col = 0; col < CHESSBOARD_DIMENSION; col++) {
+        if (col == 0U) {
+            ptr_precomputation_tables->adjacent_files[col] = B_MASK;
+            continue;
+        }
+        if (col == 7U) {
+            ptr_precomputation_tables->adjacent_files[col] = G_MASK;
+            continue;
+        }
+
+        ptr_precomputation_tables->adjacent_files[col] = ChessboardFileMasks[col-1U] ^ ChessboardFileMasks[col+1U];
+    }
 
     return SCE_SUCCESS;
 }

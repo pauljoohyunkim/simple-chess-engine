@@ -178,6 +178,7 @@ typedef struct {
     alignas(64) SCE_ZobristTable zobrist_table;
     alignas(64) int lmr_table[SCE_MAX_PLY][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
     alignas(64) uint64_t front_span_masks[2][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
+    alignas(64) uint64_t adjacent_files[CHESSBOARD_DIMENSION];
 } SCE_Precomputation_Tables;
 
 typedef struct SCE_Context {
