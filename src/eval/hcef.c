@@ -12,7 +12,7 @@ typedef unsigned int uint;
 
 static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn);
 static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const uint64_t w_pawn, const uint64_t b_pawn, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
-static uint64_t SCE_Eval_HandcraftedEvaluationFunction_WeakPawnDetection(const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
+static uint64_t SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const weak_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, uint64_t weak_pawns, const uint64_t occupancy_w, const uint64_t occupancy_b);
 
@@ -94,35 +94,6 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
     *eg_score = local_eg_score;
 }
 
-static uint64_t SCE_Eval_HandcraftedEvaluationFunction_WeakPawnDetection(const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
-    assert(ptr_precomputation_tables != NULL);
-    // Weak pawns
-    uint64_t weak_pawns = 0U;
-    // 1. Isolated
-    {
-        // Copy
-        for (uint col = 0U; col < CHESSBOARD_DIMENSION; col++) {
-            const uint64_t w_pawns_in_file = w_pawns & ChessboardFileMasks[col];
-            const uint64_t b_pawns_in_file = b_pawns & ChessboardFileMasks[col];
-
-            // Add the pawns of specific color if adjacent does not contain that color pawns.
-            if (!(w_pawns & ptr_precomputation_tables->adjacent_files[col])) {
-                weak_pawns |= w_pawns_in_file;
-            }
-            if (!(b_pawns & ptr_precomputation_tables->adjacent_files[col])) {
-                weak_pawns |= b_pawns_in_file;
-            }
-        }
-    }
-    // 2. Backwards
-    {
-        
-    }
-    // 3. Hanging
-
-    return 0U;
-}
-
 // -10 ~ -15 / -20 ~ -25
 #define ISOLATED_PAWN_PENALTY_MG 12
 #define ISOLATED_PAWN_PENALTY_EG 24
@@ -132,6 +103,37 @@ static uint64_t SCE_Eval_HandcraftedEvaluationFunction_WeakPawnDetection(const u
 // -5 ~ -8 / -10 ~ -15
 #define HANGING_PAWN_PENALTY_MG 6
 #define HANGING_PAWN_PENALTY_EG 14
+static uint64_t SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+    assert(ptr_precomputation_tables != NULL);
+
+    *mg_score = 0;
+    *eg_score = 0;
+
+    // Isolated pawns
+    uint64_t isolated_pawns = 0U;
+    // Copy
+    for (uint col = 0U; col < CHESSBOARD_DIMENSION; col++) {
+        const uint64_t w_pawns_in_file = w_pawns & ChessboardFileMasks[col];
+        const uint64_t b_pawns_in_file = b_pawns & ChessboardFileMasks[col];
+
+        // Add the pawns of specific color if adjacent does not contain that color pawns.
+        if (!(w_pawns & ptr_precomputation_tables->adjacent_files[col])) {
+            isolated_pawns |= w_pawns_in_file;
+            const int w_pawns_in_file_count = COUNT_SET_BITS(w_pawns_in_file);
+            *mg_score -= ISOLATED_PAWN_PENALTY_MG * w_pawns_in_file_count;
+            *eg_score -= ISOLATED_PAWN_PENALTY_EG * w_pawns_in_file_count;
+        }
+        if (!(b_pawns & ptr_precomputation_tables->adjacent_files[col])) {
+            isolated_pawns |= b_pawns_in_file;
+            const int b_pawns_in_file_count = COUNT_SET_BITS(b_pawns_in_file);
+            *mg_score += ISOLATED_PAWN_PENALTY_MG * b_pawns_in_file_count;
+            *eg_score += ISOLATED_PAWN_PENALTY_EG * b_pawns_in_file_count;
+        }
+    }
+
+    return isolated_pawns;
+}
+
 static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const weak_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawns, const uint64_t b_pawns, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
@@ -169,7 +171,13 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 pawn_contrib_eg += passed_pawn_eg;
             }
             {
-                *weak_pawns = SCE_Eval_HandcraftedEvaluationFunction_WeakPawnDetection(w_pawns, b_pawns, ptr_precomputation_tables);
+                *weak_pawns = 0U;
+                int isolated_pawn_mg = 0;
+                int isolated_pawn_eg = 0;
+                const uint64_t isolated_pawns = SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(&isolated_pawn_mg, &isolated_pawn_eg, w_pawns, b_pawns, ptr_precomputation_tables);
+                *weak_pawns |= isolated_pawns;
+                pawn_contrib_mg += isolated_pawn_mg;
+                pawn_contrib_eg += isolated_pawn_eg;
             }
             // Cache
             // For now, 0U: Not taking into account for weak pawns yet for testing.
@@ -219,28 +227,6 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
 
         // Remove from the passed pawns for scanning.
         passed_pawns &= ~passed_pawn;
-    }
-
-    while (weak_pawns) {
-        // Bit scan
-        // 1. Get index.
-        // 2. Get the type
-        // 3. Check for weakness
-        // 4. Update
-
-        const uint idx = COUNT_TRAILING_ZEROS(passed_pawns);
-        const uint row = idx / CHESSBOARD_DIMENSION;
-        const uint64_t weak_pawn = 1ULL << idx;
-        assert(weak_pawn & occupancy);
-
-        // 1. Isolated
-
-        // 2. Backward
-
-        // 3. Hanging
-
-        // Remove from the weak pawns for scanning.
-        weak_pawns &= ~weak_pawn;
     }
 }
 
