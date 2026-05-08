@@ -27,7 +27,6 @@
     ASSERT_EQ(SCE_GeneratePseudoLegalMoves(&list, &ctx, false), SCE_SUCCESS); \
     uint n_moves[N_TYPES_PIECES] = { 0 }; \
     for (unsigned int i = 0; i < list.count; i++) { \
-        print_move_to_AN(list.moves[i]); \
         uint64_t src = 1ULL << (list.moves[i] SCE_CHESSMOVE_GET_SRC); \
         for (uint piece_type = W_PAWN; piece_type <= B_KING; piece_type++) { \
             if (src & board.bitboards[piece_type]) { \

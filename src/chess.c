@@ -25,6 +25,8 @@ const uint64_t ChessboardFileMasks[] = {
 
 typedef unsigned int uint;
 
+static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
+static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
 static uint64_t xorshift(uint64_t x);
 
 // Static functions for generating components of precomputation table.
@@ -211,7 +213,7 @@ static uint64_t xorshift(uint64_t x) {
     return x;
 }
 
-SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
+static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
     if (ptr_zobrist_table == NULL) return SCE_INVALID_PARAM;
     if (ptr_seed == NULL) srand(time(NULL));
 
@@ -430,7 +432,7 @@ SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color) 
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table) {
+static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table) {
     if (ptr_pm_table == NULL) return SCE_INVALID_PARAM;
 
     // Empty the table.

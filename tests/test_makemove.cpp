@@ -68,7 +68,7 @@ TEST(MakeMove, White_Castling_Kingside_Black_Castling_Queenside) {
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
     board.to_move = WHITE;
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // Castle king side.
     SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
@@ -78,7 +78,7 @@ TEST(MakeMove, White_Castling_Kingside_Black_Castling_Queenside) {
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BK);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BQ);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
@@ -104,7 +104,7 @@ TEST(MakeMove, Black_Castling_Kingside_White_Castling_Queenside) {
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
     board.to_move = WHITE;
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // Castle queen side.
     SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
@@ -168,13 +168,13 @@ TEST(MakeMove, EnPassant_DiscoveredCheck) {
     SCE_ChessMove move = (SCE_AN_To_Idx("C2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // En passant
     move = (SCE_AN_To_Idx("D4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C3") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_INVALID_MOVE);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 }
 
 TEST(MakeMove, Castle_Through_Check) {
@@ -185,14 +185,14 @@ TEST(MakeMove, Castle_Through_Check) {
     ASSERT_EQ(place_piece_on_board(&board, "G2", B_BISHOP), SCE_SUCCESS);
     board.to_move = WHITE;
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // Double push by white pawn
     SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
     //ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_INVALID_MOVE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_INVALID_MOVE);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 }
 
 TEST(MakeMove, MakeUnmake_PromoCapture) {
@@ -206,8 +206,8 @@ TEST(MakeMove, MakeUnmake_PromoCapture) {
     //SCE_ChessMove move = (SCE_AN_To_Idx("B7") SCE_CHESSMOVE_SET_SRC | SCE_AN_To_Idx("A8") SCE_CHESSMOVE_SET_DST | (SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG));
     SCE_ChessMove move = (SCE_AN_To_Idx("B7") SCE_CHESSMOVE_SET_SRC | SCE_AN_To_Idx("B8") SCE_CHESSMOVE_SET_DST | (SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION SCE_CHESSMOVE_SET_FLAG));
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 }

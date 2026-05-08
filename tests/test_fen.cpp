@@ -21,5 +21,5 @@ TEST(FEN, RandomFEN) {
     ASSERT_TRUE(occupancy_b);
     ASSERT_TRUE(occupancy_w);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 }
