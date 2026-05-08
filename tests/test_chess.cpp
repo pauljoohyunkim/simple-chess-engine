@@ -262,7 +262,7 @@ TEST(ChessBoard, Square_Under_Attack_1) {
     ASSERT_TRUE(SCE_IsSquareAttacked(&ctx, SCE_AN_To_Bitboard("B3"), WHITE));
     ASSERT_TRUE(SCE_IsSquareAttacked(&ctx, SCE_AN_To_Bitboard("C2"), WHITE));
 
-    SCE_Chessboard_print(&ctx, WHITE);
+    // SCE_Chessboard_print(&ctx, WHITE);
 }
 
 TEST(ChessBoard, Square_Under_Attack_2) {
@@ -301,7 +301,7 @@ TEST(ChessBoard, Square_Under_Attack_2) {
     ASSERT_TRUE(SCE_IsSquareAttacked(&ctx, SCE_AN_To_Bitboard("G7"), BLACK));
     ASSERT_TRUE(SCE_IsSquareAttacked(&ctx, SCE_AN_To_Bitboard("H7"), BLACK));
 
-    SCE_Chessboard_print(&ctx, WHITE);
+    // SCE_Chessboard_print(&ctx, WHITE);
 }
 
 TEST(ChessBoard, Square_Under_Attack_3) {
@@ -439,7 +439,7 @@ TEST(ChessBoard, Square_Under_Attack_3) {
     ASSERT_FALSE(SCE_IsSquareAttacked(&ctx, SCE_AN_To_Bitboard("H8"), WHITE));
 
 
-    SCE_Chessboard_print(&ctx, WHITE);
+    // SCE_Chessboard_print(&ctx, WHITE);
 }
 
 TEST(MoveGeneration, MoveGeneration_Simple) {
@@ -450,7 +450,7 @@ TEST(MoveGeneration, MoveGeneration_Simple) {
     // Place a black rook at E7
     ASSERT_EQ(place_piece_on_board(&board, "E7", B_ROOK), SCE_SUCCESS);
 
-    SCE_Chessboard_print(&ctx, WHITE);
+    // SCE_Chessboard_print(&ctx, WHITE);
 
     MOVE_LIST_SETUP(list, n_moves)
     //ASSERT_EQ(n_moves[B_ROOK], 14U);

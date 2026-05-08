@@ -1,34 +1,35 @@
-# Todo: Make internal functions static
+# List of tests that only verify basic initialization and should be replaced with more comprehensive functionality tests
 
-## src/chess.c
-- [ ] SCE_Chessboard_reset
-- [x] xorshift
-- [ ] SCE_ZobristTable_init
-- [ ] SCE_PieceMovementPrecompute
-- [x] SCE_Knight_Precompute
-- [x] SCE_King_Precompute
-- [x] SCE_Pawn_Precompute
-- [x] SCE_Rays_Precompute
-- [x] SCE_CastlingMask_Precompute
-- [x] SCE_Knight_GeneratePseudoLegalMoves
-- [x] SCE_King_GeneratePseudoLegalMoves
-- [x] SCE_Slider_GeneratePseudoLegalMoves
-- [x] SCE_Pawn_GeneratePseudoLegalMoves
+## Tests to Review and Enhance
 
-## include/chess.h
-- [ ] Remove declaration of SCE_Chessboard_reset
-- [ ] Remove declaration of SCE_ZobristTable_init
-- [ ] Remove declaration of SCE_PieceMovementPrecompute
+1. **MoveGeneration_Initial** (`test_chess.cpp`)
+   - Currently: Verifies that white knight has 4 possible moves from initial position
+   - Suggested enhancement: Test move generation for all piece types from initial position, test move generation after various sequences of moves, test edge cases like blocked pieces
 
-## src/engine.c
-- [x] SCE_Search_MakeMove_Wrapper
-- [x] SCE_Engine_AddTransposition
-- [x] SCE_Engine_GetTranspositionData
-- [x] SCE_Engine_ScoreMove
-- [x] SCE_Engine_OrderMove_MVVLVA
-- [ ] SCE_DetectRepetition
-- [ ] SCE_DetectInsufficientMaterial
+2. **MakeMove_Initial** (`test_chess.cpp`)
+   - Currently: Verifies that e2e4 move can be made and updates board state correctly
+   - Suggested enhancement: Test various types of moves (captures, promotions, castling, en passant) from initial position, test move legality detection, test move making/unmaking symmetry
 
-## include/engine.h
-- [ ] Remove declaration of SCE_DetectRepetition
-- [ ] Remove declaration of SCE_DetectInsufficientMaterial
+3. **SEF_Initial** (`test_evolve/test_sef.cpp`)
+   - Currently: Verifies engine initializes successfully and evaluation function returns 0 for initial position
+   - Suggested enhancement: Test evaluation function with various board positions, test different evaluation functions, test endgame vs middlegame evaluation
+
+4. **SEF_DeltaEval_Initial** (`test_evolve/test_sef.cpp`)
+   - Currently: Tests delta evaluation functionality with move generation loop
+   - Suggested enhancement: Test delta evaluation with various positions and move sequences, test consistency with full evaluation in complex positions
+
+5. **SEF_DeltaEval_Kiwipete_Depth_2** (`test_evolve/test_sef.cpp`)
+   - Currently: Tests delta evaluation at depth 2 with Kiwipete position
+   - Suggested enhancement: Test delta evaluation at various depths with different positions, test performance characteristics
+
+6. **HCEF_Initial** (`test_evolve/test_hcef.cpp`)
+   - Currently: Verifies context and engine initialization, sets up specific position, checks evaluation consistency
+   - Suggested enhancement: Test evaluation function with various board positions, test different evaluation functions, test edge cases like blocked positions
+
+7. **HCEF_DeltaEval_Initial** (`test_evolve/test_hcef.cpp`)
+   - Currently: Tests delta evaluation functionality with move generation loop
+   - Suggested enhancement: Test delta evaluation with various positions and move sequences, test consistency with full evaluation in complex positions
+
+8. **HCEF_DeltaEval_Kiwipete_Depth_4** (`test_evolve/test_hcef.cpp`)
+   - Currently: Tests delta evaluation at depth 4 with Kiwipete position
+   - Suggested enhancement: Test delta evaluation at various depths with different positions, test performance characteristics
