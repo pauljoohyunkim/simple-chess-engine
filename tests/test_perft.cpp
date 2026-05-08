@@ -33,7 +33,7 @@ TEST(PERFT, Custom_PERFT) {
 
         SCE_ChessMoveList pseudolegal_moves;
         SCE_ChessMoveList_clear(&pseudolegal_moves);
-        debug_print_board(&board);
+        // debug_print_board(&board);
         ret = SCE_GeneratePseudoLegalMoves(&pseudolegal_moves, &board, &precpt_tbl);
         for (uint i = 0U; i < pseudolegal_moves.count; i++) {
             ret = SCE_MakeMove(&board, &precpt_tbl, pseudolegal_moves.moves[i]);
@@ -70,7 +70,7 @@ TEST(PERFT, Kiwipete_Depth_1_to_6) {
 
         board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx);
 
-        debug_print_board(&ctx);
+        // debug_print_board(&ctx);
 
         const ull count = perft_count(&ctx, depth, false);
 
@@ -90,7 +90,7 @@ TEST(PERFT, Position3) {
 
         board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx);
 
-        debug_print_board(&ctx);
+        // debug_print_board(&ctx);
 
         const ull count = perft_count(&ctx, depth, false);
 
@@ -117,7 +117,7 @@ TEST(PERFT, Position3_Debug) {
     move = (SCE_AN_To_Idx("A5") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("A4") SCE_CHESSMOVE_SET_DST);
     ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_SUCCESS);
 
-    SCE_Return ret = debug_print_board(&board);
+    // SCE_Return ret = debug_print_board(&board);
 
     const uint count = perft_count(&board, &precpt_tbl, 1, true);
 

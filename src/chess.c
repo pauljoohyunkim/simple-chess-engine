@@ -25,6 +25,8 @@ const uint64_t ChessboardFileMasks[] = {
 
 typedef unsigned int uint;
 
+static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
+static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
 static uint64_t xorshift(uint64_t x);
 
 // Static functions for generating components of precomputation table.
@@ -81,6 +83,18 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
         } else {
             ptr_precomputation_tables->front_span_masks[BLACK][idx] = ptr_precomputation_tables->pm_table.rays[SOUTH][idx] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx+1U] | ptr_precomputation_tables->pm_table.rays[SOUTH][idx-1U];
         }
+    }
+    for (uint col = 0; col < CHESSBOARD_DIMENSION; col++) {
+        if (col == 0U) {
+            ptr_precomputation_tables->adjacent_files[col] = B_MASK;
+            continue;
+        }
+        if (col == 7U) {
+            ptr_precomputation_tables->adjacent_files[col] = G_MASK;
+            continue;
+        }
+
+        ptr_precomputation_tables->adjacent_files[col] = ChessboardFileMasks[col-1U] ^ ChessboardFileMasks[col+1U];
     }
 
     return SCE_SUCCESS;
@@ -211,7 +225,7 @@ static uint64_t xorshift(uint64_t x) {
     return x;
 }
 
-SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
+static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
     if (ptr_zobrist_table == NULL) return SCE_INVALID_PARAM;
     if (ptr_seed == NULL) srand(time(NULL));
 
@@ -430,7 +444,7 @@ SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color) 
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table) {
+static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table) {
     if (ptr_pm_table == NULL) return SCE_INVALID_PARAM;
 
     // Empty the table.

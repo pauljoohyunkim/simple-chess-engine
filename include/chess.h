@@ -178,6 +178,7 @@ typedef struct {
     alignas(64) SCE_ZobristTable zobrist_table;
     alignas(64) int lmr_table[SCE_MAX_PLY][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
     alignas(64) uint64_t front_span_masks[2][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
+    alignas(64) uint64_t adjacent_files[CHESSBOARD_DIMENSION];
 } SCE_Precomputation_Tables;
 
 typedef struct SCE_Context {
@@ -229,15 +230,6 @@ SCE_Return SCE_Chessboard_clear(SCE_Context* const ctx);
 SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx);
 
 /**
- * @brief Initialize a table to be used for Zobrist hashing.
- * 
- * @param ptr_zobrist_table Pointer to the Zobrist table.
- * @param ptr_seed Pointer to seed value for random number generation. NULL for randomly picked seed.
- * @return SCE_Return SCE_SUCCESS for success, other for failure.
- */
-SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
-
-/**
  * @brief Compute the Zobrist hash of the current board. Requires Zobrist table to be precomputed by SCE_ZobristTable_init
  * 
  * @param ctx Pointer to the SCE_Context struct.
@@ -278,14 +270,6 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color);
-
-/**
- * @brief Fill the movement precomputation table.
- * 
- * @param ptr_precomputation_tbl Pointer to the SCE_PieceMovementPrecomputationTable struct.
- * @return SCE_Return SCE_SUCCESS for success, other for failure.
- */
-SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
 
 /**
  * @brief Add move to move list
