@@ -71,12 +71,19 @@ where
 | 7     | 2100 | 77 | 16 | 100 | 301.33 | 2401.3+/-82.6 |
 | 8     | 2100 | 80 | 18 | 100 | 363.2  | 2463.2+/-84.3 |
 
-### Benchmark Results (HCEF)
+### Benchmark Results (HCEF, No Weak Pawn)
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 237 | 141 | 500 | 66.8   | 2266.8+/-26.9 |
 | 6     | 2200 | 293 | 118 | 500 | 150.5  | 2350.5+/-28.3 |
 | 7     | 2200 | 331 | 107 | 500 | 208.9  | 2408.9+/-30.3 |
+
+### Benchmark Results (HCEF, Weak Pawn Penalty)
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 291 | 105 | 500 | 136.6  | 2336.6+/-28.6 |
+| 6     | 2200 | 350 |  99 | 500 | 239.7  | 2439.7+/-31.7 |
+| 7     | 2200 | ??? | ??? | 500 | ??.?   | ????.?+/-??.? |
 
 ### Methodology in the Future
 It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
