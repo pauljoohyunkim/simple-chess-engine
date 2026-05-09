@@ -21,7 +21,7 @@ static const int passed_pawn_eg_weights[] = { 0, 5, 5, 20, 40, 80, 150, 0 };
 typedef unsigned int uint;
 
 static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn);
-static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const uint64_t w_pawn, const uint64_t b_pawn, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
+static uint64_t SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_BackwardPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const uint64_t isolated_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const weak_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
@@ -56,13 +56,12 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_scor
     *eg_score = local_eg_score;
 }
 
-static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, uint64_t* passed_pawns, const uint64_t w_pawn, const uint64_t b_pawn, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+static uint64_t SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
-    assert(passed_pawns != NULL);
     assert(ptr_precomputation_tables != NULL);
 
-    *passed_pawns = 0U;
+    uint64_t passed_pawns = 0U;
     int local_mg_score = 0;
     int local_eg_score = 0;
     for (uint i = 0U; i < CHESSBOARD_DIMENSION; i++) {
@@ -76,12 +75,12 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
             // Check if enemy (black) pawn exists
             if (!(passed_pawn_mask & b_pawn)) {
                 // Add it to passed pawns.
-                *passed_pawns |= (1ULL << leading_pawn_idx);
+                passed_pawns |= (1ULL << leading_pawn_idx);
 
                 // Normal point
                 local_mg_score += passed_pawn_mg_weights[row];
                 local_eg_score += passed_pawn_eg_weights[row];
-                
+
             }
         }
 
@@ -93,7 +92,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
             // Check if enemy (white) pawn exists
             if (!(passed_pawn_mask & w_pawn)) {
                 // Add it to passed pawns.
-                *passed_pawns |= (1ULL << leading_pawn_idx);
+                passed_pawns |= (1ULL << leading_pawn_idx);
 
                 local_mg_score -= passed_pawn_mg_weights[CHESSBOARD_DIMENSION-1U-row];
                 local_eg_score -= passed_pawn_eg_weights[CHESSBOARD_DIMENSION-1U-row];
@@ -103,6 +102,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_scor
 
     *mg_score = local_mg_score;
     *eg_score = local_eg_score;
+    return passed_pawns;
 }
 
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
@@ -208,7 +208,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 // Passed pawns
                 int passed_pawn_mg = 0;
                 int passed_pawn_eg = 0;
-                SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(&passed_pawn_mg, &passed_pawn_eg, passed_pawns, w_pawns, b_pawns, ptr_precomputation_tables);
+                *passed_pawns = SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(&passed_pawn_mg, &passed_pawn_eg, w_pawns, b_pawns, ptr_precomputation_tables);
                 pawn_contrib_mg += passed_pawn_mg;
                 pawn_contrib_eg += passed_pawn_eg;
             }
