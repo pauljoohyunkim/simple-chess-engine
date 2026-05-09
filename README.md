@@ -65,6 +65,9 @@ where
 8. Add this $\Delta R$ to the estimated ELO.
 9. Update the estimated ELO and repeat the process again if wanted.
 
+### Note
+The benchmark results below are outdated (as the methodology is to be updated.)
+
 ### Benchmark Results (SEF)
 | depth | R    | W  | D  | N   | dR     | Approx ELO    |
 |-------|------|----|----|-----|--------|---------------|
@@ -85,6 +88,13 @@ where
 | 6     | 2200 | 350 |  99 | 500 | 239.7  | 2439.7+/-31.7 |
 | 7     | 2200 | ??? | ??? | 500 | ??.?   | ????.?+/-??.? |
 
+### Benchmark Results (HCEF, Weak Pawn Penalty + Backward Pawn Penalty)
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 245 | 105 | 500 | 66.8   | 2266.8+/-27.5 |
+| 6     | 2200 | 350 |  99 | 500 | 239.7  | 2439.7+/-31.7 |
+| 7     | 2200 | ??? | ??? | 500 | ??.?   | ????.?+/-??.? |
+
 ### Methodology in the Future
 It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
 
@@ -92,7 +102,7 @@ Here is a reference command I could use
 ```bash
 # 4 Concurrent games where SCE uses depth 5 and Stockfish is at ELO 2100 with move time limit set to 2100.
 # Playing ten games. Since 10 is even, the color switches back and forth.
-cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=5 tc=inf -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2100 tc=0/1 -each proto=uci -games 10 -repeat -concurrency 4
+cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=5 -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2200 depth=18 -each proto=uci tc=inf -games 10 -repeat -concurrency 1
 ```
 
 ### Using Makefile for Benchmark
