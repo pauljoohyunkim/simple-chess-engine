@@ -170,8 +170,13 @@ static uint64_t SCE_Eval_HandcraftedEvaluationFunction_BackwardPawn(int* const m
     const uint64_t w_pawns_backward_not_isolated = w_pawns_backward & ~isolated_pawns;
     const uint64_t b_pawns_backward_not_isolated = b_pawns_backward & ~isolated_pawns;
 
-    *mg_score -= BACKWARD_PAWN_PENALTY_MG * COUNT_SET_BITS(w_pawns_backward_not_isolated);
-    *eg_score += BACKWARD_PAWN_PENALTY_EG * COUNT_SET_BITS(b_pawns_backward_not_isolated);
+    const int w_pawns_backward_not_isolated_count = COUNT_SET_BITS(w_pawns_backward_not_isolated);
+    const int b_pawns_backward_not_isolated_count = COUNT_SET_BITS(b_pawns_backward_not_isolated);
+
+    *mg_score -= BACKWARD_PAWN_PENALTY_MG * w_pawns_backward_not_isolated_count;
+    *eg_score -= BACKWARD_PAWN_PENALTY_EG * w_pawns_backward_not_isolated_count;
+    *mg_score += BACKWARD_PAWN_PENALTY_MG * b_pawns_backward_not_isolated_count;
+    *eg_score += BACKWARD_PAWN_PENALTY_EG * b_pawns_backward_not_isolated_count;
 
     return w_pawns_backward_not_isolated | b_pawns_backward_not_isolated;
 }
@@ -266,7 +271,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
             if ((1ULL << (idx + CHESSBOARD_DIMENSION)) & occupancy) {
                 // Blocked
                 *mg_score -= passed_pawn_mg_weights[row] / 2;
-                *eg_score -= passed_pawn_mg_weights[row] / 2;
+                *eg_score -= passed_pawn_eg_weights[row] / 2;
             }
         } else {
             // Black pawn
