@@ -65,18 +65,35 @@ where
 8. Add this $\Delta R$ to the estimated ELO.
 9. Update the estimated ELO and repeat the process again if wanted.
 
+### Note
+The benchmark results below are outdated (as the methodology is to be updated.)
+
 ### Benchmark Results (SEF)
 | depth | R    | W  | D  | N   | dR     | Approx ELO    |
 |-------|------|----|----|-----|--------|---------------|
 | 7     | 2100 | 77 | 16 | 100 | 301.33 | 2401.3+/-82.6 |
 | 8     | 2100 | 80 | 18 | 100 | 363.2  | 2463.2+/-84.3 |
 
-### Benchmark Results (HCEF)
+### Benchmark Results (HCEF, No Weak Pawn)
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 237 | 141 | 500 | 66.8   | 2266.8+/-26.9 |
 | 6     | 2200 | 293 | 118 | 500 | 150.5  | 2350.5+/-28.3 |
 | 7     | 2200 | 331 | 107 | 500 | 208.9  | 2408.9+/-30.3 |
+
+### Benchmark Results (HCEF, Weak Pawn Penalty)
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 291 | 105 | 500 | 136.6  | 2336.6+/-28.6 |
+| 6     | 2200 | 350 |  99 | 500 | 239.7  | 2439.7+/-31.7 |
+| 7     | 2200 | ??? | ??? | 500 | ??.?   | ????.?+/-??.? |
+
+### Benchmark Results (HCEF, Weak Pawn Penalty + Backward Pawn Penalty)
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 245 | 105 | 500 | 66.8   | 2266.8+/-27.5 |
+| 6     | 2200 | 350 |  99 | 500 | 239.7  | 2439.7+/-31.7 |
+| 7     | 2200 | ??? | ??? | 500 | ??.?   | ????.?+/-??.? |
 
 ### Methodology in the Future
 It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
@@ -85,7 +102,7 @@ Here is a reference command I could use
 ```bash
 # 4 Concurrent games where SCE uses depth 5 and Stockfish is at ELO 2100 with move time limit set to 2100.
 # Playing ten games. Since 10 is even, the color switches back and forth.
-cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=5 tc=inf -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2100 tc=0/1 -each proto=uci -games 10 -repeat -concurrency 4
+cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=5 -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2200 depth=18 -each proto=uci tc=inf -games 10 -repeat -concurrency 1
 ```
 
 ### Using Makefile for Benchmark
