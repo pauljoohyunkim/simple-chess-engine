@@ -351,6 +351,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
 #define PASSED_PAWN_ROOK_SUPPORT_BONUS_EG 50
 #define BACKWARD_PAWN_PRESSURE_PENALTY_MG 20
 #define BACKWARD_PAWN_PRESSURE_PENALTY_EG 12
+#define HANGING_PAWN_PHALANX_BONUS_MG 15
+#define HANGING_PAWN_PHALANX_BONUS_EG 5
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score,
                                                                 int* const eg_score,
                                                                 uint64_t passed_pawns,
@@ -427,7 +429,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
         }
 
         // Remove from the passed pawns for scanning using Kernighan's algorithm (removing LSB)
-        passed_pawns &= passed_pawn - 1U;
+        passed_pawns &= (passed_pawns - 1U);
     }
 
     {
@@ -502,6 +504,23 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
 
             b_backward_pawns_scan &= b_backward_pawns_scan - 1U;
         }
+    }
+
+    {
+        // Hanging Pawn Phalanx
+        const uint64_t w_hanging_pawns = w_pawns & hanging_pawns;
+        const uint64_t b_hanging_pawns = b_pawns & hanging_pawns;
+
+        const uint64_t w_phalanx = w_hanging_pawns & (w_hanging_pawns << 1U) & ~A_MASK;
+        const uint64_t b_phalanx = b_hanging_pawns & (b_hanging_pawns << 1U) & ~A_MASK;
+
+        const int w_phalanx_count = COUNT_SET_BITS(w_phalanx);
+        const int b_phalanx_count = COUNT_SET_BITS(b_phalanx);
+
+        *mg_score += w_phalanx_count * HANGING_PAWN_PHALANX_BONUS_MG;
+        *eg_score += w_phalanx_count * HANGING_PAWN_PHALANX_BONUS_EG;
+        *mg_score -= b_phalanx_count * HANGING_PAWN_PHALANX_BONUS_MG;
+        *eg_score -= b_phalanx_count * HANGING_PAWN_PHALANX_BONUS_EG;
     }
 }
 
