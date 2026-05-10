@@ -24,6 +24,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DoublePawn(int* const mg_scor
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawn, const uint64_t b_pawn, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_BackwardPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const uint64_t isolated_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
+static uint64_t SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const uint64_t isolated_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const weak_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, uint64_t weak_pawns, const uint64_t occupancy_w, const uint64_t occupancy_b, const uint64_t w_pawns, const uint64_t b_pawns);
 
@@ -179,6 +180,75 @@ static uint64_t SCE_Eval_HandcraftedEvaluationFunction_BackwardPawn(int* const m
     *eg_score += BACKWARD_PAWN_PENALTY_EG * b_pawns_backward_not_isolated_count;
 
     return w_pawns_backward_not_isolated | b_pawns_backward_not_isolated;
+}
+
+static uint64_t SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const uint64_t isolated_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+    assert(mg_score != NULL);
+    assert(eg_score != NULL);
+    assert(ptr_precomputation_tables != NULL);
+
+    uint64_t hanging_pawns = 0U;
+    *mg_score = 0;
+    *eg_score = 0;
+
+    const uint64_t w_pawns_not_isolated = w_pawns & ~isolated_pawns;
+    const uint64_t b_pawns_not_isolated = b_pawns & ~isolated_pawns;
+
+    // White
+    for (uint col = 0; col < CHESSBOARD_DIMENSION; col++) {
+        const uint64_t pawns_in_file = w_pawns_not_isolated & ChessboardFileMasks[col];
+        if (!pawns_in_file) continue;
+
+        const bool has_left = (col > 0U) && (w_pawns_not_isolated & ChessboardFileMasks[col-1U]);
+        const bool has_right = (col < CHESSBOARD_DIMENSION-1U) && (w_pawns_not_isolated & ChessboardFileMasks[col+1U]);
+        if (has_left == has_right) continue;        // Not hanging
+
+        const int pawns_in_file_count = COUNT_SET_BITS(pawns_in_file);
+        if (has_left) {
+            const bool has_far_left = (col > 1U) && (w_pawns_not_isolated & ChessboardFileMasks[col-2U]);
+            if (!has_far_left) {
+                hanging_pawns |= pawns_in_file;
+                *mg_score -= HANGING_PAWN_PENALTY_MG * pawns_in_file_count;
+                *eg_score -= HANGING_PAWN_PENALTY_EG * pawns_in_file_count;
+            }
+        } else {
+            const bool has_far_right = (col < CHESSBOARD_DIMENSION-2U) && (w_pawns_not_isolated & ChessboardFileMasks[col+2U]);
+            if (!has_far_right) {
+                hanging_pawns |= pawns_in_file;
+                *mg_score -= HANGING_PAWN_PENALTY_MG * pawns_in_file_count;
+                *eg_score -= HANGING_PAWN_PENALTY_EG * pawns_in_file_count;
+            }
+        }
+    }
+
+    // Black
+    for (uint col = 0; col < CHESSBOARD_DIMENSION; col++) {
+        const uint64_t pawns_in_file = b_pawns_not_isolated & ChessboardFileMasks[col];
+        if (!pawns_in_file) continue;
+
+        const bool has_left = (col > 0U) && (b_pawns_not_isolated & ChessboardFileMasks[col-1U]);
+        const bool has_right = (col < CHESSBOARD_DIMENSION-1U) && (b_pawns_not_isolated & ChessboardFileMasks[col+1U]);
+        if (has_left == has_right) continue;        // Not hanging
+
+        const int pawns_in_file_count = COUNT_SET_BITS(pawns_in_file);
+        if (has_left) {
+            const bool has_far_left = (col > 1U) && (b_pawns_not_isolated & ChessboardFileMasks[col-2U]);
+            if (!has_far_left) {
+                hanging_pawns |= pawns_in_file;
+                *mg_score += HANGING_PAWN_PENALTY_MG * pawns_in_file_count;
+                *eg_score += HANGING_PAWN_PENALTY_EG * pawns_in_file_count;
+            }
+        } else {
+            const bool has_far_right = (col < CHESSBOARD_DIMENSION-2U) && (b_pawns_not_isolated & ChessboardFileMasks[col+2U]);
+            if (!has_far_right) {
+                hanging_pawns |= pawns_in_file;
+                *mg_score += HANGING_PAWN_PENALTY_MG * pawns_in_file_count;
+                *eg_score += HANGING_PAWN_PENALTY_EG * pawns_in_file_count;
+            }
+        }
+    }
+
+    return hanging_pawns;
 }
 
 static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const weak_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawns, const uint64_t b_pawns, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
