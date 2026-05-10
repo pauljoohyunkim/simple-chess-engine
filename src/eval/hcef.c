@@ -25,7 +25,7 @@ static uint64_t SCE_Eval_HandcraftedEvaluationFunction_PassedPawn(int* const mg_
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_BackwardPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const uint64_t isolated_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static uint64_t SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(int* const mg_score, int* const eg_score, const uint64_t w_pawns, const uint64_t b_pawns, const uint64_t isolated_pawns, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
-static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const weak_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
+static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const isolated_pawns, uint64_t* const backward_pawns, uint64_t* const hanging_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score, int* const eg_score, uint64_t passed_pawns, uint64_t weak_pawns, const uint64_t occupancy_w, const uint64_t occupancy_b, const uint64_t w_pawns, const uint64_t b_pawns);
 
 #define DOUBLE_PAWN_PENALTY_MG (15)
@@ -251,11 +251,13 @@ static uint64_t SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(int* const mg
     return hanging_pawns;
 }
 
-static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const weak_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawns, const uint64_t b_pawns, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const isolated_pawns, uint64_t* const backward_pawns, uint64_t* const hanging_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawns, const uint64_t b_pawns, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
     assert(passed_pawns != NULL);
-    assert(weak_pawns != NULL);
+    assert(isolated_pawns != NULL);
+    assert(backward_pawns != NULL);
+    assert(hanging_pawns != NULL);
     assert(pawn_zobrist_hash != 0);
     assert(ptr_engine != NULL);
     assert(ptr_precomputation_tables != NULL);
@@ -269,7 +271,9 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
             pawn_contrib_mg = SCE_PHT_GET_MG_SCORE(pht_entry.score_data);
             pawn_contrib_eg = SCE_PHT_GET_EG_SCORE(pht_entry.score_data);
             *passed_pawns = pht_entry.passed_pawns;
-            *weak_pawns = pht_entry.weak_pawns;
+            *isolated_pawns = pht_entry.isolated_pawns;
+            *backward_pawns = pht_entry.backward_pawns;
+            *hanging_pawns = pht_entry.hanging_pawns;
         } else {
             {
                 // Double pawns
@@ -287,35 +291,38 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 pawn_contrib_mg += passed_pawn_mg;
                 pawn_contrib_eg += passed_pawn_eg;
             }
-            *weak_pawns = 0U;
+            *isolated_pawns = 0U;
+            *backward_pawns = 0U;
+            *hanging_pawns = 0U;
             {
                 // Isolated pawns
                 int isolated_pawn_mg = 0;
                 int isolated_pawn_eg = 0;
-                const uint64_t isolated_pawns = SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(&isolated_pawn_mg, &isolated_pawn_eg, w_pawns, b_pawns, ptr_precomputation_tables);
-                *weak_pawns |= isolated_pawns;
+                const uint64_t isolated_pawns_local = SCE_Eval_HandcraftedEvaluationFunction_IsolatedPawn(&isolated_pawn_mg, &isolated_pawn_eg, w_pawns, b_pawns, ptr_precomputation_tables);
+                *isolated_pawns = isolated_pawns_local;
                 pawn_contrib_mg += isolated_pawn_mg;
                 pawn_contrib_eg += isolated_pawn_eg;
-
+            }
+            {
                 // Backward pawns
                 int backward_pawn_mg = 0;
                 int backward_pawn_eg = 0;
-                const uint64_t backward_pawns = SCE_Eval_HandcraftedEvaluationFunction_BackwardPawn(&backward_pawn_mg, &backward_pawn_eg, w_pawns, b_pawns, isolated_pawns, ptr_precomputation_tables);
-                *weak_pawns |= backward_pawns;
+                const uint64_t backward_pawns_local = SCE_Eval_HandcraftedEvaluationFunction_BackwardPawn(&backward_pawn_mg, &backward_pawn_eg, w_pawns, b_pawns, *isolated_pawns, ptr_precomputation_tables);
+                *backward_pawns = backward_pawns_local;
                 pawn_contrib_mg += backward_pawn_mg;
                 pawn_contrib_eg += backward_pawn_eg;
-
+            }
+            {
                 // Hanging pawns
                 int hanging_pawns_mg = 0;
                 int hanging_pawns_eg = 0;
-                const uint64_t hanging_pawns = SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(&hanging_pawns_mg, &hanging_pawns_eg, w_pawns, b_pawns, isolated_pawns, ptr_precomputation_tables);
-                *weak_pawns |= hanging_pawns;
+                const uint64_t hanging_pawns_local = SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(&hanging_pawns_mg, &hanging_pawns_eg, w_pawns, b_pawns, *isolated_pawns, ptr_precomputation_tables);
+                *hanging_pawns = hanging_pawns_local;
                 pawn_contrib_mg += hanging_pawns_mg;
                 pawn_contrib_eg += hanging_pawns_eg;
             }
             // Cache
-            // For now, 0U: Not taking into account for weak pawns yet for testing.
-            SCE_Engine_AddPawnHashData(ptr_engine, pawn_zobrist_hash, pawn_contrib_mg, pawn_contrib_eg, *passed_pawns, *weak_pawns);
+            SCE_Engine_AddPawnHashData(ptr_engine, pawn_zobrist_hash, pawn_contrib_mg, pawn_contrib_eg, *passed_pawns, *isolated_pawns, *backward_pawns, *hanging_pawns);
         }
     }
     *mg_score = pawn_contrib_mg;
@@ -388,15 +395,18 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
     uint64_t passed_pawns = 0U;
-    uint64_t weak_pawns = 0U;
+    uint64_t isolated_pawns = 0U;
+    uint64_t backward_pawns = 0U;
+    uint64_t hanging_pawns = 0U;
     {
         int pawn_contrib_pht_mg = 0;
         int pawn_contrib_pht_eg = 0;
-        // This updates passed_pawns
-        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_mg, &pawn_contrib_pht_eg, &passed_pawns, &weak_pawns, ctx->board.pawn_zobrist_hash, ctx->board.bitboards[W_PAWN], ctx->board.bitboards[B_PAWN], ptr_engine, ctx->precomputation_tables);
+        // This updates passed_pawns, isolated_pawns, backward_pawns, hanging_pawns
+        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_mg, &pawn_contrib_pht_eg, &passed_pawns, &isolated_pawns, &backward_pawns, &hanging_pawns, ctx->board.pawn_zobrist_hash, ctx->board.bitboards[W_PAWN], ctx->board.bitboards[B_PAWN], ptr_engine, ctx->precomputation_tables);
         pawn_contrib_mg += pawn_contrib_pht_mg;
         pawn_contrib_eg += pawn_contrib_pht_eg;
     }
+    uint64_t weak_pawns = isolated_pawns | backward_pawns | hanging_pawns;
     {
         int pawn_contrib_dynamic_mg = 0;
         int pawn_contrib_dynamic_eg = 0;
@@ -576,16 +586,19 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
     int pawn_contrib_mg = 0;
     int pawn_contrib_eg = 0;
     uint64_t passed_pawns = 0U;
-    uint64_t weak_pawns = 0U;
+    uint64_t isolated_pawns = 0U;
+    uint64_t backward_pawns = 0U;
+    uint64_t hanging_pawns = 0U;
     {
         int pawn_contrib_pht_mg = 0;
         int pawn_contrib_pht_eg = 0;
-        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_mg, &pawn_contrib_pht_eg, &passed_pawns, &weak_pawns, pawn_zobrist_hash, w_pawns, b_pawns, ptr_engine, ctx->precomputation_tables);
+        SCE_Eval_HandcraftedEvaluationFunction_PHT(&pawn_contrib_pht_mg, &pawn_contrib_pht_eg, &passed_pawns, &isolated_pawns, &backward_pawns, &hanging_pawns, pawn_zobrist_hash, w_pawns, b_pawns, ptr_engine, ctx->precomputation_tables);
         pawn_contrib_mg += pawn_contrib_pht_mg;
         pawn_contrib_eg += pawn_contrib_pht_eg;
     }
+    uint64_t weak_pawns = isolated_pawns | backward_pawns | hanging_pawns;
     {
-        
+
         int pawn_contrib_dynamic_mg = 0;
         int pawn_contrib_dynamic_eg = 0;
         SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(&pawn_contrib_dynamic_mg, &pawn_contrib_dynamic_eg, passed_pawns, weak_pawns, occupancy_w, occupancy_b, w_pawns, b_pawns);
