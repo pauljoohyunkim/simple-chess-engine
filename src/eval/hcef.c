@@ -28,10 +28,10 @@ static uint64_t SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(int* const mg
 static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int* const eg_score, uint64_t* const passed_pawns, uint64_t* const isolated_pawns, uint64_t* const backward_pawns, uint64_t* const hanging_pawns, const uint64_t pawn_zobrist_hash, const uint64_t w_pawn, const uint64_t b_pawn, SCE_Engine* const ptr_engine, const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score,
                                                                 int* const eg_score,
-                                                                uint64_t passed_pawns,
-                                                                uint64_t isolated_pawns,
-                                                                uint64_t backward_pawns,
-                                                                uint64_t hanging_pawns,
+                                                                const uint64_t passed_pawns,
+                                                                const uint64_t isolated_pawns,
+                                                                const uint64_t backward_pawns,
+                                                                const uint64_t hanging_pawns,
                                                                 const uint64_t occupancy_w,
                                                                 const uint64_t occupancy_b,
                                                                 const uint64_t w_pawns,
@@ -355,10 +355,10 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
 #define HANGING_PAWN_PHALANX_BONUS_EG 5
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score,
                                                                 int* const eg_score,
-                                                                uint64_t passed_pawns,
-                                                                uint64_t isolated_pawns,
-                                                                uint64_t backward_pawns,
-                                                                uint64_t hanging_pawns,
+                                                                const uint64_t passed_pawns,
+                                                                const uint64_t isolated_pawns,
+                                                                const uint64_t backward_pawns,
+                                                                const uint64_t hanging_pawns,
                                                                 const uint64_t occupancy_w,
                                                                 const uint64_t occupancy_b,
                                                                 const uint64_t w_pawns,
@@ -377,13 +377,14 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
 
     const uint64_t occupancy = occupancy_w | occupancy_b;
 
-    while (passed_pawns) {
+    uint64_t passed_pawns_copy = passed_pawns;
+    while (passed_pawns_copy) {
         // Bit scan
         // 1. Get index.
         // 2. Get the type
         // 3. Check for blockage.
         // 4. Update
-        const uint idx = COUNT_TRAILING_ZEROS(passed_pawns);
+        const uint idx = COUNT_TRAILING_ZEROS(passed_pawns_copy);
         const uint row = idx / CHESSBOARD_DIMENSION;
         const uint64_t passed_pawn = 1ULL << idx;
         assert(passed_pawn & occupancy);
@@ -429,7 +430,7 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
         }
 
         // Remove from the passed pawns for scanning using Kernighan's algorithm (removing LSB)
-        passed_pawns &= (passed_pawns - 1U);
+        passed_pawns_copy &= (passed_pawns_copy - 1U);
     }
 
     {
