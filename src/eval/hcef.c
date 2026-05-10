@@ -304,6 +304,14 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
                 *weak_pawns |= backward_pawns;
                 pawn_contrib_mg += backward_pawn_mg;
                 pawn_contrib_eg += backward_pawn_eg;
+
+                // Hanging pawns
+                int hanging_pawns_mg = 0;
+                int hanging_pawns_eg = 0;
+                const uint64_t hanging_pawns = SCE_Eval_HandcraftedEvaluationFunction_HangingPawn(&hanging_pawns_mg, &hanging_pawns_eg, w_pawns, b_pawns, isolated_pawns, ptr_precomputation_tables);
+                *weak_pawns |= hanging_pawns;
+                pawn_contrib_mg += hanging_pawns_mg;
+                pawn_contrib_eg += hanging_pawns_eg;
             }
             // Cache
             // For now, 0U: Not taking into account for weak pawns yet for testing.
