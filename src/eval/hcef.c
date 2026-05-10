@@ -435,6 +435,10 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
 
     uint64_t w_pawns = ctx->board.bitboards[W_PAWN];
     uint64_t b_pawns = ctx->board.bitboards[B_PAWN];
+    uint64_t w_knights = ctx->board.bitboards[W_KNIGHT];
+    uint64_t b_knights = ctx->board.bitboards[B_KNIGHT];
+    uint64_t w_rooks = ctx->board.bitboards[W_ROOK];
+    uint64_t b_rooks = ctx->board.bitboards[B_ROOK];
     uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
     uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
     uint64_t pawn_zobrist_hash = ctx->board.pawn_zobrist_hash;
@@ -488,7 +492,7 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
                     pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][captured_idx];
                 }
             } else {
-                // Pawn specific
+                // Piece specific
                 switch (captured_piece_type) {
                     case W_PAWN:
                         w_pawns ^= captured_piece;
@@ -497,6 +501,18 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
                     case B_PAWN:
                         b_pawns ^= captured_piece;
                         pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[captured_piece_type][captured_idx];
+                        break;
+                    case W_KNIGHT:
+                        w_knights ^= captured_piece;
+                        break;
+                    case B_KNIGHT:
+                        b_knights ^= captured_piece;
+                        break;
+                    case W_ROOK:
+                        w_rooks ^= captured_piece;
+                        break;
+                    case B_ROOK:
+                        b_rooks ^= captured_piece;
                         break;
                     default:
                         break;
@@ -513,11 +529,16 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
 
         // 2. Standard move
         if (IS_WHITE(src_piece_type)) {
+            // Piece specifics
             if (src_piece_type == W_PAWN) {
                 // Pawn specifics
                 w_pawns ^= src | dst;
                 pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[src_piece_type][src_idx];
                 pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[src_piece_type][dst_idx];
+            } else if (src_piece_type == W_KNIGHT) {
+                w_knights ^= src | dst;
+            } else if (src_piece_type == W_ROOK) {
+                w_rooks ^= src | dst;
             }
             occupancy_w ^= src | dst;
 
@@ -528,6 +549,10 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
                 b_pawns ^= src | dst;
                 pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[src_piece_type][src_idx];
                 pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[src_piece_type][dst_idx];
+            } else if (src_piece_type == B_KNIGHT) {
+                b_knights ^= src | dst;
+            } else if (src_piece_type == B_ROOK) {
+                b_rooks ^= src | dst;
             }
             occupancy_b ^= src | dst;
         }
@@ -543,11 +568,21 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
             case SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION:
             case SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE:
                 pawn_zobrist_hash ^= ctx->precomputation_tables->zobrist_table.piece_key[src_piece_type][dst_idx];
-                
+
                 if (IS_WHITE(src_piece_type)) {
                     w_pawns ^= dst;
+                    if (flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION || flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE) {
+                        w_knights ^= dst;
+                    } else if (flag == SCE_CHESSMOVE_FLAG_ROOK_PROMOTION || flag == SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE) {
+                        w_rooks ^= dst;
+                    }
                 } else {
                     b_pawns ^= dst;
+                    if (flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION || flag == SCE_CHESSMOVE_FLAG_KNIGHT_PROMO_CAPTURE) {
+                        b_knights ^= dst;
+                    } else if (flag == SCE_CHESSMOVE_FLAG_ROOK_PROMOTION || flag == SCE_CHESSMOVE_FLAG_ROOK_PROMO_CAPTURE) {
+                        b_rooks ^= dst;
+                    }
                 }
                 break;
             case SCE_CHESSMOVE_FLAG_KING_CASTLE:
@@ -558,8 +593,10 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
                     const uint64_t rook_dst = 1ULL << rook_idx_dst;
                     if (IS_WHITE(src_piece_type)) {
                         occupancy_w ^= rook_src ^ rook_dst;
+                        w_rooks ^= rook_src ^ rook_dst;
                     } else {
                         occupancy_b ^= rook_src ^ rook_dst;
+                        b_rooks ^= rook_src ^ rook_dst;
                     }
                 }
                 break;
@@ -571,8 +608,10 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
                     const uint64_t rook_dst = 1ULL << rook_idx_dst;
                     if (IS_WHITE(src_piece_type)) {
                         occupancy_w ^= rook_src ^ rook_dst;
+                        w_rooks ^= rook_src ^ rook_dst;
                     } else {
                         occupancy_b ^= rook_src ^ rook_dst;
+                        b_rooks ^= rook_src ^ rook_dst;
                     }
                 }
                 break;
