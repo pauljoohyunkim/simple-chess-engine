@@ -349,6 +349,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
 #define ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_EG 30
 #define PASSED_PAWN_ROOK_SUPPORT_BONUS_MG 20
 #define PASSED_PAWN_ROOK_SUPPORT_BONUS_EG 50
+#define BACKWARD_PAWN_PRESSURE_PENALTY_MG 20
+#define BACKWARD_PAWN_PRESSURE_PENALTY_EG 12
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score,
                                                                 int* const eg_score,
                                                                 uint64_t passed_pawns,
@@ -458,6 +460,48 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
         *eg_score -= w_weak_pawns_blocked_count * WEAK_PAWN_STOP_SQUARE_OCCUPANCY_PENALTY_EG;
         *mg_score += b_weak_pawns_blocked_count * WEAK_PAWN_STOP_SQUARE_OCCUPANCY_PENALTY_MG;
         *eg_score += b_weak_pawns_blocked_count * WEAK_PAWN_STOP_SQUARE_OCCUPANCY_PENALTY_EG;
+    }
+
+    {
+        // Backward pawn pressure
+        const uint64_t w_backward_pawns = w_pawns & backward_pawns;
+        const uint64_t b_backward_pawns = b_pawns & backward_pawns;
+
+        uint64_t w_backward_pawns_scan = w_backward_pawns;
+        while (w_backward_pawns_scan) {
+            const uint backward_pawn_idx = COUNT_TRAILING_ZEROS(w_backward_pawns_scan);
+            //const uint64_t backward_pawn = (1ULL << backward_pawn_idx);
+
+            const uint64_t pieces_in_line = occupancy & ptr_precomputation_tables->pm_table.rays[NORTH][backward_pawn_idx];
+            if (pieces_in_line) {
+                const uint blocker_idx = COUNT_TRAILING_ZEROS(pieces_in_line);
+                if ((1ULL << blocker_idx) & b_rooks) {
+                    // Penalty
+                    *mg_score -= BACKWARD_PAWN_PRESSURE_PENALTY_MG;
+                    *eg_score -= BACKWARD_PAWN_PRESSURE_PENALTY_EG;
+                }
+            }
+
+            w_backward_pawns_scan &= w_backward_pawns_scan - 1U;
+        }
+
+        uint64_t b_backward_pawns_scan = b_backward_pawns;
+        while (b_backward_pawns_scan) {
+            const uint backward_pawn_idx = COUNT_TRAILING_ZEROS(b_backward_pawns_scan);
+            //const uint64_t backward_pawn = (1ULL << backward_pawn_idx);
+
+            const uint64_t pieces_in_line = occupancy & ptr_precomputation_tables->pm_table.rays[SOUTH][backward_pawn_idx];
+            if (pieces_in_line) {
+                const uint blocker_idx = 63U - COUNT_LEADING_ZEROS(pieces_in_line);
+                if ((1ULL << blocker_idx) & w_rooks) {
+                    // Penalty
+                    *mg_score += BACKWARD_PAWN_PRESSURE_PENALTY_MG;
+                    *eg_score += BACKWARD_PAWN_PRESSURE_PENALTY_EG;
+                }
+            }
+
+            b_backward_pawns_scan &= b_backward_pawns_scan - 1U;
+        }
     }
 }
 
