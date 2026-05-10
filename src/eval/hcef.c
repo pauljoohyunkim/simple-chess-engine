@@ -344,6 +344,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
 
 #define WEAK_PAWN_STOP_SQUARE_OCCUPANCY_PENALTY_MG 12
 #define WEAK_PAWN_STOP_SQUARE_OCCUPANCY_PENALTY_EG 6
+#define ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_MG 18
+#define ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_EG 30
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score,
                                                                 int* const eg_score,
                                                                 uint64_t passed_pawns,
@@ -395,6 +397,23 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
 
         // Remove from the passed pawns for scanning using Kernighan's algorithm (removing LSB)
         passed_pawns &= passed_pawn - 1U;
+    }
+
+    {
+        // Isolated pawns: knight outpost
+        const uint64_t w_isolated_pawns = w_pawns & isolated_pawns;
+        const uint64_t b_isolated_pawns = b_pawns & isolated_pawns;
+
+        const uint64_t w_isolated_pawns_blocked = (w_isolated_pawns << CHESSBOARD_DIMENSION) & b_knights;
+        const uint64_t b_isolated_pawns_blocked = (b_isolated_pawns >> CHESSBOARD_DIMENSION) & w_knights;
+
+        const int w_isolated_pawns_blocked_count = COUNT_SET_BITS(w_isolated_pawns_blocked);
+        const int b_isolated_pawns_blocked_count = COUNT_SET_BITS(b_isolated_pawns_blocked);
+
+        *mg_score -= w_isolated_pawns_blocked_count * ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_MG;
+        *eg_score -= w_isolated_pawns_blocked_count * ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_EG;
+        *mg_score += b_isolated_pawns_blocked_count * ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_MG;
+        *eg_score += b_isolated_pawns_blocked_count * ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_EG;
     }
 
     {
