@@ -39,7 +39,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
                                                                 const uint64_t w_rooks,
                                                                 const uint64_t b_pawns,
                                                                 const uint64_t b_knights,
-                                                                const uint64_t b_rooks);
+                                                                const uint64_t b_rooks,
+                                                                const SCE_Precomputation_Tables* const ptr_precomputation_tables);
 
 #define DOUBLE_PAWN_PENALTY_MG (15)
 #define DOUBLE_PAWN_PENALTY_EG (20)
@@ -346,6 +347,8 @@ static void SCE_Eval_HandcraftedEvaluationFunction_PHT(int* const mg_score, int*
 #define WEAK_PAWN_STOP_SQUARE_OCCUPANCY_PENALTY_EG 6
 #define ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_MG 18
 #define ISOLATED_PAWN_KNIGHT_OUTPOST_PENALTY_EG 30
+#define PASSED_PAWN_ROOK_SUPPORT_BONUS_MG 20
+#define PASSED_PAWN_ROOK_SUPPORT_BONUS_EG 50
 static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_score,
                                                                 int* const eg_score,
                                                                 uint64_t passed_pawns,
@@ -359,9 +362,11 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
                                                                 const uint64_t w_rooks,
                                                                 const uint64_t b_pawns,
                                                                 const uint64_t b_knights,
-                                                                const uint64_t b_rooks) {
+                                                                const uint64_t b_rooks,
+                                                                const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
     assert(mg_score != NULL);
     assert(eg_score != NULL);
+    assert(ptr_precomputation_tables != NULL);
 
     *mg_score = 0;
     *eg_score = 0;
@@ -386,12 +391,36 @@ static void SCE_Eval_HandcraftedEvaluationFunction_DynamicCheck(int* const mg_sc
                 *mg_score -= passed_pawn_mg_weights[row] / 2;
                 *eg_score -= passed_pawn_eg_weights[row] / 2;
             }
+
+            // Passed pawn with rook support
+            const uint64_t trailing_pieces = occupancy & ptr_precomputation_tables->pm_table.rays[SOUTH][idx];
+            if (trailing_pieces) {
+                // There are trailing pieces. Check the blocker piece.
+                const uint blocker_idx = 63U - COUNT_LEADING_ZEROS(trailing_pieces);
+                if ((1ULL << blocker_idx) & w_rooks) {
+                    // Rook supported
+                    *mg_score += PASSED_PAWN_ROOK_SUPPORT_BONUS_MG;
+                    *eg_score += PASSED_PAWN_ROOK_SUPPORT_BONUS_EG;
+                }
+            }
         } else {
             // Black pawn
             if ((1ULL << (idx - CHESSBOARD_DIMENSION)) & occupancy) {
                 // Blocked
                 *mg_score += passed_pawn_mg_weights[CHESSBOARD_DIMENSION - 1U - row] / 2;
                 *eg_score += passed_pawn_eg_weights[CHESSBOARD_DIMENSION - 1U - row] / 2;
+            }
+
+            // Passed pawn with rook support
+            const uint64_t trailing_pieces = occupancy & ptr_precomputation_tables->pm_table.rays[NORTH][idx];
+            if (trailing_pieces) {
+                // There are trailing pieces. Check the blocker piece.
+                const uint blocker_idx = COUNT_TRAILING_ZEROS(trailing_pieces);
+                if ((1ULL << blocker_idx) & b_rooks) {
+                    // Rook supported
+                    *mg_score -= PASSED_PAWN_ROOK_SUPPORT_BONUS_MG;
+                    *eg_score -= PASSED_PAWN_ROOK_SUPPORT_BONUS_EG;
+                }
             }
         }
 
@@ -470,7 +499,8 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
                                                             ctx->board.bitboards[W_ROOK],
                                                             ctx->board.bitboards[B_PAWN],
                                                             ctx->board.bitboards[B_KNIGHT],
-                                                            ctx->board.bitboards[B_ROOK]);
+                                                            ctx->board.bitboards[B_ROOK],
+                                                            ctx->precomputation_tables);
         pawn_contrib_mg += pawn_contrib_dynamic_mg;
         pawn_contrib_eg += pawn_contrib_dynamic_eg;
     }
@@ -710,7 +740,8 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
                                                             w_rooks,
                                                             b_pawns,
                                                             b_knights,
-                                                            b_rooks);
+                                                            b_rooks,
+                                                            ctx->precomputation_tables);
         pawn_contrib_mg += pawn_contrib_dynamic_mg;
         pawn_contrib_eg += pawn_contrib_dynamic_eg;
     }
