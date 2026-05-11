@@ -66,12 +66,12 @@ where
 9. Update the estimated ELO and repeat the process again if wanted.
 
 ### Benchmark Results (HCEF)
-Preliminary result
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 148 |  62 | 500 | -101.5 | 2098.5+/-29.6 |
 | 6     | 2200 | 225 |  70 | 500 |  -26.5 | 2173.5+/-28.3 |
 | 7     | 2200 | 255 |  68 | 500 |   54.6 | 2254.6+/-28.6 |
+| 8     | 2200 | 267 |  76 | 500 |   77.7 | 2277.7+/-28.6 |
 
 
 ### Methodology in the Future
