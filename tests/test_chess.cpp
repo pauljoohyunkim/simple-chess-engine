@@ -643,7 +643,7 @@ TEST(MoveGeneration, MoveGeneration_Black_Castling) {
 TEST(MakeMove, MakeMove_Initial) {
     BOARD_SETUP()
 
-    const SCE_ChessMove move = (SCE_AN_To_Idx("E2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    const SCE_ChessMove move = CREATE_MOVE("E2", "E4", SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     ASSERT_TRUE(board.bitboards[W_PAWN] & SCE_AN_To_Bitboard("E4"));

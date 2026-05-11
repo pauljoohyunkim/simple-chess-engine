@@ -34,4 +34,7 @@
             } \
         } \
     }
+
+#define CREATE_MOVE(from, to, flag) \
+    (SCE_AN_To_Idx(from) SCE_CHESSMOVE_SET_SRC | SCE_AN_To_Idx(to) SCE_CHESSMOVE_SET_DST | (flag) SCE_CHESSMOVE_SET_FLAG)
 #endif  // __SCE_UNITTEST_SETUP_H__
