@@ -5,17 +5,13 @@
 #include "setup.h"
 
 TEST(MakeMove, MakeMove_Endgame1_WhitePawn_Promote_To_Knight) {
-    BOARD_CLEAR_SETUP(board);
-
-    SCE_PieceMovementPrecompute(&ctx);
-
-    SCE_ZobristTable_init(&ctx, NULL);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "A7", W_PAWN), SCE_SUCCESS);
 
-    const SCE_ChessMove move = (SCE_AN_To_Idx("A7") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("A8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION SCE_CHESSMOVE_SET_FLAG);
+    const SCE_ChessMove move = CREATE_MOVE("A7", "A8", SCE_CHESSMOVE_FLAG_KNIGHT_PROMOTION);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     ASSERT_TRUE(board.bitboards[W_KNIGHT] & SCE_AN_To_Bitboard("A8"));
@@ -23,11 +19,7 @@ TEST(MakeMove, MakeMove_Endgame1_WhitePawn_Promote_To_Knight) {
 
 // https://lichess.org/editor/1k5r/3p4/8/4P3/8/8/8/6K1_w_-_-_0_1?color=white
 TEST(MakeMove, MakeMove_White_Queen_Promotion_EnPassant) {
-    BOARD_CLEAR_SETUP(board);
-
-    SCE_PieceMovementPrecompute(&ctx);
-
-    SCE_ZobristTable_init(&ctx, NULL);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "B8", B_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "H8", B_ROOK), SCE_SUCCESS);
@@ -37,40 +29,36 @@ TEST(MakeMove, MakeMove_White_Queen_Promotion_EnPassant) {
     board.to_move = BLACK;
 
     // Setting en-passant opportunity
-    SCE_ChessMove move = (SCE_AN_To_Idx("D7") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("D5") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    SCE_ChessMove move = CREATE_MOVE("D7", "D5", SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
     ASSERT_EQ(board.en_passant_idx, SCE_AN_To_Idx("D6"));
     
     // En passant
-    move = (SCE_AN_To_Idx("E5") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("D6") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+    move = CREATE_MOVE("E5", "D6", SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
     ASSERT_EQ(board.en_passant_idx, -1);
 
     // Some blunder by rook
-    move = (SCE_AN_To_Idx("H8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("H3") SCE_CHESSMOVE_SET_DST);
+    move = CREATE_MOVE("H8", "H3", SCE_CHESSMOVE_FLAG_QUIET_MOVE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     // Single push by pawn
-    move = (SCE_AN_To_Idx("D6") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("D7") SCE_CHESSMOVE_SET_DST);
+    move = CREATE_MOVE("D6", "D7", SCE_CHESSMOVE_FLAG_QUIET_MOVE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     // Another blunder by rook
-    move = (SCE_AN_To_Idx("H3") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("H4") SCE_CHESSMOVE_SET_DST);
+    move = CREATE_MOVE("H3", "H4", SCE_CHESSMOVE_FLAG_QUIET_MOVE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     // Pawn promotion
-    move = (SCE_AN_To_Idx("D7") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("D8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION SCE_CHESSMOVE_SET_FLAG);
+    move = CREATE_MOVE("D7", "D8", SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     ASSERT_TRUE(board.bitboards[W_QUEEN] & SCE_AN_To_Bitboard("D8"));
 }
 
 TEST(MakeMove, White_Castling_Kingside_Black_Castling_Queenside) {
-    BOARD_CLEAR_SETUP(board);
-
-    SCE_PieceMovementPrecompute(&ctx);
-
-    SCE_ZobristTable_init(&ctx, NULL);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "H8", B_ROOK), SCE_SUCCESS);
@@ -80,19 +68,19 @@ TEST(MakeMove, White_Castling_Kingside_Black_Castling_Queenside) {
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
     board.to_move = WHITE;
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // Castle king side.
-    SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    SCE_ChessMove move = CREATE_MOVE("E1", "G1", SCE_CHESSMOVE_FLAG_KING_CASTLE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WK);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WQ);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BK);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BQ);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
-    move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    move = CREATE_MOVE("E8", "C8", SCE_CHESSMOVE_FLAG_QUEEN_CASTLE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WK);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WQ);
@@ -106,11 +94,7 @@ TEST(MakeMove, White_Castling_Kingside_Black_Castling_Queenside) {
 }
 
 TEST(MakeMove, Black_Castling_Kingside_White_Castling_Queenside) {
-    BOARD_CLEAR_SETUP(board);
-
-    SCE_PieceMovementPrecompute(&ctx);
-
-    SCE_ZobristTable_init(&ctx, NULL);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "E8", B_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "H8", B_ROOK), SCE_SUCCESS);
@@ -120,17 +104,17 @@ TEST(MakeMove, Black_Castling_Kingside_White_Castling_Queenside) {
     ASSERT_EQ(place_piece_on_board(&board, "A1", W_ROOK), SCE_SUCCESS);
     board.to_move = WHITE;
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // Castle queen side.
-    SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUEEN_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    SCE_ChessMove move = CREATE_MOVE("E1", "C1", SCE_CHESSMOVE_FLAG_QUEEN_CASTLE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WK);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WQ);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BK);
     ASSERT_TRUE(board.castling_rights & SCE_CASTLING_RIGHTS_BQ);
 
-    move = (SCE_AN_To_Idx("E8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G8") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    move = CREATE_MOVE("E8", "G8", SCE_CHESSMOVE_FLAG_KING_CASTLE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WK);
     ASSERT_FALSE(board.castling_rights & SCE_CASTLING_RIGHTS_WQ);
@@ -144,22 +128,23 @@ TEST(MakeMove, Black_Castling_Kingside_White_Castling_Queenside) {
 }
 
 TEST(MakeMove, FoolsMate) {
-    BOARD_SETUP(board, precpt_tbl, zobrist_table)
+    BOARD_SETUP()
+    (void)board;
 
     // W: F2 -> F3
-    SCE_ChessMove move = (SCE_AN_To_Idx("F2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("F3") SCE_CHESSMOVE_SET_DST);
+    SCE_ChessMove move = CREATE_MOVE("F2", "F3", SCE_CHESSMOVE_FLAG_QUIET_MOVE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     // B: E7 -> E5
-    move = (SCE_AN_To_Idx("E7") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("E5") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    move = CREATE_MOVE("E7", "E5", SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     // W: G2 -> G4
-    move = (SCE_AN_To_Idx("G2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    move = CREATE_MOVE("G2", "G4", SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     // Mate by B: D8 -> E4
-    move = (SCE_AN_To_Idx("D8") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("H4") SCE_CHESSMOVE_SET_DST);
+    move = CREATE_MOVE("D8", "H4", SCE_CHESSMOVE_FLAG_QUIET_MOVE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
     // White king is under attack
@@ -170,11 +155,7 @@ TEST(MakeMove, FoolsMate) {
 }
 
 TEST(MakeMove, EnPassant_DiscoveredCheck) {
-    BOARD_CLEAR_SETUP(board);
-
-    SCE_PieceMovementPrecompute(&ctx);
-
-    SCE_ZobristTable_init(&ctx, NULL);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "D8", B_KING), SCE_SUCCESS);
@@ -184,51 +165,49 @@ TEST(MakeMove, EnPassant_DiscoveredCheck) {
     board.to_move = WHITE;
 
     // Double push by white pawn
-    SCE_ChessMove move = (SCE_AN_To_Idx("C2") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C4") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH SCE_CHESSMOVE_SET_FLAG);
+    SCE_ChessMove move = CREATE_MOVE("C2", "C4", SCE_CHESSMOVE_FLAG_DOUBLE_PAWN_PUSH);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // En passant
-    move = (SCE_AN_To_Idx("D4") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("C3") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+    move = CREATE_MOVE("D4", "C3", SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_INVALID_MOVE);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 }
 
 TEST(MakeMove, Castle_Through_Check) {
-    BOARD_CLEAR_SETUP(board);
-
-    SCE_PieceMovementPrecompute(&ctx);
-
-    SCE_ZobristTable_init(&ctx, NULL);
+    BOARD_CLEAR_SETUP();
 
     ASSERT_EQ(place_piece_on_board(&board, "E1", W_KING), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "H1", W_ROOK), SCE_SUCCESS);
     ASSERT_EQ(place_piece_on_board(&board, "G2", B_BISHOP), SCE_SUCCESS);
     board.to_move = WHITE;
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     // Double push by white pawn
-    SCE_ChessMove move = (SCE_AN_To_Idx("E1") SCE_CHESSMOVE_SET_SRC) | (SCE_AN_To_Idx("G1") SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_KING_CASTLE SCE_CHESSMOVE_SET_FLAG);
+    SCE_ChessMove move = CREATE_MOVE("E1", "G1", SCE_CHESSMOVE_FLAG_KING_CASTLE);
     //ASSERT_EQ(SCE_MakeMove(&board, &precpt_tbl, move), SCE_INVALID_MOVE);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_INVALID_MOVE);
 
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 }
 
 TEST(MakeMove, MakeUnmake_PromoCapture) {
     SCE_Context ctx;
-    SCE_Context_init(&ctx);
+    SCE_Precomputation_Tables precomputation_tables;
+    SCE_Precomputation_Tables_init(&precomputation_tables, NULL);
+    SCE_Context_init(&ctx, &precomputation_tables);
 
     SCE_Chessboard_FEN_setup(&ctx, "r3k3/1P6/8/8/8/8/8/1K6 w q - 0 1");
 
     //SCE_ChessMove move = (SCE_AN_To_Idx("B7") SCE_CHESSMOVE_SET_SRC | SCE_AN_To_Idx("A8") SCE_CHESSMOVE_SET_DST | (SCE_CHESSMOVE_FLAG_QUEEN_PROMO_CAPTURE SCE_CHESSMOVE_SET_FLAG));
-    SCE_ChessMove move = (SCE_AN_To_Idx("B7") SCE_CHESSMOVE_SET_SRC | SCE_AN_To_Idx("B8") SCE_CHESSMOVE_SET_DST | (SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION SCE_CHESSMOVE_SET_FLAG));
+    SCE_ChessMove move = CREATE_MOVE("B7", "B8", SCE_CHESSMOVE_FLAG_QUEEN_PROMOTION);
     ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 
     ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
-    debug_print_board(&ctx);
+    // debug_print_board(&ctx);
 }

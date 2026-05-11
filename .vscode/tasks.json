@@ -4,14 +4,19 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Make sce_play",
+            "label": "Make binaries",
             "type": "shell",
             "command": "make bin CFLAGSEXTRA=-DNDEBUG"
         },
         {
-            "label": "Make sce_play (Debug)",
+            "label": "Make binaries (Debug)",
             "type": "shell",
             "command": "make bin OPTIMIZATION=-O0"
+        },
+        {
+            "label": "Make binaries (Debug, NodeCount)",
+            "type": "shell",
+            "command": "make bin OPTIMIZATION=-O0 CFLAGSEXTRA=-DNODE_COUNT"
         },
         {
             "label": "Unit test",

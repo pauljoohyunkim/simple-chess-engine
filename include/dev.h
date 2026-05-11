@@ -13,14 +13,14 @@ typedef unsigned int uint;
 void print_as_board(const uint64_t val);
 
 // Returns 1 for success, 0 for failure
-SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, uint piece_type);
+SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, PieceType piece_type);
 
 SCE_Return print_move_to_AN(const SCE_ChessMove move);
 
 SCE_Return debug_print_board(const SCE_Context* const ctx);
 
 // Returns number of PERFT count from the current board. 0 for failure.
-unsigned long long perft_count(const SCE_Context* const ctx, const uint depth, const bool root);
+unsigned long long perft_count(SCE_Context* const ctx, const uint depth, const bool root);
 
 #ifdef __cplusplus
 }

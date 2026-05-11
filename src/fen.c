@@ -25,48 +25,47 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     size_t fen_len = strlen(fen);
     if (fen_len >= FEN_STRING_MAX_LEN) return SCE_INVALID_PARAM;
 
-    if (count_occurence(fen, ' ') != 5U) return SCE_INVALID_PARAM;
-
-    // Now guaranteed to have 6 chunks.
     char fen_cpy[FEN_STRING_MAX_LEN] = { 0 };
     memcpy(fen_cpy, fen, fen_len);
+    {
+        // Replace newline character to null terminator.
+        char* const ptr = strchr(fen_cpy, '\n');
+        if (ptr) {
+            *ptr = '\0';
+        }
+    }
 
-    char* indexer = NULL;
-    const char* piece_placement_str = fen_cpy;
-    indexer = strchr(piece_placement_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    char* chunks[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+    char* saveptr = NULL;
+    chunks[0] = strtok_r(fen_cpy, " ", &saveptr);
+    for (uint i = 1; i < 6U; i++) {
+        if (chunks[i-1]) {
+            chunks[i] = strtok_r(NULL, " ", &saveptr);
+        } else {
+            break;
+        }
+    }
 
-    const char* active_color_str = indexer;
-    indexer = strchr(active_color_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    const char* piece_placement_str = chunks[FEN_STEP_PIECE_PLACEMENT];
 
-    const char* castling_rights_str = indexer;
-    indexer = strchr(castling_rights_str, ' ');
-    *indexer = '\0';
-    indexer++;
+    const char* active_color_str = chunks[FEN_STEP_ACTIVE_COLOR];
 
-    const char* en_passant_target_square_str = indexer;
-    indexer = strchr(en_passant_target_square_str, ' ');
-    *indexer = '\0';
-    indexer++;
-    
-    const char* halfmove_clock_str = indexer;
-    indexer = strchr(halfmove_clock_str, ' ');
-    *indexer = '\0';
-    indexer++;
-    
-    const char* fullmove_number = indexer;
+    const char* castling_rights_str = chunks[FEN_STEP_CASTLING_RIGHTS];
+
+    const char* en_passant_target_square_str = chunks[FEN_STEP_EN_PASSANT_TARGET_SQUARE];
+
+    const char* halfmove_clock_str = chunks[FEN_STEP_HALFMOVE_CLOCK];
+
+    const char* fullmove_number_str = chunks[FEN_STEP_FULLMOVE_NUMBER];
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ctx), "Clearing board failure!");
     ctx->board.castling_rights = 0U;
 
     uint row = 7U;
     uint col = 0U;
-    uint fen_step = FEN_STEP_PIECE_PLACEMENT;
-    if (fen_step == FEN_STEP_PIECE_PLACEMENT) {
-        const size_t len = strlen(piece_placement_str);
+
+    // fen_step_piece_placement:
+        size_t len = strlen(piece_placement_str);
         for (uint i = 0U; i < len; i++) {
             const char c = piece_placement_str[i];
 
@@ -133,11 +132,13 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
             continue;
         }
         if (row != 0 || col != CHESSBOARD_DIMENSION) return SCE_INVALID_PARAM;
-        fen_step = FEN_STEP_ACTIVE_COLOR;
-    }
 
-    if (fen_step == FEN_STEP_ACTIVE_COLOR) {
-        const size_t len = strlen(active_color_str);
+    // fen_step_active_color:
+        if (active_color_str == NULL) {
+            ctx->board.to_move = WHITE;
+            goto fen_step_finish;
+        }
+        len = strlen(active_color_str);
         if (len != 1U) return SCE_INVALID_PARAM;
 
         switch (active_color_str[0]) {
@@ -151,11 +152,14 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
                 return SCE_INVALID_PARAM;
         }
 
-        fen_step = FEN_STEP_CASTLING_RIGHTS;
-    }
 
-    if (fen_step == FEN_STEP_CASTLING_RIGHTS) {
-        const size_t len = strlen(castling_rights_str);
+    // fen_step_castling_rights:
+        if (castling_rights_str == NULL) {
+            // Default to no castling rights.
+            ctx->board.castling_rights = 0U;
+            goto fen_step_finish;
+        }
+        len = strlen(castling_rights_str);
         if (len > 4U) return SCE_INVALID_PARAM;
         if (count_occurence(castling_rights_str, '-') > 1U) return SCE_INVALID_PARAM;
         if (count_occurence(castling_rights_str, '-') == 0U) {
@@ -184,13 +188,15 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
             ctx->board.castling_rights = 0U;
         }
 
-        fen_step = FEN_STEP_EN_PASSANT_TARGET_SQUARE;
-    }
 
-    if (fen_step == FEN_STEP_EN_PASSANT_TARGET_SQUARE) {
-        const size_t len = strlen(en_passant_target_square_str);
+    // fen_step_en_passant_target_square:
+        if (en_passant_target_square_str == NULL) {
+            ctx->board.en_passant_idx = UNASSIGNED;
+            goto fen_step_finish;
+        }
+        len = strlen(en_passant_target_square_str);
         if (len > 2U) return SCE_INVALID_PARAM;
-        
+
         if (len == 1U) {
             if (en_passant_target_square_str[0] != '-') return SCE_INVALID_PARAM;
             ctx->board.en_passant_idx = UNASSIGNED;
@@ -200,11 +206,13 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
             const int idx = SCE_AN_To_Idx(en_passant_target_square_str);
             ctx->board.en_passant_idx = idx;
         }
-        fen_step = FEN_STEP_HALFMOVE_CLOCK;
-    }
 
-    if (fen_step == FEN_STEP_HALFMOVE_CLOCK) {
-        const size_t len = strlen(halfmove_clock_str);
+    // fen_step_halfmove_clock:
+        if (halfmove_clock_str == NULL) {
+            ctx->board.half_move_clock = 0;
+            goto fen_step_finish;
+        }
+        len = strlen(halfmove_clock_str);
         if (len > 3U) return SCE_INVALID_PARAM;
 
         // Sanity check.
@@ -213,14 +221,31 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
         }
 
         ctx->board.half_move_clock = atoi(halfmove_clock_str);
-        fen_step = FEN_STEP_FULLMOVE_NUMBER;
-    }
 
-    // If current step is not fullmove number, it means parsing stopped at one of the previous steps.
-    // This is not allowed.
-    // Also fullmove number is not handled.
-    if (fen_step != FEN_STEP_FULLMOVE_NUMBER) return SCE_INVALID_PARAM;
+    // fen_step_fullmove_number:
+        // Fullmove number is not handled.
+        // if (fen_step != FEN_STEP_FULLMOVE_NUMBER) return SCE_INVALID_PARAM;
+        if (fullmove_number_str == NULL) {
+            goto fen_step_finish;
+        }
 
+    fen_step_finish:
+        ctx->board.zobrist_hash = SCE_Chessboard_ComputeZobristHash(ctx);
+        ctx->board.pawn_zobrist_hash = SCE_Chessboard_ComputePawnZobristHash(ctx);
+        ctx->board.occupancy_w = ctx->board.bitboards[W_PAWN] |
+                                ctx->board.bitboards[W_KNIGHT] |
+                                ctx->board.bitboards[W_BISHOP] |
+                                ctx->board.bitboards[W_ROOK] |
+                                ctx->board.bitboards[W_QUEEN] |
+                                ctx->board.bitboards[W_KING];
+        ctx->board.occupancy_b = ctx->board.bitboards[B_PAWN] |
+                                ctx->board.bitboards[B_KNIGHT] |
+                                ctx->board.bitboards[B_BISHOP] |
+                                ctx->board.bitboards[B_ROOK] |
+                                ctx->board.bitboards[B_QUEEN] |
+                                ctx->board.bitboards[B_KING];
+        if (ctx->board.zobrist_hash == 0) return SCE_INTERNAL_ERROR;
+        if (ctx->board.pawn_zobrist_hash == 0) return SCE_INTERNAL_ERROR;
     return SCE_SUCCESS;
 }
 

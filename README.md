@@ -28,31 +28,75 @@ There are clearly a lot of work to do, but so far I think it is of good quality 
 (for something that was built hastily in 3 weeks)!
 
 ## Benchmark
-I am testing against bots from [Chess.com](https://www.chess.com/).
+### Methodology
+Here are the steps taken for the measurements.
+I acknowledge that the measurement could be more formal,
+but I do not want to pull my hair out for this hobby project.
 
-### ELO 2000 (Win)
-![2000](./2000.png)
+Note that most of the internal calculation is done by Cutechess anyways.
+#### Prerequisites
+* Stockfish
+* Cutechess
 
-This suggests that the current bot may be better than ELO 2000.
+0. Take an estimate ($R$) of the ELO for SCE.
+1. Download and install Stockfish and Cutechess.
+2. Open Cutechess GUI
+    * I wanted to use Cutechess CLI, but it seems to be buggy on my machine...
+3. Add `bin/sce_uci_engine` as a new engine in Cutechess GUI.
+    * Go to Advanced, and toggle on the DynamicDeepening option.
+4. Add Stockfish as a new engine in Cutechess GUI.
+    * Go to Advanced, and toggle UCI_LimitStrength on.
+    * Also set UCI_Elo value to the ELO estimate from Step 0.
+5. Play 100 games of tournament between SCE and Stockfish.
+6. Using the number of wins ($W$) and draws ($D$), calculate the expected score ($E$).
+```math
+E = \frac{W + 0.5 D}{N}
+```
+where
+* $W$ is the number of wins.
+* $D$ is the number of draws.
+* $N$ is the total number of games played.
 
-### ELO 2500 (Draw)
-![2500](./2500.png)
+7. Calculate the ELO difference by the following formula.
+```math
+\Delta R = -400 \log_{10} \left( \frac{1}{E} - 1 \right)
+```
 
-This suggests that the current bot (Depth 9 -> 10 (after phase < 15)) is roughly ELO 2500, though it could be higher or lower.
+8. Add this $\Delta R$ to the estimated ELO.
+9. Update the estimated ELO and repeat the process again if wanted.
 
-### ELO 2400 (Loss)
-![2400](./2400.png)
+### Benchmark Results (HCEF)
+* Preliminary result
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 148 |  62 | 500 | -101.5 | 2098.5+/-29.6 |
+| 6     | 2200 | 225 |  70 | 500 |  -26.5 | 2173.5+/-28.3 |
+| 7     | 2200 | 255 |  68 | 500 |   54.6 | 2254.6+/-28.6 |
 
-This suggests that the current bot would be worse than ELO 2400.
 
-### ELO 2400 (Second Try, Win)
-![2400](./2400_2.png)
+### Methodology in the Future
+It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
 
-It seems like with right parameters (for depth and deepening), the engine could practically improve.
+Here is a reference command I could use
+```bash
+# 4 Concurrent games where SCE uses depth 5 and Stockfish is at ELO 2100 with move time limit set to 2100.
+# Playing ten games. Since 10 is even, the color switches back and forth.
+cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=5 tc=inf -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=2200 depth=18 tc=60+0.6 -each proto=uci -games 10 -repeat -concurrency 1
+```
 
-Based on these results, my estimation would be about ELO 2200.
+### Using Makefile for Benchmark
+You can run the benchmark using the provided Makefile target:
+```bash
+make benchmark
+```
+This will build the engine with optimizations enabled (release build with `-DNDEBUG`) and run it against Stockfish using the following default parameters:
+- Depth: 5
+- Number of games: 10
+- Stockfish ELO: 2200
+- Concurrency: 1 concurrent game
 
-### ELO 2700 (Draw by 50-Move Rule)
-![2700](./2700.png)
-
-My gosh this was stressful... At least I get to see that half-clock rule being activated.
+You can override these parameters by setting the corresponding make variables:
+```bash
+make benchmark BENCH_DEPTH=7 BENCH_GAMES=20 BENCH_ELO=2200 BENCH_CONCURRENCY=8
+```
+Note that `BENCH_GAMES` must be an even number for a "meaningful" benchmark.

@@ -4,52 +4,25 @@
 #include "fen.h"
 #include "dev.h"
 #include "../setup.h"
+#include "delta_eval_test.h"
 
 #define DEBUG_TT_N_SIZE (24U)
 
-void DeltaEvalTest(SCE_Context* const ctx, const int depth) {
-    if (depth == 0) {
-        return;
-    }
-
-    SCE_ChessMoveList movelist;
-    ASSERT_EQ(SCE_ChessMoveList_clear(&movelist), SCE_SUCCESS);
-
-    ASSERT_EQ(SCE_GenerateLegalMoves(&movelist, ctx), SCE_SUCCESS);
-
-    for (unsigned int i = 0; i < movelist.count; i++) {
-        const SCE_ChessMove move = movelist.moves[i];
-
-        SCE_EvalState temp_eval_state = ctx->eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx->board, &temp_eval_state, move);
-
-        ASSERT_EQ(SCE_MakeMove(ctx, move), SCE_SUCCESS);
-        ctx->eval_state = temp_eval_state;
-
-        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(ctx);
-        ASSERT_EQ(delta_evaluated, full_evaluated);
-        ASSERT_EQ(temp_eval_state.eg_score, ctx->eval_state.eg_score);
-        ASSERT_EQ(temp_eval_state.mg_score, ctx->eval_state.mg_score);
-        ASSERT_EQ(temp_eval_state.phase, ctx->eval_state.phase);
-        //ASSERT_TRUE(temp_eval_state.phase <= 24);
-        //ASSERT_TRUE(ctx->eval_state.phase <= 24);
-
-        DeltaEvalTest(ctx, depth-1);
-
-
-        ASSERT_EQ(SCE_UnmakeMove(ctx), SCE_SUCCESS);
-    }
-}
-
 TEST(SEF, Initial) {
-    BOARD_SETUP(board, precomputation_table, zobrist_table);
+    BOARD_SETUP()
+    (void)board;
 
-    ASSERT_EQ(SCE_Eval_SimplifiedEvaluationFunction(&ctx), 0);
+    SCE_Engine engine;
+    ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
+
+    ASSERT_EQ(SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine), 0);
 }
 
 TEST(SEF, DeltaEval_Initial) {
     SCE_Context ctx;
-    ASSERT_EQ(SCE_Context_init(&ctx), SCE_SUCCESS);
+    SCE_Precomputation_Tables precomputation_tables;
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
 
     // While engine generation is not needed, this is used for precomputing the first evaluation.
     SCE_Engine engine;
@@ -66,11 +39,11 @@ TEST(SEF, DeltaEval_Initial) {
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx.eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state, &engine, move);
 
         ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
         ctx.eval_state = temp_eval_state;
-        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx);
+        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine);
 
         assert(delta_evaluated == full_evaluated);
         ASSERT_EQ(delta_evaluated, full_evaluated);
@@ -82,7 +55,9 @@ TEST(SEF, DeltaEval_Initial) {
 
 TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
     SCE_Context ctx;
-    ASSERT_EQ(SCE_Context_init(&ctx), SCE_SUCCESS);
+    SCE_Precomputation_Tables precomputation_tables;
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
     ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
 
     // While engine generation is not needed, this is used for precomputing the first evaluation.
@@ -100,7 +75,7 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx.eval_state;
-        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state, move);
+        const int delta_evaluated = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state, &engine, move);
         ASSERT_EQ(SCE_MakeMove(&ctx, move), SCE_SUCCESS);
         ctx.eval_state = temp_eval_state;
         {
@@ -114,17 +89,17 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_2) {
                 const SCE_ChessMove move2 = movelist2.moves[j];
 
                 SCE_EvalState temp_eval_state_2 = ctx.eval_state;
-                const int delta_evaluated2 = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx.board, &temp_eval_state_2, move2);
+                const int delta_evaluated2 = SCE_DeltaEval_SimplifiedEvaluationFunction(&ctx, &temp_eval_state_2, &engine, move2);
 
                 ASSERT_EQ(SCE_MakeMove(&ctx, move2), SCE_SUCCESS);
-                const int full_evaluated2 = SCE_Eval_SimplifiedEvaluationFunction(&ctx);
+                const int full_evaluated2 = SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine);
                 
                 ASSERT_EQ(delta_evaluated2, full_evaluated2);
                 ASSERT_EQ(SCE_UnmakeMove(&ctx), SCE_SUCCESS);
             }
             
         }
-        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx);
+        const int full_evaluated = SCE_Eval_SimplifiedEvaluationFunction(&ctx, &engine);
 
         ASSERT_EQ(delta_evaluated, full_evaluated);
 
@@ -139,7 +114,9 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_4) {
 TEST(SEF, DeltaEval_Kiwipete_Depth_6) {
 #endif
     SCE_Context ctx;
-    ASSERT_EQ(SCE_Context_init(&ctx), SCE_SUCCESS);
+    SCE_Precomputation_Tables precomputation_tables;
+    ASSERT_EQ(SCE_Precomputation_Tables_init(&precomputation_tables, NULL), SCE_SUCCESS);
+    ASSERT_EQ(SCE_Context_init(&ctx, &precomputation_tables), SCE_SUCCESS);
     ASSERT_EQ(SCE_Chessboard_FEN_setup(&ctx, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0"), SCE_SUCCESS);
 
     // While engine generation is not needed, this is used for precomputing the first evaluation.
@@ -147,9 +124,9 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_6) {
     ASSERT_EQ(SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, DEBUG_TT_N_SIZE), SCE_SUCCESS);
 
 #ifndef UNITTEST_FULL
-    DeltaEvalTest(&ctx, 4);
+    DeltaEvalTest(&ctx, &engine, 4);
 #else
-    DeltaEvalTest(&ctx, 6);
+    DeltaEvalTest(&ctx, &engine, 6);
 #endif
 
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
