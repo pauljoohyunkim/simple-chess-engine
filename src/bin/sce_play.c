@@ -6,6 +6,7 @@
 #include "eval/sef.h"
 #include "engine.h"
 #include "eval/pst.h"
+#include "eval/hcef.h"
 #include "helper.h"
 
 const unsigned int npp_count_to_depth[] = {
@@ -78,7 +79,7 @@ int main(int argc, char** argv) {
 
     // Chess engine
     SCE_Engine engine;
-    ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_SimplifiedEvaluationFunction, SCE_DeltaEval_SimplifiedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
+    ret = SCE_Engine_init(&ctx, &engine, SCE_Eval_HandcraftedEvaluationFunction, SCE_DeltaEval_HandcraftedEvaluationFunction, TT_TABLE_LOG_2_SIZE);
     assert(ret == SCE_SUCCESS);
 
     printf("All moves are to be in \"E2E4\" form (For promotions, you do not specify the ending, as you will be given the choice)\n");
@@ -127,7 +128,6 @@ int main(int argc, char** argv) {
             if (signal == SIGNAL_CONTINUE) goto do_black_player_move;
             if (check_draw(&ctx)) break;
         }
-
     }
 
     printf("End of game!\n");
@@ -173,7 +173,7 @@ static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) 
         fprintf(stderr, "Wrong input! Try again\n");
         return SIGNAL_CONTINUE;
     }
-    
+
     int move = UNASSIGNED;
     SCE_ChessMoveList movelist;
     ret = SCE_ChessMoveList_clear(&movelist);
