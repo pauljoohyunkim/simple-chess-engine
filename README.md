@@ -65,12 +65,12 @@ where
 8. Add this $\Delta R$ to the estimated ELO.
 9. Update the estimated ELO and repeat the process again if wanted.
 
-### Benchmark Results (HCEF, No Weak Pawn + Backward Pawn Penalty)
+### Benchmark Results (HCEF)
 * Preliminary result
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
-| 5     | 2200 | 131 |  69 | 499 | -121.7 | 2078.3+/-29.8 |
-| 6     | 2200 | 191 |  76 | 499 |  -28.6 | 2171.4+/-28.2 |
+| 5     | 2200 | 148 |  62 | 500 | -101.5 | 2098.5+/-29.6 |
+| 6     | 2200 | 225 |  70 | 500 |  -26.5 | 2173.5+/-28.3 |
 
 
 ### Methodology in the Future
