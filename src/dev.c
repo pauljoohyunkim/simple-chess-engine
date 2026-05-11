@@ -24,8 +24,8 @@ void print_as_board(const uint64_t val) {
     printf("\n");
 }
 
-SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, uint piece_type) {
-    if (ptr_board == NULL || an == NULL || piece_type >= N_TYPES_PIECES) return SCE_INVALID_PARAM;
+SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, PieceType piece_type) {
+    if (ptr_board == NULL || an == NULL || piece_type >= (int) N_TYPES_PIECES) return SCE_INVALID_PARAM;
 
     // Get bitboard form of algebraic notation
     const uint64_t loc = SCE_AN_To_Bitboard(an);
@@ -38,8 +38,8 @@ SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * co
 
     ptr_board->bitboards[piece_type] ^= loc;
     ptr_board->mailbox[COUNT_TRAILING_ZEROS(loc)] = piece_type;
-    if (piece_type < B_PAWN) ptr_board->occupancy_w ^= loc;
-    if (piece_type >= B_PAWN) ptr_board->occupancy_b ^= loc;
+    if (IS_WHITE(piece_type)) ptr_board->occupancy_w ^= loc;
+    if (IS_BLACK(piece_type)) ptr_board->occupancy_b ^= loc;
 
     return SCE_SUCCESS;
 }

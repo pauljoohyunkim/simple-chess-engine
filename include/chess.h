@@ -31,6 +31,10 @@ typedef enum {
     UNASSIGNED_PIECE_TYPE = UNASSIGNED
 } PieceType;
 
+#define IS_WHITE(piecetype) (piecetype < B_PAWN)
+#define IS_BLACK(piecetype) (piecetype >= B_PAWN)
+#define IS_UNASSIGNED(piecetype) (piecetype == UNASSIGNED_PIECE_TYPE)
+
 #define N_TYPES_PIECES 12U
 
 #define PAWN_INITIAL_ROW (0xFFULL)
@@ -112,7 +116,7 @@ typedef struct {
 
 typedef struct {
     unsigned int moving_piece;
-    int captured_piece;
+    PieceType captured_piece;
     int en_passant_square;
     uint8_t castling_rights;
     unsigned int half_move_clock;       // 50-move rule

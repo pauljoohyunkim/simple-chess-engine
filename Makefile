@@ -26,8 +26,8 @@ OBJS = $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS)) \
 TEST_SRCS=$(wildcard $(TESTS)/*.cpp)
 TEST_EVAL_SRCS=$(wildcard $(TESTS)/eval/*.cpp)
 TEST_OBJS=$(patsubst $(TESTS)/%.cpp,$(OBJ)/%.o, $(TEST_SRCS)) \
-          $(patsubst $(TESTS)/eval/%.c, $(OBJ)/eval_%.o, $(TEST_EVAL_SRCS))
-DEPS=$(OBJS:.o=.d)
+          $(patsubst $(TESTS)/eval/%.cpp,$(OBJ)/test_eval_%.o,$(TEST_EVAL_SRCS))
+DEPS=$(OBJS:.o=.d) $(TEST_OBJS:.o=.d)
 
 # Benchmark settings
 BENCH_DEPTH ?= 5
@@ -57,6 +57,9 @@ $(OBJ)/test_%.o: $(TESTS)/test_%.cpp
 
 $(OBJ)/eval_%.o: $(SRC)/eval/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ)/test_eval_%.o: $(TESTS)/eval/%.cpp
+	$(CXX) $(CXXFLAGS) $(GTEST_CFLAGS) -c $< -o $@
 
 $(OBJ)/sce_play.o: $(SRC)/bin/sce_play.c
 	$(CC) $(CFLAGS) -c $< -o $@
