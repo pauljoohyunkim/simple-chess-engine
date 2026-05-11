@@ -306,6 +306,18 @@ SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char
                 return SCE_INVALID_PARAM;
             }
 
+        } else if (strcmp(word, "Threads") == 0) {
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word == NULL || strcmp(word, "value") != 0) return SCE_INVALID_PARAM;
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word) {
+                int threads = atoi(word);
+                if (threads < 1) threads = 1;
+                if (threads > 1024) threads = 1024;
+                ptr_session->n_helper_threads = threads;
+            } else {
+                return SCE_INVALID_PARAM;
+            }
         } else {
             return SCE_INVALID_PARAM;
         }
