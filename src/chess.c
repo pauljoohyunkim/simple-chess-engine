@@ -847,7 +847,7 @@ static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
 
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
-    const uint moving_piece_type = ctx->board.to_move == WHITE ? W_KNIGHT : B_KNIGHT;
+    const PieceType moving_piece_type = ctx->board.to_move == WHITE ? W_KNIGHT : B_KNIGHT;
 
     // Get all knights
     uint64_t knights = ctx->board.bitboards[moving_piece_type];
@@ -855,17 +855,17 @@ static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
         // Loop and generate moves for each knight. After generating move for a knight, remove the bit.
         uint knight_idx_src = COUNT_TRAILING_ZEROS(knights);
         // Knight moves, but cannot attack the same color
-        uint64_t knight_moves = (ctx->precomputation_tables->pm_table.knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ctx, moving_piece_type == W_KNIGHT ? WHITE : BLACK)));
+        uint64_t knight_moves = (ctx->precomputation_tables->pm_table.knight_moves[knight_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ctx, IS_WHITE(moving_piece_type) ? WHITE : BLACK)));
         if (tactical) {
-            knight_moves &= moving_piece_type == W_KNIGHT ? occupancy_b : occupancy_w;
+            knight_moves &= IS_WHITE(moving_piece_type) ? occupancy_b : occupancy_w;
         }
-        
+
         while (knight_moves) {
             // For each moves, add to list.
             uint knight_idx_dst = COUNT_TRAILING_ZEROS(knight_moves);
             uint64_t knight_dst = 1ULL << knight_idx_dst;
             const SCE_ChessMove move = (knight_idx_src SCE_CHESSMOVE_SET_SRC) ^ (knight_idx_dst SCE_CHESSMOVE_SET_DST);
-            if (knight_dst & (moving_piece_type == W_KNIGHT ? occupancy_b : occupancy_w)) {
+            if (knight_dst & (IS_WHITE(moving_piece_type) ? occupancy_b : occupancy_w)) {
                 SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
             } else {
                 SCE_AddToMoveList(move, ptr_movelist);
@@ -888,7 +888,7 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
     const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
-    const uint moving_piece_type = ctx->board.to_move == WHITE ? W_KING : B_KING;
+    const PieceType moving_piece_type = ctx->board.to_move == WHITE ? W_KING : B_KING;
 
     // Get king
     uint64_t king = ctx->board.bitboards[moving_piece_type];
@@ -896,9 +896,9 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
         // Loop and generate moves for the king.
         uint king_idx_src = COUNT_TRAILING_ZEROS(king);
         // King moves, but cannot attack the same color
-        uint64_t king_moves = (ctx->precomputation_tables->pm_table.king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ctx, moving_piece_type == W_KING ? WHITE : BLACK)));
+        uint64_t king_moves = (ctx->precomputation_tables->pm_table.king_moves[king_idx_src] & ~(SCE_Chessboard_Occupancy_Color(ctx, IS_WHITE(moving_piece_type) ? WHITE : BLACK)));
         if (tactical) {
-            king_moves &= moving_piece_type == W_KING ? occupancy_b : occupancy_w;
+            king_moves &= IS_WHITE(moving_piece_type) ? occupancy_b : occupancy_w;
         }
         
         while (king_moves) {
@@ -906,7 +906,7 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
             uint king_idx_dst = COUNT_TRAILING_ZEROS(king_moves);
             uint64_t king_dst = 1ULL << king_idx_dst;
             const SCE_ChessMove move = (king_idx_src SCE_CHESSMOVE_SET_SRC) ^ (king_idx_dst SCE_CHESSMOVE_SET_DST);
-            if (king_dst & (moving_piece_type == W_KING ? occupancy_b : occupancy_w)) {
+            if (king_dst & (IS_WHITE(moving_piece_type) ? occupancy_b : occupancy_w)) {
                 SCE_AddToMoveList(move | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG), ptr_movelist);
             } else {
                 SCE_AddToMoveList(move, ptr_movelist);
@@ -1772,8 +1772,8 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         }
 
         // Sanity check
-        if (moving_piece_type == UNASSIGNED) return SCE_INVALID_MOVE;
-        if ((flag & SCE_CHESSMOVE_FLAG_CAPTURE) && (captured_piece_type == UNASSIGNED)) {
+        if (IS_UNASSIGNED(moving_piece_type)) return SCE_INVALID_MOVE;
+        if ((flag & SCE_CHESSMOVE_FLAG_CAPTURE) && IS_UNASSIGNED(captured_piece_type)) {
             // Flag said the piece would capture something, but it was a big fat lie!
             return SCE_INVALID_MOVE;
         }
@@ -2014,7 +2014,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         }
     }
     // 3. Update half-move clock
-    if (moving_piece_type == W_PAWN || moving_piece_type == B_PAWN || captured_piece_type != UNASSIGNED) {
+    if (moving_piece_type == W_PAWN || moving_piece_type == B_PAWN || !IS_UNASSIGNED(captured_piece_type)) {
         ctx->board.half_move_clock = 0U;
     } else {
         ctx->board.half_move_clock++;
@@ -2126,7 +2126,7 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
         ctx->board.occupancy_b ^= src ^ dst;
     }
 
-    if (captured_piece != UNASSIGNED) {
+    if (!IS_UNASSIGNED(captured_piece)) {
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
             const uint captured_idx = ctx->board.to_move == WHITE ? (dst_idx - CHESSBOARD_DIMENSION) : (dst_idx + CHESSBOARD_DIMENSION);
             ctx->board.bitboards[captured_piece] ^= (1ULL << captured_idx);

@@ -577,8 +577,6 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
     return (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
 }
 
-#define IS_WHITE(piecetype) (piecetype < B_PAWN)
-#define IS_BLACK(piecetype) (piecetype >= B_PAWN)
 int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
     assert(ctx != NULL);
     assert(ptr_eval_state != NULL);
@@ -611,7 +609,7 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
         const int flag = move SCE_CHESSMOVE_GET_FLAG;
         const PieceType src_piece_type = ctx->board.mailbox[src_idx];
         PieceType captured_piece_type = UNASSIGNED_PIECE_TYPE;
-        assert(src_piece_type != UNASSIGNED_PIECE_TYPE);
+        assert(!IS_UNASSIGNED(src_piece_type));
 
         // Determine captured piece type.
         if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
@@ -629,7 +627,7 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
 
         // 1. Capture
         if (flag & SCE_CHESSMOVE_FLAG_CAPTURE) {
-            assert(captured_piece_type != UNASSIGNED_PIECE_TYPE);
+            assert(!IS_UNASSIGNED(captured_piece_type));
             const uint64_t captured_piece = 1ULL << captured_idx;
             if (flag == SCE_CHESSMOVE_FLAG_EN_PASSANT_CAPTURE) {
                 // En passant

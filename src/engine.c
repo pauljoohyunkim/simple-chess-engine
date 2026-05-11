@@ -189,8 +189,8 @@ static inline int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_C
     
     const uint flag = move SCE_CHESSMOVE_GET_FLAG;
     const uint moving_piece_idx = move SCE_CHESSMOVE_GET_SRC;
-    int moving_piece_type = UNASSIGNED;
-    int captured_piece_type = UNASSIGNED;
+    PieceType moving_piece_type = UNASSIGNED_PIECE_TYPE;
+    PieceType captured_piece_type = UNASSIGNED_PIECE_TYPE;
     const int piece_values[] = {
         PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE,
         PAWN_VALUE, KNIGHT_VALUE, BISHOP_VALUE, ROOK_VALUE, QUEEN_VALUE, KING_VALUE
@@ -199,7 +199,7 @@ static inline int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_C
     // TODO: Extreme rare case of quiet promotion being a killer move, which would not get score of PROMOTION, which is higher than killer moves.
 
     moving_piece_type = ptr_board->mailbox[moving_piece_idx];
-    assert(moving_piece_type != UNASSIGNED);
+    assert(!IS_UNASSIGNED(moving_piece_type));
 
     if ((move SCE_CHESSMOVE_GET_FLAG) & SCE_CHESSMOVE_FLAG_CAPTURE) {
         // This is a capture.
@@ -215,7 +215,7 @@ static inline int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_C
             captured_piece_type = ptr_board->mailbox[dst_idx];
         }
 
-        assert(captured_piece_type != UNASSIGNED);
+        assert(!IS_UNASSIGNED(captured_piece_type));
         //if (moving_piece_type == UNASSIGNED || captured_piece_type == UNASSIGNED) return 0;
 
         // MVV-LVA scoring
