@@ -550,13 +550,17 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
             !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
             !(move & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) &&
             !(is_in_check)) {
-                int r_idx = legal_move_count < 64 ? legal_move_count : 63;
-                reduction = ctx->precomputation_tables->lmr_table[depth][r_idx];
-                reduction += ptr_ctrl->lmr_bias;
+                const bool gives_check = SCE_IsSquareAttacked(ctx, ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING], ctx->board.to_move == WHITE ? BLACK : WHITE);
 
-                // Reduction to negative depth not allowed.
-                if (reduction < 0) reduction = 0;
-                if (reduction >= (int)depth) reduction = depth - 1;
+                if (!gives_check) {
+                    int r_idx = legal_move_count < 64 ? legal_move_count : 63;
+                    reduction = ctx->precomputation_tables->lmr_table[depth][r_idx];
+                    reduction += ptr_ctrl->lmr_bias;
+
+                    // Reduction to negative depth not allowed.
+                    if (reduction < 0) reduction = 0;
+                    if (reduction >= (int)depth) reduction = depth - 1;
+                }
         }
 
         int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-reduction, -beta, -alpha);
