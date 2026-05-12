@@ -65,7 +65,15 @@ where
 8. Add this $\Delta R$ to the estimated ELO.
 9. Update the estimated ELO and repeat the process again if wanted.
 
+### Benchmark Results (SEF)
+Preliminary Results (Before LMR Refinement)
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 148 |  78 | 500 |  -89.5 | 2110.5+/-28.8 |
+| 6     | 2200 | 174 |  94 | 500 |  -40.5 | 2159.5+/-27.6 |
+
 ### Benchmark Results (HCEF)
+Preliminary Results (Before LMR Refinement)
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 148 |  62 | 500 | -101.5 | 2098.5+/-29.6 |

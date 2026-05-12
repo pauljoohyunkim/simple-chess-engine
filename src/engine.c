@@ -546,6 +546,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         int reduction = 0;
         if ((ptr_ctrl->use_lmr) &&
             (depth > 2) &&
+            (legal_move_count >= 3) &&
             !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
             !(move & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) &&
             !(is_in_check)) {
