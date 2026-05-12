@@ -85,6 +85,7 @@ Preliminary Results (After LMR Refinement)
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 141 |  68 | 500 | -107.5 | 2092.5+/-29.5 |
+| 6     | 2200 | 212 |  88 | 500 |  -11.1 | 2188.9+/-27.7 |
 
 
 ### Methodology in the Future
