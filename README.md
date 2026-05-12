@@ -81,6 +81,11 @@ Preliminary Results (Before LMR Refinement)
 | 7     | 2200 | 255 |  68 | 500 |   54.6 | 2254.6+/-28.6 |
 | 8     | 2200 | 267 |  76 | 500 |   77.7 | 2277.7+/-28.6 |
 
+Preliminary Results (After LMR Refinement)
+| depth | R    | W   | D   | N   | dR     | Approx ELO    |
+|-------|------|-----|-----|-----|--------|---------------|
+| 5     | 2200 | 141 |  68 | 500 | -107.5 | 2092.5+/-29.5 |
+
 
 ### Methodology in the Future
 It turns out I could use CLI for this, which is probably better for testing (as I am away from my compute server machine often).
