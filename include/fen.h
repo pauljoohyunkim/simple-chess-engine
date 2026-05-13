@@ -9,11 +9,11 @@ extern "C" {
 
 /**
  * @brief Set up the board with FEN string
- * 
- * @param ptr_board Pointer to the SCE_Chessboard struct
+ *
+ * @param ctx Pointer to the SCE_Context struct.
  * @param fen FEN string (Only piece placement)
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
- * 
+ *
  * Note that history will be empty as it is impossible to determine the moves.
  * This also means that fullmove number (the last component of FEN string) will not be handled,
  * (but still must be given for completeness).

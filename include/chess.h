@@ -277,9 +277,9 @@ SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color);
 
 /**
  * @brief Add move to move list
- * 
- * @param move 
- * @param ptr_movelist 
+ *
+ * @param move The move to add to the move list.
+ * @param ptr_movelist Pointer to the move list to add the move to.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
  */
 SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist);
@@ -332,11 +332,11 @@ SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard);
 
 /**
  * @brief Attempt to make move. Note that this does not check for pseudo legal moves, hence for human input, must be verified if it is a pseudo legal move.
- * 
+ *
  * @param ctx Pointer to the SCE_Context struct.
- * @param move 
+ * @param move The move to attempt.
  * @return SCE_Return SCE_SUCCESS for success, other for failure.
- * 
+ *
  * In the case of failure, the attempted move will be reverted back.
  */
 SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move);
