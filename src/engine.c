@@ -512,7 +512,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         const uint64_t to_move_pawn = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN];
 
         // Check if nonpawn piece exists.
-        if (COUNT_SET_BITS(to_move_occupancy ^ to_move_king ^ to_move_pawn) > 0) {
+        if (to_move_occupancy ^ to_move_king ^ to_move_pawn) {
             ret = SCE_Search_MakeMove_Wrapper(ctx, ptr_engine, EMPTY_MOVE);
             assert(ret == SCE_SUCCESS);
 
