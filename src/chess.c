@@ -96,6 +96,8 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
         ptr_precomputation_tables->adjacent_files[col] = ChessboardFileMasks[col-1U] ^ ChessboardFileMasks[col+1U];
     }
 
+    
+
     return SCE_SUCCESS;
 }
 
