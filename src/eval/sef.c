@@ -162,11 +162,11 @@ int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_EvalS
     const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
     const int flag = move SCE_CHESSMOVE_GET_FLAG;
     const PieceType src_piece_type = ctx->board.mailbox[src_idx];
-    assert(!IS_UNASSIGNED(src_piece_type));
 
     const PieceColor src_color = IS_WHITE(src_piece_type) ? WHITE : BLACK;
 
     if (move != EMPTY_MOVE) {
+        assert(!IS_UNASSIGNED(src_piece_type));
         // 1. "Subtract" piece value from old square
         if (src_piece_type != W_KING && src_piece_type != B_KING) {
             // Regular pieces (0~4, 6~10 -> 0~4)

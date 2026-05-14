@@ -24,7 +24,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                               int beta);
 
 static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
-    if (ctx == NULL || ptr_engine == NULL || move == EMPTY_MOVE) return SCE_INVALID_PARAM;
+    if (ctx == NULL || ptr_engine == NULL) return SCE_INVALID_PARAM;
 
     // 1. Take snapshot of eval states
     SCE_EvalState eval_state = ctx->eval_state;
@@ -512,7 +512,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         const uint64_t to_move_pawn = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN];
 
         // Check if nonpawn piece exists.
-        if (to_move_occupancy ^ to_move_king ^ to_move_pawn) {
+        if (COUNT_SET_BITS(to_move_occupancy ^ to_move_king ^ to_move_pawn) > 0) {
             ret = SCE_Search_MakeMove_Wrapper(ctx, ptr_engine, EMPTY_MOVE);
             assert(ret == SCE_SUCCESS);
 
