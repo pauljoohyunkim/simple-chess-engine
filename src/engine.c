@@ -549,6 +549,8 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
             (legal_move_count >= 3) &&
             !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
             !(move & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) &&
+            (move != ptr_engine->killer_moves[ply][0]) &&
+            (move != ptr_engine->killer_moves[ply][1]) &&
             !(is_in_check)) {
                 const bool gives_check = SCE_IsSquareAttacked(ctx, ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING], ctx->board.to_move == WHITE ? BLACK : WHITE);
 
