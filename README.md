@@ -91,13 +91,15 @@ where
 9. Update the estimated ELO and repeat the process again if wanted.
 
 ### Benchmark Results (SEF)
-Preliminary Results (Before LMR Refinement)
+
+Preliminary Results (After LMR Refinement)
+
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
-| 5     | 2200 | 148 |  78 | 500 |  -89.5 | 2110.5+/-28.8 |
-| 6     | 2200 | 174 |  94 | 500 |  -40.5 | 2159.5+/-27.6 |
+| 5     | 2200 | 138 |  82 | 500 | -101.5 | 2098.5+/-28.8 |
 
 ### Benchmark Results (HCEF)
+
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 141 |  68 | 500 | -107.5 | 2092.5+/-29.5 |
