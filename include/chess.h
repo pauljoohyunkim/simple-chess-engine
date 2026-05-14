@@ -11,6 +11,7 @@ extern "C" {
 #include "return_code.h"
 
 #define CHESSBOARD_DIMENSION 8U
+#define CHESSBOARD_N_SQUARES (CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION)
 
 #define UNASSIGNED (-1)
 #define EMPTY_MOVE (0)

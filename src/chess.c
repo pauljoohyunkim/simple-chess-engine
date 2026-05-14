@@ -27,7 +27,6 @@ typedef unsigned int uint;
 
 static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
 static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
-static uint64_t xorshift(uint64_t x);
 
 // Static functions for generating components of precomputation table.
 static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
@@ -216,13 +215,6 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ctx->board.history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
-}
-
-static uint64_t xorshift(uint64_t x) {
-    x ^= x << 13U;
-    x ^= x >> 17U;
-    x ^= x << 5U;
-    return x;
 }
 
 static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
