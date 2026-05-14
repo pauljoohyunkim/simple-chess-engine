@@ -13,6 +13,12 @@ extern "C" {
 #else
     #include <stdint.h>
 
+    /**
+     * @brief Counts the number of set bits in a 64-bit value
+     *
+     * @param n The 64-bit value to count set bits in
+     * @return unsigned int Number of set bits in the value
+     */
     unsigned int count_set_bits(uint64_t n);
     #define COUNT_SET_BITS(x) count_set_bits(x)
 
