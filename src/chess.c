@@ -813,7 +813,7 @@ SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
         uint src_idx = move SCE_CHESSMOVE_GET_SRC;
         uint dst_idx = move SCE_CHESSMOVE_GET_DST;
 
-        if (src_idx == dst_idx) return SCE_INVALID_MOVE;
+        if (src_idx == dst_idx && move != EMPTY_MOVE) return SCE_INVALID_MOVE;
         if (src_idx >= 64 || dst_idx >= 64) return SCE_INVALID_MOVE;
     }
 
@@ -1756,25 +1756,17 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         ctx->board.undo_states[move_idx].zobrist_hash = ctx->board.zobrist_hash;
         ctx->board.undo_states[move_idx].pawn_zobrist_hash = ctx->board.pawn_zobrist_hash;
         ctx->board.undo_states[move_idx].eval_state = ctx->eval_state;
+        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ctx->board.history), "Adding to list failed!");
+
+        // En passant clear
+        if (ctx->board.en_passant_idx != UNASSIGNED) {
+            ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.en_passant_keys[ctx->board.en_passant_idx % CHESSBOARD_DIMENSION];
+        }
+        ctx->board.en_passant_idx = UNASSIGNED;
 
         // Switch turn
         ctx->board.to_move = ctx->board.to_move == WHITE ? BLACK : WHITE;
-
-        // En passant clear
-        const int old_en_passant_idx = ctx->board.en_passant_idx;
-        if (old_en_passant_idx == UNASSIGNED) {
-            ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
-        } else {
-            ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.en_passant_keys[old_en_passant_idx % CHESSBOARD_DIMENSION];
-        }
-        ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
-        ctx->board.en_passant_idx = UNASSIGNED;
-
-        // Update Zobrist hash for side change
         ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.side_key;
-
-        // This automatically increments the count
-        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ctx->board.history), "Adding to list failed!");
 
         return SCE_SUCCESS;
     }
@@ -2065,11 +2057,25 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
 
     // Index to latest move/undo state
     const uint move_idx = ctx->board.history.count - 1U;
-    const uint src_idx = ctx->board.history.moves[move_idx] SCE_CHESSMOVE_GET_SRC;
+    const SCE_ChessMove move = ctx->board.history.moves[move_idx];
+    if (move == EMPTY_MOVE) {
+        ctx->board.en_passant_idx = ctx->board.undo_states[move_idx].en_passant_square;
+        ctx->board.to_move = ctx->board.to_move == WHITE ? BLACK : WHITE;
+        ctx->board.castling_rights = ctx->board.undo_states[move_idx].castling_rights;
+        ctx->board.half_move_clock = ctx->board.undo_states[move_idx].half_move_clock;
+        ctx->board.zobrist_hash = ctx->board.undo_states[move_idx].zobrist_hash;
+        ctx->board.pawn_zobrist_hash = ctx->board.undo_states[move_idx].pawn_zobrist_hash;
+        ctx->eval_state = ctx->board.undo_states[move_idx].eval_state;
+
+        ctx->board.history.count--;
+        return SCE_SUCCESS;
+    }
+
+    const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint64_t src = 1ULL << src_idx;
-    const uint dst_idx = ctx->board.history.moves[move_idx] SCE_CHESSMOVE_GET_DST;
+    const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
     const uint64_t dst = 1ULL << dst_idx;
-    const uint flag = ctx->board.history.moves[move_idx] SCE_CHESSMOVE_GET_FLAG;
+    const uint flag = move SCE_CHESSMOVE_GET_FLAG;
     const uint moving_piece = ctx->board.undo_states[move_idx].moving_piece;
     const int captured_piece = ctx->board.undo_states[move_idx].captured_piece;
 

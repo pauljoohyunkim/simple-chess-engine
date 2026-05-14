@@ -33,6 +33,8 @@ SCE_Engine_SearchControl ctrl = {
     .start_depth = 1,
     .use_lmr = false,
     .lmr_bias = 0,
+    .use_nmp = true,
+    .nmp_reduction = 3
 };
 
 typedef enum {
