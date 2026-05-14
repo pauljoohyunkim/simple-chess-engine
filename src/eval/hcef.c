@@ -581,7 +581,6 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
     assert(ctx != NULL);
     assert(ptr_eval_state != NULL);
     assert(ptr_engine != NULL);
-    assert(move != EMPTY_MOVE);
 
     uint64_t w_pawns = ctx->board.bitboards[W_PAWN];
     uint64_t b_pawns = ctx->board.bitboards[B_PAWN];
@@ -593,14 +592,14 @@ int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Eval
     uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
     uint64_t pawn_zobrist_hash = ctx->board.pawn_zobrist_hash;
 
-    // TODO: Modify occupancy_w, occupancy_b, pawn_zobrist_hash, w_pawns, b_pawns depending on the move.
+    // Modify occupancy_w, occupancy_b, pawn_zobrist_hash, w_pawns, b_pawns depending on the move.
     // 0. No pawn involved general moves.
     // 1. Move is a promotion/promo-capture.
     // 2. Move is a pawn move (normal pawn move, pawn capture, en passant)
     // 3. Move is capture not involving pawns
     // 4. Move is castling.
     // Use the implementation of MakeMove as a guide.
-    {
+    if (move != EMPTY_MOVE) {
         const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
         const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
         const uint64_t src = 1ULL << src_idx;

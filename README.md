@@ -92,13 +92,15 @@ where
 
 ### Benchmark Results (SEF)
 
-Preliminary Results (After LMR Refinement)
+Preliminary Result (No NMP)
 
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
 | 5     | 2200 | 138 |  82 | 500 | -101.5 | 2098.5+/-28.8 |
 
 ### Benchmark Results (HCEF)
+
+Preliminary Result (No NMP)
 
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|

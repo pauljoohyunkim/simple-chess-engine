@@ -18,6 +18,8 @@ TEST(Engine_SEF, AlphaBetaBestMove) {
         .start_depth = 0,
         .use_lmr = false,
         .lmr_bias = 0,
+        .use_nmp = false,
+        .nmp_reduction = 3
     };
     SCE_ChessMove move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx, &ctrl);
 
@@ -37,6 +39,8 @@ TEST(Engine_SEF, IterativeDeepeningBestMove) {
         .start_depth = 0,
         .use_lmr = false,
         .lmr_bias = 0,
+        .use_nmp = false,
+        .nmp_reduction = 3
     };
 
     SCE_ChessMove move = SCE_Engine_IterativeDeepeningAlphaBetaBestMove(&engine, &ctx, &ctrl);
