@@ -1760,6 +1760,15 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
         // Switch turn
         ctx->board.to_move = ctx->board.to_move == WHITE ? BLACK : WHITE;
 
+        // En passant clear
+        const int old_en_passant_idx = ctx->board.en_passant_idx;
+        if (old_en_passant_idx == UNASSIGNED) {
+            ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.en_passant_keys[SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY];
+        } else {
+            ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.en_passant_keys[old_en_passant_idx % CHESSBOARD_DIMENSION];
+        }
+        ctx->board.en_passant_idx = UNASSIGNED;
+
         // Update Zobrist hash for side change
         ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.side_key;
 
