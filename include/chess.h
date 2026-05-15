@@ -178,12 +178,15 @@ typedef struct {
 typedef struct {
     uint64_t premask;
     uint64_t magic;
-    uint8_t bits_used;
-} __attribute__((aligned(64))) SCE_Magic;
+    uint8_t shift;      // Pre-calculated 64-n_bits
+} __attribute__((aligned(64))) SCE_MagicMetadata;
 
 typedef struct {
-    alignas(64) SCE_Magic RookMagicTable[CHESSBOARD_N_SQUARES][(1<<12)];
-    alignas(64) SCE_Magic BishopMagicTable[CHESSBOARD_N_SQUARES][(1<<9)];
+    alignas(64) SCE_MagicMetadata bishop[CHESSBOARD_N_SQUARES];
+    alignas(64) SCE_MagicMetadata rook[CHESSBOARD_N_SQUARES];
+
+    alignas(64) uint64_t BishopMagicTable[CHESSBOARD_N_SQUARES * (1<<9)];
+    alignas(64) uint64_t RookMagicTable[CHESSBOARD_N_SQUARES * (1<<12)];
 } SCE_MagicTable;
 
 typedef struct {

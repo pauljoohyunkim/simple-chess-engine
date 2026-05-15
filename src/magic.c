@@ -132,24 +132,58 @@ static uint64_t compute_magic_with_premask_and_direction(const int idx, const ui
 
 }
 
-// Compress set to true for N-1 bits used.
 static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables) {
     const int directions[] = { NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST };
     const uint64_t premask = (ptr_precomputation_tables->pm_table.rays[NORTHEAST][idx] & ~RANK_8_MASK & ~H_MASK) | 
                              (ptr_precomputation_tables->pm_table.rays[NORTHWEST][idx] & ~RANK_8_MASK & ~A_MASK) |
                              (ptr_precomputation_tables->pm_table.rays[SOUTHEAST][idx] & ~RANK_1_MASK & ~H_MASK) |
                              (ptr_precomputation_tables->pm_table.rays[SOUTHWEST][idx] & ~RANK_1_MASK & ~A_MASK);
+    const unsigned int n_bits = COUNT_SET_BITS(premask);
     const uint64_t magic = compute_magic_with_premask_and_direction(idx, premask, directions, 4);
+
+    ptr_precomputation_tables->magic_table.bishop[idx].premask = premask;
+    ptr_precomputation_tables->magic_table.bishop[idx].magic = magic;
+    ptr_precomputation_tables->magic_table.bishop[idx].shift = (CHESSBOARD_N_SQUARES - n_bits);
+
+    uint64_t* const base_ptr = &ptr_precomputation_tables->magic_table.BishopMagicTable[idx * (1<<9)];
+
+    uint64_t occupancy = 0U;
+    do {
+        uint hash = (occupancy * magic) >> (CHESSBOARD_N_SQUARES - n_bits);
+
+        uint64_t attacks = slow_slider_attacks(idx, occupancy, directions, 4);
+
+        base_ptr[hash] = attacks;
+
+        occupancy = (occupancy - premask) & premask;
+    } while (occupancy != 0);
 }
 
-// Compress set to true for N-1 bits used.
 static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables) {
     const int directions[] = { NORTH, SOUTH, EAST, WEST };
     const uint64_t premask = (ptr_precomputation_tables->pm_table.rays[NORTH][idx] & ~RANK_8_MASK) | 
                              (ptr_precomputation_tables->pm_table.rays[SOUTH][idx] & ~RANK_1_MASK) |
                              (ptr_precomputation_tables->pm_table.rays[EAST][idx] & ~H_MASK) |
                              (ptr_precomputation_tables->pm_table.rays[WEST][idx] & ~A_MASK);
+    const unsigned int n_bits = COUNT_SET_BITS(premask);
     const uint64_t magic = compute_magic_with_premask_and_direction(idx, premask, directions, 4);
+
+    ptr_precomputation_tables->magic_table.rook[idx].premask = premask;
+    ptr_precomputation_tables->magic_table.rook[idx].magic = magic;
+    ptr_precomputation_tables->magic_table.rook[idx].shift = (CHESSBOARD_N_SQUARES - n_bits);
+
+    uint64_t* const base_ptr = &ptr_precomputation_tables->magic_table.RookMagicTable[idx * (1<<12)];
+
+    uint64_t occupancy = 0U;
+    do {
+        uint hash = (occupancy * magic) >> (CHESSBOARD_N_SQUARES - n_bits);
+
+        uint64_t attacks = slow_slider_attacks(idx, occupancy, directions, 4);
+
+        base_ptr[hash] = attacks;
+
+        occupancy = (occupancy - premask) & premask;
+    } while (occupancy != 0);
 }
 
 SCE_Return SCE_MagicTable_init(SCE_Precomputation_Tables* const ptr_precomputation_tables) {
@@ -167,7 +201,8 @@ SCE_Return SCE_MagicTable_init(SCE_Precomputation_Tables* const ptr_precomputati
     memset(&ptr_precomputation_tables->magic_table, 0, sizeof(SCE_MagicTable));
 
     for (uint idx = 0; idx < CHESSBOARD_N_SQUARES; idx++) {
-        
+        write_magic_bishop(idx, ptr_precomputation_tables);
+        write_magic_rook(idx, ptr_precomputation_tables);
     }
 
     return SCE_SUCCESS;

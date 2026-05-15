@@ -7,6 +7,7 @@
 #include <time.h>
 #include "helper.h"
 #include "chess.h"
+#include "magic.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if ((x) <= 0) { fprintf(stderr, "%s\n", msg); return SCE_INTERNAL_ERROR; } } while (0);
 
@@ -96,8 +97,8 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
         ptr_precomputation_tables->adjacent_files[col] = ChessboardFileMasks[col-1U] ^ ChessboardFileMasks[col+1U];
     }
 
+    RETURN_IF_SCE_FAILURE(SCE_MagicTable_init(ptr_precomputation_tables), "Magic generation failed.");
     
-
     return SCE_SUCCESS;
 }
 
