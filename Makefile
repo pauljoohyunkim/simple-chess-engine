@@ -38,7 +38,7 @@ BENCH_STOCKFISH_THREADS ?= 2
 
 .PHONY: all bin release clean test benchmark
 
-bin: $(BIN)/sce_play $(BIN)/sce_uci_engine
+bin: $(BIN)/sce_play $(BIN)/sce_uci_engine $(BIN)/dev_magic_compute
 
 all: bin doc
 
@@ -57,6 +57,9 @@ $(BIN)/sce_play: $(OBJS) $(OBJ)/sce_play.o
 $(BIN)/sce_uci_engine: $(OBJS) $(OBJ)/sce_uci_engine.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
+$(BIN)/dev_magic_compute: $(OBJS) $(OBJ)/dev_magic_compute.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+
 $(OBJ)/test_%.o: $(TESTS)/test_%.cpp
 	$(CXX) $(CXXFLAGS) $(GTEST_CFLAGS) -c $< -o $@
 
@@ -70,6 +73,9 @@ $(OBJ)/sce_play.o: $(SRC)/bin/sce_play.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ)/sce_uci_engine.o: $(SRC)/bin/sce_uci_engine.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ)/dev_magic_compute.o: $(SRC)/bin/dev_magic_compute.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c

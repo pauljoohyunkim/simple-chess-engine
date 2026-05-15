@@ -1,19 +1,78 @@
+#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <time.h>
-#include "magic.h"
+#include <stdlib.h>
 #include "chess.h"
+#include "magic.h"
 #include "helper.h"
 
-typedef unsigned int uint;
-
+static void show_help(char** argv);
 static uint64_t get_random_uint64_t();
 static uint64_t get_sparse_uint64_t();
 static uint64_t slow_slider_attacks(int sq, uint64_t occupancy, const int directions[], int dir_count);
-static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables);
-static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables);
+static uint64_t get_magic_bishop(const int idx);
+static uint64_t get_magic_rook(const int idx);
 
-static uint64_t seed = 0;
+uint64_t seed;
+SCE_Precomputation_Tables precomputation_tables;
+
+typedef enum {
+    BISHOP,
+    ROOK
+} MagicPieceType;
+
+int main(int argc, char** argv) {
+    MagicPieceType mpt;
+    SCE_Precomputation_Tables_init(&precomputation_tables, NULL);
+
+    // Input check
+    if (argc != 3) {
+        show_help(argv);
+        return 1;
+    }
+    if (strcmp(argv[1], "rook") == 0) {
+        mpt = ROOK;
+    } else if (strcmp(argv[1], "bishop") == 0) {
+        mpt = BISHOP;
+    } else {
+        show_help(argv);
+        return 1;
+    }
+    const int idx = SCE_AN_To_Idx(argv[2]);
+    if (idx == UNASSIGNED) {
+        show_help(argv);
+        return 1;
+    }
+
+    // Seeding the initial seed.
+    srand(time(NULL));
+    seed = (uint64_t) rand();
+
+    uint64_t magic = 0U;
+
+    switch (mpt) {
+        case BISHOP:
+            magic = get_magic_bishop(idx);
+            break;
+        case ROOK:
+            magic = get_magic_rook(idx);
+            break;
+        default:
+            break;
+    }
+
+    if (magic) {
+        printf("%llx\n", magic);
+    }
+
+    return 0;
+}
+
+static void show_help(char** argv) {
+    fprintf(stderr, "A tool for finding magic value\n");
+    fprintf(stderr, "Usage: %s rook/bishop AN\n", argv[0]);
+}
 
 static uint64_t get_random_uint64_t() {
     seed = xorshift(seed);
@@ -133,42 +192,21 @@ static uint64_t compute_magic_with_premask_and_direction(const int idx, const ui
 }
 
 // Compress set to true for N-1 bits used.
-static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+static uint64_t get_magic_bishop(const int idx) {
     const int directions[] = { NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST };
-    const uint64_t premask = (ptr_precomputation_tables->pm_table.rays[NORTHEAST][idx] & ~RANK_8_MASK & ~H_MASK) | 
-                             (ptr_precomputation_tables->pm_table.rays[NORTHWEST][idx] & ~RANK_8_MASK & ~A_MASK) |
-                             (ptr_precomputation_tables->pm_table.rays[SOUTHEAST][idx] & ~RANK_1_MASK & ~H_MASK) |
-                             (ptr_precomputation_tables->pm_table.rays[SOUTHWEST][idx] & ~RANK_1_MASK & ~A_MASK);
-    const uint64_t magic = compute_magic_with_premask_and_direction(idx, premask, directions, 4);
+    const uint64_t premask = (precomputation_tables.pm_table.rays[NORTHEAST][idx] & ~RANK_8_MASK & ~H_MASK) | 
+                             (precomputation_tables.pm_table.rays[NORTHWEST][idx] & ~RANK_8_MASK & ~A_MASK) |
+                             (precomputation_tables.pm_table.rays[SOUTHEAST][idx] & ~RANK_1_MASK & ~H_MASK) |
+                             (precomputation_tables.pm_table.rays[SOUTHWEST][idx] & ~RANK_1_MASK & ~A_MASK);
+    return compute_magic_with_premask_and_direction(idx, premask, directions, 4);
 }
 
 // Compress set to true for N-1 bits used.
-static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+static uint64_t get_magic_rook(const int idx) {
     const int directions[] = { NORTH, SOUTH, EAST, WEST };
-    const uint64_t premask = (ptr_precomputation_tables->pm_table.rays[NORTH][idx] & ~RANK_8_MASK) | 
-                             (ptr_precomputation_tables->pm_table.rays[SOUTH][idx] & ~RANK_1_MASK) |
-                             (ptr_precomputation_tables->pm_table.rays[EAST][idx] & ~H_MASK) |
-                             (ptr_precomputation_tables->pm_table.rays[WEST][idx] & ~A_MASK);
-    const uint64_t magic = compute_magic_with_premask_and_direction(idx, premask, directions, 4);
-}
-
-SCE_Return SCE_MagicTable_init(SCE_Precomputation_Tables* const ptr_precomputation_tables) {
-    if (ptr_precomputation_tables == NULL) return SCE_INVALID_PARAM;
-
-    uint64_t occupancy_variations[1<<12] = { 0 };
-    size_t count = 0;
-    uint64_t current_occ;
-
-    srand(time(NULL));
-
-    // Pick a nonzero random seed value.
-    while (seed == 0) seed = (uint64_t) rand();
-
-    memset(&ptr_precomputation_tables->magic_table, 0, sizeof(SCE_MagicTable));
-
-    for (uint idx = 0; idx < CHESSBOARD_N_SQUARES; idx++) {
-        
-    }
-
-    return SCE_SUCCESS;
+    const uint64_t premask = (precomputation_tables.pm_table.rays[NORTH][idx] & ~RANK_8_MASK) | 
+                             (precomputation_tables.pm_table.rays[SOUTH][idx] & ~RANK_1_MASK) |
+                             (precomputation_tables.pm_table.rays[EAST][idx] & ~H_MASK) |
+                             (precomputation_tables.pm_table.rays[WEST][idx] & ~A_MASK);
+    return compute_magic_with_premask_and_direction(idx, premask, directions, 4);
 }
