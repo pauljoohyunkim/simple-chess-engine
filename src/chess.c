@@ -975,8 +975,8 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
-    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
-    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
+    const uint64_t occupancy_friendly = SCE_Chessboard_Occupancy_Color(ctx, ctx->board.to_move);
+    const uint64_t occupancy_enemy = occupancy ^ occupancy_friendly;
     PieceType piece_types[3U] = { 0 };
 
     if (ctx->board.to_move == WHITE) {
@@ -989,6 +989,8 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
         piece_types[2] = B_QUEEN;
     }
 
+    // Legacy slow scan
+    #if 0
     for (uint i = 0U; i < sizeof(piece_types)/sizeof(piece_types[0]); i++) {
         const PieceType moving_piece_type = piece_types[i];
         const PieceColor moving_piece_color = (moving_piece_type >= W_PAWN && moving_piece_type <= W_KING) ? WHITE : BLACK;
@@ -1331,6 +1333,101 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
             pieces &= ~(1ULL << piece_idx_src);
         }
     }
+    #endif
+
+    // Dealing with rook
+    {
+        uint64_t rooks = ctx->board.bitboards[piece_types[0]];
+        // Bitscan
+        while (rooks) {
+            const uint rook_idx = COUNT_TRAILING_ZEROS(rooks);
+            const uint64_t attacks = SCE_MagicTable_get_rook_attacks(rook_idx, occupancy, &ctx->precomputation_tables->magic_table);
+            const uint64_t legal_move_destinations = attacks & ~occupancy_friendly;
+            uint64_t captures = legal_move_destinations & occupancy_enemy;
+            uint64_t quiet_moves = legal_move_destinations & ~occupancy_enemy;
+
+            while (captures) {
+                const uint victim_idx = COUNT_TRAILING_ZEROS(captures);
+                const SCE_ChessMove move = (rook_idx SCE_CHESSMOVE_SET_SRC) | (victim_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to rook capture move list.");
+                captures &= (captures-1ULL);
+            }
+
+            if (!tactical) {
+                while (quiet_moves) {
+                    const uint dst_idx = COUNT_TRAILING_ZEROS(quiet_moves);
+                    const SCE_ChessMove move = (rook_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUIET_MOVE SCE_CHESSMOVE_SET_FLAG);
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to rook move list.");
+                    quiet_moves &= (quiet_moves-1ULL);
+                }
+            }
+
+            rooks &= (rooks-1ULL);
+        }
+    }
+
+    // Dealing with bishops
+    {
+        uint64_t bishops = ctx->board.bitboards[piece_types[1]];
+        // Bitscan
+        while (bishops) {
+            const uint bishop_idx = COUNT_TRAILING_ZEROS(bishops);
+            const uint64_t attacks = SCE_MagicTable_get_bishop_attacks(bishop_idx, occupancy, &ctx->precomputation_tables->magic_table);
+            const uint64_t legal_move_destinations = attacks & ~occupancy_friendly;
+            uint64_t captures = legal_move_destinations & occupancy_enemy;
+            uint64_t quiet_moves = legal_move_destinations & ~occupancy_enemy;
+
+            while (captures) {
+                const uint victim_idx = COUNT_TRAILING_ZEROS(captures);
+                const SCE_ChessMove move = (bishop_idx SCE_CHESSMOVE_SET_SRC) | (victim_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to bishop capture move list.");
+                captures &= (captures-1ULL);
+            }
+
+            if (!tactical) {
+                while (quiet_moves) {
+                    const uint dst_idx = COUNT_TRAILING_ZEROS(quiet_moves);
+                    const SCE_ChessMove move = (bishop_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUIET_MOVE SCE_CHESSMOVE_SET_FLAG);
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to bishop move list.");
+                    quiet_moves &= (quiet_moves-1ULL);
+                }
+            }
+
+            bishops &= (bishops-1ULL);
+        }
+    }
+    
+    // Dealing with queens
+    {
+        uint64_t queens = ctx->board.bitboards[piece_types[2]];
+        // Bitscan
+        while (queens) {
+            const uint queen_idx = COUNT_TRAILING_ZEROS(queens);
+            const uint64_t attacks = SCE_MagicTable_get_queen_attacks(queen_idx, occupancy, &ctx->precomputation_tables->magic_table);
+            const uint64_t legal_move_destinations = attacks & ~occupancy_friendly;
+            uint64_t captures = legal_move_destinations & occupancy_enemy;
+            uint64_t quiet_moves = legal_move_destinations & ~occupancy_enemy;
+
+            while (captures) {
+                const uint victim_idx = COUNT_TRAILING_ZEROS(captures);
+                const SCE_ChessMove move = (queen_idx SCE_CHESSMOVE_SET_SRC) | (victim_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to queen capture move list.");
+                captures &= (captures-1ULL);
+            }
+
+            if (!tactical) {
+                while (quiet_moves) {
+                    const uint dst_idx = COUNT_TRAILING_ZEROS(quiet_moves);
+                    const SCE_ChessMove move = (queen_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUIET_MOVE SCE_CHESSMOVE_SET_FLAG);
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to queen move list.");
+                    quiet_moves &= (quiet_moves-1ULL);
+                }
+            }
+
+            queens &= (queens-1ULL);
+        }
+    }
+
 
     return SCE_SUCCESS;
 }

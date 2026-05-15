@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
@@ -149,7 +150,7 @@ static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const p
 
     uint64_t occupancy = 0U;
     do {
-        uint hash = (occupancy * magic) >> (CHESSBOARD_N_SQUARES - n_bits);
+        uint hash = ((occupancy & premask) * magic) >> (CHESSBOARD_N_SQUARES - n_bits);
 
         uint64_t attacks = slow_slider_attacks(idx, occupancy, directions, 4);
 
@@ -176,7 +177,7 @@ static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr
 
     uint64_t occupancy = 0U;
     do {
-        uint hash = (occupancy * magic) >> (CHESSBOARD_N_SQUARES - n_bits);
+        uint hash = ((occupancy & premask) * magic) >> (CHESSBOARD_N_SQUARES - n_bits);
 
         uint64_t attacks = slow_slider_attacks(idx, occupancy, directions, 4);
 
@@ -206,4 +207,33 @@ SCE_Return SCE_MagicTable_init(SCE_Precomputation_Tables* const ptr_precomputati
     }
 
     return SCE_SUCCESS;
+}
+
+uint64_t SCE_MagicTable_get_rook_attacks(const int idx, const uint64_t occupancy, const SCE_MagicTable* const ptr_magic_table) {
+    if (ptr_magic_table == NULL) return 0U;
+
+    const uint64_t blockers = occupancy & ptr_magic_table->rook[idx].premask;
+
+    uint hash = (blockers * ptr_magic_table->rook[idx].magic) >> ptr_magic_table->rook[idx].shift;
+
+    return ptr_magic_table->RookMagicTable[(idx << 12) + hash];
+}
+
+uint64_t SCE_MagicTable_get_bishop_attacks(const int idx, const uint64_t occupancy, const SCE_MagicTable* const ptr_magic_table) {
+    if (ptr_magic_table == NULL) return 0U;
+
+    const uint64_t blockers = occupancy & ptr_magic_table->bishop[idx].premask;
+
+    uint hash = (blockers * ptr_magic_table->bishop[idx].magic) >> ptr_magic_table->bishop[idx].shift;
+
+    return ptr_magic_table->BishopMagicTable[(idx << 9) + hash];
+}
+
+uint64_t SCE_MagicTable_get_queen_attacks(const int idx, const uint64_t occupancy, const SCE_MagicTable* const ptr_magic_table) {
+    if (ptr_magic_table == NULL) return 0U;
+
+    const uint64_t rook_attacks = SCE_MagicTable_get_rook_attacks(idx, occupancy, ptr_magic_table);
+    const uint64_t bishop_attacks = SCE_MagicTable_get_bishop_attacks(idx, occupancy, ptr_magic_table);
+
+    return rook_attacks | bishop_attacks;
 }
