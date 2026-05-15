@@ -11,6 +11,7 @@ extern "C" {
 #include "return_code.h"
 
 #define CHESSBOARD_DIMENSION 8U
+#define CHESSBOARD_N_SQUARES (CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION)
 
 #define UNASSIGNED (-1)
 #define EMPTY_MOVE (0)
@@ -55,6 +56,18 @@ typedef enum {
     G_MASK = 0x4040404040404040ULL,
     H_MASK = 0x8080808080808080ULL
 } ChessboardFileMask;
+
+// Masks for file A and file H
+typedef enum {
+    RANK_1_MASK = (0xFFULL),
+    RANK_2_MASK = (0xFFULL << CHESSBOARD_DIMENSION),
+    RANK_3_MASK = (0xFFULL << (CHESSBOARD_DIMENSION * 2)),
+    RANK_4_MASK = (0xFFULL << (CHESSBOARD_DIMENSION * 3)),
+    RANK_5_MASK = (0xFFULL << (CHESSBOARD_DIMENSION * 4)),
+    RANK_6_MASK = (0xFFULL << (CHESSBOARD_DIMENSION * 5)),
+    RANK_7_MASK = (0xFFULL << (CHESSBOARD_DIMENSION * 6)),
+    RANK_8_MASK = (0xFFULL << (CHESSBOARD_DIMENSION * 7))
+} ChessboardRankMask;
 
 extern const uint64_t ChessboardFileMasks[CHESSBOARD_DIMENSION];
 
@@ -163,6 +176,20 @@ typedef struct {
 } SCE_ZobristTable;
 
 typedef struct {
+    uint64_t premask;
+    uint64_t magic;
+    uint8_t shift;      // Pre-calculated 64-n_bits
+} __attribute__((aligned(64))) SCE_MagicMetadata;
+
+typedef struct {
+    alignas(64) SCE_MagicMetadata bishop[CHESSBOARD_N_SQUARES];
+    alignas(64) SCE_MagicMetadata rook[CHESSBOARD_N_SQUARES];
+
+    alignas(64) uint64_t BishopMagicTable[CHESSBOARD_N_SQUARES * (1<<9)];
+    alignas(64) uint64_t RookMagicTable[CHESSBOARD_N_SQUARES * (1<<12)];
+} SCE_MagicTable;
+
+typedef struct {
     // Leapers
     uint64_t knight_moves[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
     uint64_t king_moves[CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION];
@@ -183,6 +210,7 @@ typedef struct {
     alignas(64) int lmr_table[SCE_MAX_PLY][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
     alignas(64) uint64_t front_span_masks[2][CHESSBOARD_DIMENSION*CHESSBOARD_DIMENSION];
     alignas(64) uint64_t adjacent_files[CHESSBOARD_DIMENSION];
+    alignas(64) SCE_MagicTable magic_table;
 } SCE_Precomputation_Tables;
 
 typedef struct SCE_Context {
