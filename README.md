@@ -43,6 +43,7 @@ Here is a list of optimizations that are used/attempted (and they seem to be sta
 * **Compiler Intrinsics**: Some compiler intrinsic functions from GCC are used for attempting to use CPU instructions.
 * **Lazy SMP**: Multi-threading with lockless transposition table causes transposition table entries to be filled by different threads, causing each thread to search different branches by intentionally invoking race conditions.
 * **Killer Moves and Move Ordering**: Since alpha-beta negamax search is used, it is better to search moves that are "probably good" first in order to cause pruning fast. Killer moves are moves that caused beta-cutoff, which are probably some of the "potentially best moves"
+* **Magic Bitboard**: Slider move generation is quite expensive when done by checking for blockers manually. Magic bitboards do this in a few CPU cycles.
 
 Here is a list of other miscellaneous things that I kept in mind.
 
@@ -94,10 +95,11 @@ where
 
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
-| 5     | 2100 | 184 |  62 | 500 |  -49.0 | 2051.0+/-28.8 |
-| 6     | 2100 | 224 |  72 | 500 |   13.9 | 2113.9+/-28.2 |
-| 7     | 2100 | 253 |  71 | 500 |   53.9 | 2153.9+/-28.5 |
-| 8     | 2100 | 314 |  60 | 500 |  137.4 | 2237.4+/-30.6 |
+| 5     | 2100 | 187 |  53 | 500 |  -51.1 | 2048.9+/-29.1 |
+| 6     | 2100 | 216 |  71 | 500 |    2.1 | 2102.1+/-28.2 |
+| 7     | 2100 | 239 |  91 | 500 |   48.3 | 2148.3+/-27.8 |
+| 8     | 2100 | 300 |  77 | 500 |  128.6 | 2228.6+/-29.6 |
+| 9     | 2100 | 337 |  69 | 500 |  184.4 | 2284.4+/-31.6 |
 
 
 ### Methodology in the Future
