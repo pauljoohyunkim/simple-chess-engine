@@ -7,12 +7,17 @@ as its engine.
 ![Screenshot](./screenshot.png)
 
 ## Building
-To build the playable binary,
+To build the playable binary / UCI engine (with debug info),
 ```bash
-make bin    # Run the binary at bin/sce_play
+# Playable binary at bin/sce_play ("less maintained" but still playable)
+# UCI engine at bin/sce_uci_engine
+make bin
 ```
-Note that you can only play as white at the moment, as this is a test binary,
-though I might make you be able to choose.
+
+To build release binaries,
+```bash
+make release
+```
 
 To build the unit test,
 ```bash
@@ -24,8 +29,28 @@ make doc    # Requires Doxygen
 ```
 
 ## Note
-There are clearly a lot of work to do, but so far I think it is of good quality for a PoC engine
-(for something that was built hastily in 3 weeks)!
+There are clearly a lot of work to do, but so far I think it is of good quality for a PoC engine.
+
+### List of Things in Mind
+Here is a list of optimizations that are used/attempted (and they seem to be standard in the world of chess programming)
+
+* **Bitboard**: Since there are 64 squares on the chessboard, uint64_t is used for each piece to track where they are.
+* **Lockless Transposition Table**: A cache table holding information about the best move / alpha-beta values at a specific hash of board.
+* **Iterative Deepening**: Instead of searching from depth n, I search best move from depth 1 to n, filling transposition table for speeding up later moves.
+* **Incremental Evaluation**: SEF and HCEF are provided in "full evaluation function" form and "delta (incremental) evaluation function" form.
+* **Make/Unmake** vs Copy: I chose Make/Unmake moves instead of copying the board. This saves on memory as larger depths are searched.
+* **CPU Cache**: Noting that the cache line size of modern x86 architecture is 64 bytes, I keep commonly accessed structs under 64 bytes and align the memory.
+* **Compiler Intrinsics**: Some compiler intrinsic functions from GCC are used for attempting to use CPU instructions.
+* **Lazy SMP**: Multi-threading with lockless transposition table causes transposition table entries to be filled by different threads, causing each thread to search different branches by intentionally invoking race conditions.
+* **Killer Moves and Move Ordering**: Since alpha-beta negamax search is used, it is better to search moves that are "probably good" first in order to cause pruning fast. Killer moves are moves that caused beta-cutoff, which are probably some of the "potentially best moves"
+* **Magic Bitboard**: Slider move generation is quite expensive when done by checking for blockers manually. Magic bitboards do this in a few CPU cycles.
+
+Here is a list of other miscellaneous things that I kept in mind.
+
+* **NULL check avoidance**: In the beginning of development in [chess.c](./src/chess.c), I programmed "defensively" by adding NULL checks, as it is often a good practice. In chess programming, however, these add overhead; when developing [engine.c](./src/engine.c), I started adding "assert" statements which can be removed with a debug flag. Hopefully, the compiler is smart enough to strip all the defensively added NULL checks during release build.
+* **Separation of Chess Logic and Engine Logic**: While high performance chess engines have chess logic and engine logic intertwined for maximal efficiency, I still wanted to keep them separate (AKA modular), so that I could migrate my chess logic elsewhere if I were to create another project involving chess.
+    * Portability is also kept in mind. I think migrating to CUDA, for example, might be very easy.
+* **Evaluation Function by Function Pointer**: I provide `SCE_Engine` struct with function pointers for EvalFunc and DeltaEvalFunc so that it is easy for me to swap different evaluation functions for testing.
 
 ## Benchmark
 ### Methodology
@@ -34,6 +59,7 @@ I acknowledge that the measurement could be more formal,
 but I do not want to pull my hair out for this hobby project.
 
 Note that most of the internal calculation is done by Cutechess anyways.
+
 #### Prerequisites
 * Stockfish
 * Cutechess
@@ -66,12 +92,14 @@ where
 9. Update the estimated ELO and repeat the process again if wanted.
 
 ### Benchmark Results (HCEF)
-Preliminary result
+
 | depth | R    | W   | D   | N   | dR     | Approx ELO    |
 |-------|------|-----|-----|-----|--------|---------------|
-| 5     | 2200 | 148 |  62 | 500 | -101.5 | 2098.5+/-29.6 |
-| 6     | 2200 | 225 |  70 | 500 |  -26.5 | 2173.5+/-28.3 |
-| 7     | 2200 | 255 |  68 | 500 |   54.6 | 2254.6+/-28.6 |
+| 5     | 2100 | 187 |  53 | 500 |  -51.1 | 2048.9+/-29.1 |
+| 6     | 2100 | 216 |  71 | 500 |    2.1 | 2102.1+/-28.2 |
+| 7     | 2100 | 239 |  91 | 500 |   48.3 | 2148.3+/-27.8 |
+| 8     | 2100 | 300 |  77 | 500 |  128.6 | 2228.6+/-29.6 |
+| 9     | 2100 | 337 |  69 | 500 |  184.4 | 2284.4+/-31.6 |
 
 
 ### Methodology in the Future

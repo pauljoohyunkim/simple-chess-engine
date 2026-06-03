@@ -6,27 +6,27 @@
         {
             "label": "Make binaries",
             "type": "shell",
-            "command": "make bin CFLAGSEXTRA=-DNDEBUG"
+            "command": "make release"
         },
         {
             "label": "Make binaries (Debug)",
             "type": "shell",
-            "command": "make bin OPTIMIZATION=-O0"
+            "command": "make bin"
         },
         {
             "label": "Make binaries (Debug, NodeCount)",
             "type": "shell",
-            "command": "make bin OPTIMIZATION=-O0 CFLAGSEXTRA=-DNODE_COUNT"
+            "command": "make bin CFLAGSEXTRA=-DNODE_COUNT"
         },
         {
             "label": "Unit test",
             "type": "shell",
-            "command": "make test OPTIMIZATION=-O0"
+            "command": "make test"
         },
         {
             "label": "Unit test (Full)",
             "type": "shell",
-            "command": "make test OPTIMIZATION=-O0 CFLAGSEXTRA=-DUNITTEST_FULL"
+            "command": "make test CFLAGSEXTRA=-DUNITTEST_FULL"
         },
     ]
 }

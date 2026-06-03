@@ -7,6 +7,7 @@
 #include <time.h>
 #include "helper.h"
 #include "chess.h"
+#include "magic.h"
 
 #define RETURN_IF_SCE_FAILURE(x, msg) do { if ((x) <= 0) { fprintf(stderr, "%s\n", msg); return SCE_INTERNAL_ERROR; } } while (0);
 
@@ -27,7 +28,6 @@ typedef unsigned int uint;
 
 static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
 static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
-static uint64_t xorshift(uint64_t x);
 
 // Static functions for generating components of precomputation table.
 static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
@@ -97,6 +97,8 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
         ptr_precomputation_tables->adjacent_files[col] = ChessboardFileMasks[col-1U] ^ ChessboardFileMasks[col+1U];
     }
 
+    RETURN_IF_SCE_FAILURE(SCE_MagicTable_init(ptr_precomputation_tables), "Magic generation failed.");
+    
     return SCE_SUCCESS;
 }
 
@@ -216,13 +218,6 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
     RETURN_IF_SCE_FAILURE(SCE_ChessMoveList_clear(&ctx->board.history), "Error when clearing chess move list");
 
     return SCE_SUCCESS;
-}
-
-static uint64_t xorshift(uint64_t x) {
-    x ^= x << 13U;
-    x ^= x >> 17U;
-    x ^= x << 5U;
-    return x;
 }
 
 static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
@@ -813,7 +808,7 @@ SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
         uint src_idx = move SCE_CHESSMOVE_GET_SRC;
         uint dst_idx = move SCE_CHESSMOVE_GET_DST;
 
-        if (src_idx == dst_idx) return SCE_INVALID_MOVE;
+        if (src_idx == dst_idx && move != EMPTY_MOVE) return SCE_INVALID_MOVE;
         if (src_idx >= 64 || dst_idx >= 64) return SCE_INVALID_MOVE;
     }
 
@@ -980,8 +975,8 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
-    const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
-    const uint64_t occupancy_b = SCE_Chessboard_Occupancy_Color(ctx, BLACK);
+    const uint64_t occupancy_friendly = SCE_Chessboard_Occupancy_Color(ctx, ctx->board.to_move);
+    const uint64_t occupancy_enemy = occupancy ^ occupancy_friendly;
     PieceType piece_types[3U] = { 0 };
 
     if (ctx->board.to_move == WHITE) {
@@ -994,6 +989,8 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
         piece_types[2] = B_QUEEN;
     }
 
+    // Legacy slow scan
+    #if 0
     for (uint i = 0U; i < sizeof(piece_types)/sizeof(piece_types[0]); i++) {
         const PieceType moving_piece_type = piece_types[i];
         const PieceColor moving_piece_color = (moving_piece_type >= W_PAWN && moving_piece_type <= W_KING) ? WHITE : BLACK;
@@ -1336,6 +1333,101 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
             pieces &= ~(1ULL << piece_idx_src);
         }
     }
+    #endif
+
+    // Dealing with rook
+    {
+        uint64_t rooks = ctx->board.bitboards[piece_types[0]];
+        // Bitscan
+        while (rooks) {
+            const uint rook_idx = COUNT_TRAILING_ZEROS(rooks);
+            const uint64_t attacks = SCE_MagicTable_get_rook_attacks(rook_idx, occupancy, &ctx->precomputation_tables->magic_table);
+            const uint64_t legal_move_destinations = attacks & ~occupancy_friendly;
+            uint64_t captures = legal_move_destinations & occupancy_enemy;
+            uint64_t quiet_moves = legal_move_destinations & ~occupancy_enemy;
+
+            while (captures) {
+                const uint victim_idx = COUNT_TRAILING_ZEROS(captures);
+                const SCE_ChessMove move = (rook_idx SCE_CHESSMOVE_SET_SRC) | (victim_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to rook capture move list.");
+                captures &= (captures-1ULL);
+            }
+
+            if (!tactical) {
+                while (quiet_moves) {
+                    const uint dst_idx = COUNT_TRAILING_ZEROS(quiet_moves);
+                    const SCE_ChessMove move = (rook_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUIET_MOVE SCE_CHESSMOVE_SET_FLAG);
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to rook move list.");
+                    quiet_moves &= (quiet_moves-1ULL);
+                }
+            }
+
+            rooks &= (rooks-1ULL);
+        }
+    }
+
+    // Dealing with bishops
+    {
+        uint64_t bishops = ctx->board.bitboards[piece_types[1]];
+        // Bitscan
+        while (bishops) {
+            const uint bishop_idx = COUNT_TRAILING_ZEROS(bishops);
+            const uint64_t attacks = SCE_MagicTable_get_bishop_attacks(bishop_idx, occupancy, &ctx->precomputation_tables->magic_table);
+            const uint64_t legal_move_destinations = attacks & ~occupancy_friendly;
+            uint64_t captures = legal_move_destinations & occupancy_enemy;
+            uint64_t quiet_moves = legal_move_destinations & ~occupancy_enemy;
+
+            while (captures) {
+                const uint victim_idx = COUNT_TRAILING_ZEROS(captures);
+                const SCE_ChessMove move = (bishop_idx SCE_CHESSMOVE_SET_SRC) | (victim_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to bishop capture move list.");
+                captures &= (captures-1ULL);
+            }
+
+            if (!tactical) {
+                while (quiet_moves) {
+                    const uint dst_idx = COUNT_TRAILING_ZEROS(quiet_moves);
+                    const SCE_ChessMove move = (bishop_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUIET_MOVE SCE_CHESSMOVE_SET_FLAG);
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to bishop move list.");
+                    quiet_moves &= (quiet_moves-1ULL);
+                }
+            }
+
+            bishops &= (bishops-1ULL);
+        }
+    }
+    
+    // Dealing with queens
+    {
+        uint64_t queens = ctx->board.bitboards[piece_types[2]];
+        // Bitscan
+        while (queens) {
+            const uint queen_idx = COUNT_TRAILING_ZEROS(queens);
+            const uint64_t attacks = SCE_MagicTable_get_queen_attacks(queen_idx, occupancy, &ctx->precomputation_tables->magic_table);
+            const uint64_t legal_move_destinations = attacks & ~occupancy_friendly;
+            uint64_t captures = legal_move_destinations & occupancy_enemy;
+            uint64_t quiet_moves = legal_move_destinations & ~occupancy_enemy;
+
+            while (captures) {
+                const uint victim_idx = COUNT_TRAILING_ZEROS(captures);
+                const SCE_ChessMove move = (queen_idx SCE_CHESSMOVE_SET_SRC) | (victim_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_CAPTURE SCE_CHESSMOVE_SET_FLAG);
+                RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to queen capture move list.");
+                captures &= (captures-1ULL);
+            }
+
+            if (!tactical) {
+                while (quiet_moves) {
+                    const uint dst_idx = COUNT_TRAILING_ZEROS(quiet_moves);
+                    const SCE_ChessMove move = (queen_idx SCE_CHESSMOVE_SET_SRC) | (dst_idx SCE_CHESSMOVE_SET_DST) | (SCE_CHESSMOVE_FLAG_QUIET_MOVE SCE_CHESSMOVE_SET_FLAG);
+                    RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, ptr_movelist), "Could not add to queen move list.");
+                    quiet_moves &= (quiet_moves-1ULL);
+                }
+            }
+
+            queens &= (queens-1ULL);
+        }
+    }
+
 
     return SCE_SUCCESS;
 }
@@ -1744,6 +1836,33 @@ SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
 SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
 
+    // Handle empty move (no move) - just switch turn and update Zobrist hash
+    if (move == EMPTY_MOVE) {
+        // Store current state in undo state for proper unmake
+        const uint move_idx = ctx->board.history.count;
+        ctx->board.undo_states[move_idx].moving_piece = 0;
+        ctx->board.undo_states[move_idx].captured_piece = UNASSIGNED_PIECE_TYPE;
+        ctx->board.undo_states[move_idx].en_passant_square = ctx->board.en_passant_idx;
+        ctx->board.undo_states[move_idx].castling_rights = ctx->board.castling_rights;
+        ctx->board.undo_states[move_idx].half_move_clock = ctx->board.half_move_clock;
+        ctx->board.undo_states[move_idx].zobrist_hash = ctx->board.zobrist_hash;
+        ctx->board.undo_states[move_idx].pawn_zobrist_hash = ctx->board.pawn_zobrist_hash;
+        ctx->board.undo_states[move_idx].eval_state = ctx->eval_state;
+        RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ctx->board.history), "Adding to list failed!");
+
+        // En passant clear
+        if (ctx->board.en_passant_idx != UNASSIGNED) {
+            ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.en_passant_keys[ctx->board.en_passant_idx % CHESSBOARD_DIMENSION];
+        }
+        ctx->board.en_passant_idx = UNASSIGNED;
+
+        // Switch turn
+        ctx->board.to_move = ctx->board.to_move == WHITE ? BLACK : WHITE;
+        ctx->board.zobrist_hash ^= ctx->precomputation_tables->zobrist_table.side_key;
+
+        return SCE_SUCCESS;
+    }
+
     const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint64_t src = (1ULL << src_idx);
     const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
@@ -1790,14 +1909,15 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
 
     {
         // Journalling
-        ctx->board.undo_states[ctx->board.history.count].moving_piece = moving_piece_type;
-        ctx->board.undo_states[ctx->board.history.count].captured_piece =  captured_piece_type;
-        ctx->board.undo_states[ctx->board.history.count].en_passant_square = ctx->board.en_passant_idx;
-        ctx->board.undo_states[ctx->board.history.count].castling_rights = ctx->board.castling_rights;
-        ctx->board.undo_states[ctx->board.history.count].half_move_clock = ctx->board.half_move_clock;
-        ctx->board.undo_states[ctx->board.history.count].zobrist_hash = ctx->board.zobrist_hash;
-        ctx->board.undo_states[ctx->board.history.count].pawn_zobrist_hash = ctx->board.pawn_zobrist_hash;
-        ctx->board.undo_states[ctx->board.history.count].eval_state = ctx->eval_state;
+        const uint move_idx = ctx->board.history.count;
+        ctx->board.undo_states[move_idx].moving_piece = moving_piece_type;
+        ctx->board.undo_states[move_idx].captured_piece =  captured_piece_type;
+        ctx->board.undo_states[move_idx].en_passant_square = ctx->board.en_passant_idx;
+        ctx->board.undo_states[move_idx].castling_rights = ctx->board.castling_rights;
+        ctx->board.undo_states[move_idx].half_move_clock = ctx->board.half_move_clock;
+        ctx->board.undo_states[move_idx].zobrist_hash = ctx->board.zobrist_hash;
+        ctx->board.undo_states[move_idx].pawn_zobrist_hash = ctx->board.pawn_zobrist_hash;
+        ctx->board.undo_states[move_idx].eval_state = ctx->eval_state;
         // This automatically increments the count
         RETURN_IF_SCE_FAILURE(SCE_AddToMoveList(move, &ctx->board.history), "Adding to list failed!");
     }
@@ -2029,11 +2149,25 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
 
     // Index to latest move/undo state
     const uint move_idx = ctx->board.history.count - 1U;
-    const uint src_idx = ctx->board.history.moves[move_idx] SCE_CHESSMOVE_GET_SRC;
+    const SCE_ChessMove move = ctx->board.history.moves[move_idx];
+    if (move == EMPTY_MOVE) {
+        ctx->board.en_passant_idx = ctx->board.undo_states[move_idx].en_passant_square;
+        ctx->board.to_move = ctx->board.to_move == WHITE ? BLACK : WHITE;
+        ctx->board.castling_rights = ctx->board.undo_states[move_idx].castling_rights;
+        ctx->board.half_move_clock = ctx->board.undo_states[move_idx].half_move_clock;
+        ctx->board.zobrist_hash = ctx->board.undo_states[move_idx].zobrist_hash;
+        ctx->board.pawn_zobrist_hash = ctx->board.undo_states[move_idx].pawn_zobrist_hash;
+        ctx->eval_state = ctx->board.undo_states[move_idx].eval_state;
+
+        ctx->board.history.count--;
+        return SCE_SUCCESS;
+    }
+
+    const uint src_idx = move SCE_CHESSMOVE_GET_SRC;
     const uint64_t src = 1ULL << src_idx;
-    const uint dst_idx = ctx->board.history.moves[move_idx] SCE_CHESSMOVE_GET_DST;
+    const uint dst_idx = move SCE_CHESSMOVE_GET_DST;
     const uint64_t dst = 1ULL << dst_idx;
-    const uint flag = ctx->board.history.moves[move_idx] SCE_CHESSMOVE_GET_FLAG;
+    const uint flag = move SCE_CHESSMOVE_GET_FLAG;
     const uint moving_piece = ctx->board.undo_states[move_idx].moving_piece;
     const int captured_piece = ctx->board.undo_states[move_idx].captured_piece;
 

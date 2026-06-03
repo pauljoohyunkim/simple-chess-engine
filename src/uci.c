@@ -408,6 +408,8 @@ static void* SCE_Search_Manager_Thread(void* arg) {
             task->ctrl.use_lmr = true;
             task->ctrl.lmr_bias = 1 + (i % 2);
         }
+	task->ctrl.use_nmp = true;
+	task->ctrl.nmp_reduction = 3;
 
         // In the case of dynamic deepening with npp weight small, override the use of LMR.
         if (session->use_dynamic_deepening && npp_weight < NPP_WEIGHT_STOP_LMR) {
@@ -437,6 +439,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         if (session->use_dynamic_deepening && npp_weight < NPP_WEIGHT_STOP_LMR) {
             task->ctrl.use_lmr = false;
         }
+	task->ctrl = *session->ptr_master_ctrl;
 
         pthread_create(&master_thread, NULL, SCE_Search_Thread_Wrapper, (void*) task);
     }

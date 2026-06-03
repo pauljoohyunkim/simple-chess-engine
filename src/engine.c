@@ -19,12 +19,12 @@ static inline int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
 static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                               SCE_Context* const ctx,
                                               const SCE_Engine_SearchControl* const ptr_ctrl,
-                                              const unsigned int depth,
+                                              const int depth,
                                               int alpha,
                                               int beta);
 
 static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move) {
-    if (ctx == NULL || ptr_engine == NULL || move == EMPTY_MOVE) return SCE_INVALID_PARAM;
+    if (ctx == NULL || ptr_engine == NULL) return SCE_INVALID_PARAM;
 
     // 1. Take snapshot of eval states
     SCE_EvalState eval_state = ctx->eval_state;
@@ -445,7 +445,7 @@ static inline int SCE_Engine_QuiescenceNegamax(SCE_Engine* const ptr_engine,
 static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
                                               SCE_Context* const ctx,
                                               const SCE_Engine_SearchControl* const ptr_ctrl,
-                                              const unsigned int depth,
+                                              const int depth,
                                               int alpha,
                                               int beta) {
     #ifdef NODE_COUNT
@@ -456,7 +456,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     if (SCE_DetectRepetition(ctx)) return SCE_EVAL_DRAW;
     if (SCE_DetectInsufficientMaterial(ctx)) return SCE_EVAL_DRAW;
 
-    if (depth == 0) {
+    if (depth <= 0) {
         //return ptr_engine->eval_function(ptr_board);
         return SCE_Engine_QuiescenceNegamax(ptr_engine, ctx, alpha, beta);
     }
@@ -469,7 +469,7 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     if (transposition_data_exists) {
         tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
         const uint tt_depth = SCE_TT_GET_DEPTH(transposition_data);
-        if (depth <= tt_depth) {
+        if (depth <= (int) tt_depth) {
             // Useful result.
             int tt_entry_score = SCE_TT_GET_SCORE(transposition_data);
             if (tt_entry_score > SCE_MATE_THRESHOLD) {
@@ -499,11 +499,38 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
     // Move generation
     SCE_ChessMove best_move = EMPTY_MOVE;
 
-    SCE_ChessMoveList moves;
-    SCE_Return ret;
-
     const uint64_t king_sq = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
     const bool is_in_check = SCE_IsSquareAttacked(ctx, king_sq, ctx->board.to_move == WHITE ? BLACK : WHITE);
+
+    SCE_Return ret;
+
+    // NMP
+    if (ptr_ctrl->use_nmp && depth > ptr_ctrl->nmp_reduction && ptr_ctrl->nmp_reduction > 0 && ply > 0 && !is_in_check) {
+        // TODO: Zugzwang Check
+        const uint64_t to_move_occupancy = ctx->board.to_move == WHITE ? ctx->board.occupancy_w : ctx->board.occupancy_b;
+        const uint64_t to_move_king = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING];
+        const uint64_t to_move_pawn = ctx->board.bitboards[ctx->board.to_move == WHITE ? W_PAWN : B_PAWN];
+
+        // Check if nonpawn piece exists.
+        if (to_move_occupancy ^ to_move_king ^ to_move_pawn) {
+            ret = SCE_Search_MakeMove_Wrapper(ctx, ptr_engine, EMPTY_MOVE);
+            assert(ret == SCE_SUCCESS);
+
+            const int nmp_score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-(ptr_ctrl->nmp_reduction), -beta, -beta + 1);
+
+            ret = SCE_UnmakeMove(ctx);
+            assert(ret == SCE_SUCCESS);
+
+            // Cutoff
+            if (nmp_score >= beta) {
+                int capped_score = (nmp_score > SCE_MATE_THRESHOLD) ? beta : nmp_score;
+                SCE_Engine_AddTransposition(ptr_engine, ctx->board.zobrist_hash, capped_score, depth, EMPTY_MOVE, SCE_TF_BETA);
+                return capped_score;
+            }
+        }
+    }
+
+    SCE_ChessMoveList moves;
 
     ret = SCE_ChessMoveList_clear(&moves);
     assert(ret == SCE_SUCCESS);
@@ -546,16 +573,23 @@ static inline int SCE_Engine_AlphaBetaNegamax(SCE_Engine *const ptr_engine,
         int reduction = 0;
         if ((ptr_ctrl->use_lmr) &&
             (depth > 2) &&
+            (legal_move_count >= 3) &&
             !(move & SCE_CHESSMOVE_FLAG_CAPTURE) &&
             !(move & SCE_CHESSMOVE_FLAG_FILTER_PROMOTION) &&
+            (move != ptr_engine->killer_moves[ply][0]) &&
+            (move != ptr_engine->killer_moves[ply][1]) &&
             !(is_in_check)) {
-                int r_idx = legal_move_count < 64 ? legal_move_count : 63;
-                reduction = ctx->precomputation_tables->lmr_table[depth][r_idx];
-                reduction += ptr_ctrl->lmr_bias;
+                const bool gives_check = SCE_IsSquareAttacked(ctx, ctx->board.bitboards[ctx->board.to_move == WHITE ? W_KING : B_KING], ctx->board.to_move == WHITE ? BLACK : WHITE);
 
-                // Reduction to negative depth not allowed.
-                if (reduction < 0) reduction = 0;
-                if (reduction >= (int)depth) reduction = depth - 1;
+                if (!gives_check) {
+                    int r_idx = legal_move_count < 64 ? legal_move_count : 63;
+                    reduction = ctx->precomputation_tables->lmr_table[depth][r_idx];
+                    reduction += ptr_ctrl->lmr_bias;
+
+                    // Reduction to negative depth not allowed.
+                    if (reduction < 0) reduction = 0;
+                    if (reduction >= (int)depth) reduction = depth - 1;
+                }
         }
 
         int score = -SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, depth-1-reduction, -beta, -alpha);

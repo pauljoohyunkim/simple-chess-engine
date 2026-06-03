@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include "chess.h"
+#include "../chess.h"
 
 // Classic "values" of pieces
 #define PAWN_WEIGHT (100)
@@ -107,6 +107,12 @@ static const int PST[7U][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION] = {
     }
 };
 
+/**
+ * @brief Computes the game phase (opening/middlegame/endgame) based on piece counts
+ *
+ * @param ptr_board Pointer to the SCE_Chessboard struct
+ * @return unsigned int Game phase value (0-24, where 0 is opening and 24 is endgame)
+ */
 unsigned int SCE_Eval_ComputePhase(const SCE_Chessboard* const ptr_board);
 
 #ifdef __cplusplus

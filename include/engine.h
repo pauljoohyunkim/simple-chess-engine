@@ -76,6 +76,8 @@ typedef struct {
     unsigned int start_depth;   // Set to 0 unless multi-threading with helpers.
     bool use_lmr;
     int lmr_bias;
+    bool use_nmp;
+    int nmp_reduction;          // Set to 3 unless you know what you are doing.
     //bool check_timeout;
     //uint64_t time_limit;
 } SCE_Engine_SearchControl;

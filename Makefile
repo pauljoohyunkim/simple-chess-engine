@@ -1,9 +1,7 @@
 CC=gcc
-CFLAGSEXTRA=
-OPTIMIZATION?=-O3
+OPTIMIZATION?=-O0
 INCLUDES=-Iinclude
-CFLAGS=-g -Wall -Wextra $(OPTIMIZATION) -pedantic -MMD -MP $(INCLUDES) -flto=$(shell nproc) -march=native
-CFLAGS+=$(CFLAGSEXTRA)
+CFLAGS=-g -Wall -Wextra $(OPTIMIZATION) $(CFLAGSEXTRA) -pedantic -MMD -MP $(INCLUDES) -flto=$(shell nproc) -march=native
 CXX=g++
 
 # GTest dependencies
@@ -34,12 +32,19 @@ BENCH_DEPTH ?= 5
 BENCH_GAMES ?= 10
 BENCH_ELO ?= 2200
 BENCH_CONCURRENCY ?= 1
+BENCH_EVAL_FUNC ?= 1
+BENCH_THREADS ?= 4
+BENCH_STOCKFISH_THREADS ?= 2
 
-.PHONY: all bin doc clean test benchmark
+.PHONY: all bin release clean test benchmark
 
 bin: $(BIN)/sce_play $(BIN)/sce_uci_engine
 
 all: bin doc
+
+release: OPTIMIZATION=-O3
+release: CFLAGS+=-DNDEBUG
+release: bin
 
 doc:
 	doxygen
@@ -79,7 +84,6 @@ $(BIN)/test: $(OBJS_UNITTEST)
 clean:
 	$(RM) -r $(OBJ)/*.{o,d} $(BIN)/* $(HTML)
 
-benchmark: CFLAGSEXTRA=-DNDEBUG
-benchmark: $(BIN)/sce_uci_engine
-	@echo "Running benchmark: depth=$(BENCH_DEPTH) games=$(BENCH_GAMES) ELO=$(BENCH_ELO) concurrency=$(BENCH_CONCURRENCY)"
-	cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true depth=$(BENCH_DEPTH) tc=inf -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=$(BENCH_ELO) depth=18 tc=60+0.6 -each proto=uci -games $(BENCH_GAMES) -repeat -concurrency $(BENCH_CONCURRENCY)
+benchmark: release
+	@echo "Running benchmark: depth=$(BENCH_DEPTH) games=$(BENCH_GAMES) ELO=$(BENCH_ELO) concurrency=$(BENCH_CONCURRENCY) eval_func=$(BENCH_EVAL_FUNC) sce_threads=$(BENCH_THREADS) stockfish_threads=$(BENCH_STOCKFISH_THREADS)"
+	cutechess-cli -engine name="SCE" cmd=./bin/sce_uci_engine option.DynamicDeepening=true option.Threads=$(BENCH_THREADS) option.EvalFunc=$(BENCH_EVAL_FUNC) depth=$(BENCH_DEPTH) tc=inf -engine name="Stockfish" cmd=stockfish option.UCI_LimitStrength=true option.UCI_Elo=$(BENCH_ELO) option.Threads=$(BENCH_STOCKFISH_THREADS) depth=18 tc=60+0.6 -each proto=uci -games $(BENCH_GAMES) -repeat -concurrency $(BENCH_CONCURRENCY)
