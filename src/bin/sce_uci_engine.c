@@ -14,7 +14,8 @@ static const SCE_Engine_SearchControl master_ctrl_initial = {
     .start_depth = 1,
     .lmr_bias = 0,
     .use_nmp = true,
-    .nmp_reduction = 3
+    .nmp_reduction = 3,
+    .aspirated_search_delta = 50
 };
 
 int main() {
