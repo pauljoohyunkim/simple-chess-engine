@@ -5,6 +5,9 @@
 #include "engine.h"
 #include "helper.h"
 
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
+#define MIN(x,y) ((x) > (y) ? (y) : (x))
+
 typedef unsigned int uint;
 
 static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move);
@@ -706,45 +709,61 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const p
     int predicted_score = 0;
 
     for (uint iter_depth = ptr_ctrl->start_depth; iter_depth <= ctx->depth; iter_depth++) {
-        int alpha = SCE_ALPHA_INITIAL;
-        int beta = SCE_BETA_INITIAL;
+        int current_delta = ptr_ctrl->aspirated_search_delta;
+        int search_alpha = SCE_ALPHA_INITIAL;
+        int search_beta = SCE_BETA_INITIAL;
 
-        // Apply aspiration window if enabled and not the first depth
-        if (ptr_ctrl->aspirated_search_delta > 0 && iter_depth > ptr_ctrl->start_depth) {
-            int delta = ptr_ctrl->aspirated_search_delta;
-            alpha = predicted_score - delta;
-            beta = predicted_score + delta;
+        // Apply initial narrow aspiration window if enabled and past start depth
+        if (current_delta > 0 && iter_depth > ptr_ctrl->start_depth) {
+            search_alpha = MAX(SCE_ALPHA_INITIAL, predicted_score - current_delta);
+            search_beta = MIN(SCE_BETA_INITIAL, predicted_score + current_delta);
         }
 
         bool pass = false;
+
         while (!pass) {
             ctx->current_search_depth = iter_depth;
-            SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, iter_depth, alpha, beta);
+
+            // 1. Get score directly from Negamax return value
+            int score = SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl,
+                                                    iter_depth, search_alpha, search_beta);
 
             if (ptr_engine->stop_searching) return EMPTY_MOVE;
 
+            // Retrieve best move from TT for root output
             uint64_t transposition_data;
-            if (!SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash)) {
-                break; // Safety exit if TT doesn't contain root data
+            if (SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash)) {
+                best_move = SCE_TT_GET_MOVE(transposition_data);
             }
 
-            best_move = SCE_TT_GET_MOVE(transposition_data);
-            predicted_score = SCE_TT_GET_SCORE(transposition_data);
+            // 2. Check Aspiration Window Bounds
+            if (current_delta > 0 && iter_depth > ptr_ctrl->start_depth && !(predicted_score > SCE_MATE_THRESHOLD || predicted_score < SCE_MATE_THRESHOLD)) {
+                if (score <= search_alpha) {
+                    // FAIL LOW: Score is worse than expected.
+                    // Expand alpha downwards.
+                    // IMPORTANT: Reset search_beta upward or leave it wide open to avoid false fail-highs!
+                    search_alpha = MAX(SCE_ALPHA_INITIAL, score - current_delta);
+                    search_beta = SCE_BETA_INITIAL;
 
-            if (ptr_ctrl->aspirated_search_delta > 0) {
-                if (predicted_score <= alpha) {
-                    // Fail-low: score is lower than expected. Re-search with narrower window shifted down.
-                    beta = alpha;
-                    alpha = predicted_score - ptr_ctrl->aspirated_search_delta;
-                } else if (predicted_score >= beta) {
-                    // Fail-high: score is higher than expected. Re-search with narrower window shifted up.
-                    alpha = beta;
-                    beta = predicted_score + ptr_ctrl->aspirated_search_delta;
+                    // Widen delta exponentially for subsequent failures
+                    current_delta += current_delta / 2;
+                } else if (score >= search_beta) {
+                    // FAIL HIGH: Score is better than expected.
+                    // Expand beta upwards.
+                    // IMPORTANT: Reset search_alpha downward or leave it wide open to avoid false fail-lows!
+                    search_alpha = SCE_ALPHA_INITIAL;
+                    search_beta = MIN(SCE_BETA_INITIAL, score + current_delta);
+
+                    // Widen delta exponentially
+                    current_delta += current_delta / 2;
                 } else {
-                    pass = true; // Score passed within the current narrow window
+                    // SUCCESS: Score fell inside (search_alpha, search_beta)
+                    predicted_score = score;
+                    pass = true;
                 }
             } else {
-                pass = true; // No aspiration window enabled for this configuration
+                predicted_score = score;
+                pass = true;  // Aspiration windows disabled or first depth
             }
         }
     }

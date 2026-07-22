@@ -15,7 +15,7 @@ static const SCE_Engine_SearchControl master_ctrl_initial = {
     .lmr_bias = 0,
     .use_nmp = true,
     .nmp_reduction = 3,
-    .aspirated_search_delta = 50
+    .aspirated_search_delta = 16
 };
 
 int main() {
