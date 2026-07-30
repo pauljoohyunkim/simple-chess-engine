@@ -68,6 +68,7 @@ int main() {
             printf("option name DynamicDeepening type check default true\n");
             printf("option name EvalFunc type spin default 1 min 0 max 1\n");
             printf("option name Threads type spin default 4 min 1 max 1024\n");
+            printf("option name AspirationWindowDelta type spin default 16 min 0 max 100\n");
             printf("uciok\n");
             pthread_mutex_unlock(&session.stdout_mutex);
             continue;

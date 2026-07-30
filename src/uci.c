@@ -318,6 +318,18 @@ SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char
             } else {
                 return SCE_INVALID_PARAM;
             }
+        } else if (strcmp(word, "AspirationWindowDelta") == 0) {
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word == NULL || strcmp(word, "value") != 0) return SCE_INVALID_PARAM;
+            word = strtok_r(NULL, " ", &saveptr);
+            if (word) {
+                int delta = atoi(word);
+                if (delta < 0) delta = 0;
+                if (delta > 100) delta = 100;
+                ptr_session->ptr_master_ctrl->aspirated_search_delta = delta;
+            } else {
+                return SCE_INVALID_PARAM;
+            }
         } else {
             return SCE_INVALID_PARAM;
         }
