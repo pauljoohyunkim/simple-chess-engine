@@ -26,23 +26,23 @@ const uint64_t ChessboardFileMasks[] = {
 
 typedef unsigned int uint;
 
-static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed);
-static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table);
+static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* ptr_zobrist_table, const uint64_t * ptr_seed);
+static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* ptr_pm_table);
 
 // Static functions for generating components of precomputation table.
-static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static SCE_Return SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
-static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl);
+static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl);
+static SCE_Return SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl);
+static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl);
+static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl);
+static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl);
 
 
-static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
-static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
-static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
-static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical);
+static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical);
+static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical);
+static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical);
+static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical);
 
-SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_precomputation_tables, const uint64_t* const ptr_seed) {
+SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* ptr_precomputation_tables, const uint64_t * ptr_seed) {
     if (ptr_precomputation_tables == NULL) return SCE_INVALID_PARAM;
 
     RETURN_IF_SCE_FAILURE(SCE_ZobristTable_init(&ptr_precomputation_tables->zobrist_table, ptr_seed), "Could not initialize Zobrist hash table.");
@@ -102,7 +102,7 @@ SCE_Return SCE_Precomputation_Tables_init(SCE_Precomputation_Tables* const ptr_p
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_Context_init(SCE_Context* const ctx, const SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+SCE_Return SCE_Context_init(SCE_Context* ctx, const SCE_Precomputation_Tables * ptr_precomputation_tables) {
     if (ctx == NULL || ptr_precomputation_tables == NULL) return SCE_INVALID_PARAM;
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_reset(ctx), "Could not reset the board.");
@@ -121,7 +121,7 @@ SCE_Return SCE_Context_init(SCE_Context* const ctx, const SCE_Precomputation_Tab
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
+SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* ptr_list) {
     if (ptr_list == NULL) return SCE_INVALID_PARAM;
 
     memset(ptr_list, EMPTY_MOVE, sizeof(SCE_ChessMoveList));
@@ -129,7 +129,7 @@ SCE_Return SCE_ChessMoveList_clear(SCE_ChessMoveList* const ptr_list) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_Chessboard_clear(SCE_Context* const ctx) {
+SCE_Return SCE_Chessboard_clear(SCE_Context* ctx) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
 
     memset(&ctx->board.bitboards, 0, sizeof(ctx->board.bitboards));
@@ -149,7 +149,7 @@ SCE_Return SCE_Chessboard_clear(SCE_Context* const ctx) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
+SCE_Return SCE_Chessboard_reset(SCE_Context* ctx) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
 
     RETURN_IF_SCE_FAILURE(SCE_Chessboard_clear(ctx), "Error when clearing board!");
@@ -220,7 +220,7 @@ SCE_Return SCE_Chessboard_reset(SCE_Context* const ctx) {
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_table, const uint64_t* const ptr_seed) {
+static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* ptr_zobrist_table, const uint64_t * ptr_seed) {
     if (ptr_zobrist_table == NULL) return SCE_INVALID_PARAM;
     if (ptr_seed == NULL) srand(time(NULL));
 
@@ -254,7 +254,7 @@ static SCE_Return SCE_ZobristTable_init(SCE_ZobristTable* const ptr_zobrist_tabl
 }
 
 #define SCE_ZOBRIST_EN_PASSANT_UNASSIGNED_KEY (8U)
-uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx) {
+uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* ctx) {
     if (ctx == NULL) return 0U;
 
     uint64_t hash = 0U;
@@ -290,7 +290,7 @@ uint64_t SCE_Chessboard_ComputeZobristHash(SCE_Context* const ctx) {
     return hash;
 }
 
-uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* const ctx) {
+uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* ctx) {
     if (ctx == NULL) return 0U;
 
     uint64_t hash = 0U;
@@ -312,7 +312,7 @@ uint64_t SCE_Chessboard_ComputePawnZobristHash(SCE_Context* const ctx) {
     return hash;
 }
 
-uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx) {
+uint64_t SCE_Chessboard_Occupancy(const SCE_Context * ctx) {
     if (ctx == NULL) return 0U;
 
     #ifndef NDEBUG
@@ -328,7 +328,7 @@ uint64_t SCE_Chessboard_Occupancy(const SCE_Context* const ctx) {
     #endif
 }
 
-uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const PieceColor color) {
+uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context * ctx, PieceColor color) {
     if (ctx == NULL || (color != WHITE && color != BLACK)) return 0U;
 
     #ifndef NDEBUG
@@ -353,7 +353,7 @@ uint64_t SCE_Chessboard_Occupancy_Color(const SCE_Context* const ctx, const Piec
 
 }
 
-SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color) {
+SCE_Return SCE_Chessboard_print(const SCE_Context * ctx, PieceColor color) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
     if (color != WHITE && color != BLACK) return SCE_INVALID_PARAM;
 
@@ -439,7 +439,7 @@ SCE_Return SCE_Chessboard_print(const SCE_Context* const ctx, PieceColor color) 
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* const ptr_pm_table) {
+static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTable* ptr_pm_table) {
     if (ptr_pm_table == NULL) return SCE_INVALID_PARAM;
 
     // Empty the table.
@@ -459,7 +459,7 @@ static SCE_Return SCE_PieceMovementPrecompute(SCE_PieceMovementPrecomputationTab
 #define UP << 8U
 #define LEFT >> 1U
 #define RIGHT << 1U
-static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -527,7 +527,7 @@ static SCE_Return SCE_Knight_Precompute(SCE_PieceMovementPrecomputationTable* co
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -596,7 +596,7 @@ static SCE_Return SCE_King_Precompute(SCE_PieceMovementPrecomputationTable* cons
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -680,7 +680,7 @@ static SCE_Return SCE_Pawn_Precompute(SCE_PieceMovementPrecomputationTable* cons
 
 }
 
-static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -778,7 +778,7 @@ static SCE_Return SCE_Rays_Precompute(SCE_PieceMovementPrecomputationTable* cons
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* const ptr_precomputation_tbl) {
+static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTable* ptr_precomputation_tbl) {
     if (ptr_precomputation_tbl == NULL) return SCE_INVALID_PARAM;
 
     for (uint i = 0U; i < CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION; i++) {
@@ -796,7 +796,7 @@ static SCE_Return SCE_CastlingMask_Precompute(SCE_PieceMovementPrecomputationTab
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const ptr_movelist) {
+SCE_Return SCE_AddToMoveList(SCE_ChessMove move, SCE_ChessMoveList* ptr_movelist) {
     if (ptr_movelist == NULL) return SCE_INVALID_PARAM;
     if (ptr_movelist->count == N_MAX_MOVES - 1U) { 
         fprintf(stderr, "Adding to move list failure: MoveList full.\n");
@@ -819,7 +819,7 @@ SCE_Return SCE_AddToMoveList(const SCE_ChessMove move, SCE_ChessMoveList* const 
 }
 
 // Generate moves that the piece can physically move to without pins or checks.
-SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
+SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     // 1. Generate pseudolegal moves for knights
@@ -837,7 +837,7 @@ SCE_Return SCE_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, S
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
+static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy_w = SCE_Chessboard_Occupancy_Color(ctx, WHITE);
@@ -877,7 +877,7 @@ static SCE_Return SCE_Knight_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
+static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
@@ -971,7 +971,7 @@ static SCE_Return SCE_King_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
+static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     const uint64_t occupancy = SCE_Chessboard_Occupancy(ctx);
@@ -1432,7 +1432,7 @@ static SCE_Return SCE_Slider_GeneratePseudoLegalMoves(SCE_ChessMoveList* const p
     return SCE_SUCCESS;
 }
 
-static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx, const bool tactical) {
+static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx, bool tactical) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
 
     // Four cases:
@@ -1675,7 +1675,7 @@ static SCE_Return SCE_Pawn_GeneratePseudoLegalMoves(SCE_ChessMoveList* const ptr
     return SCE_SUCCESS;
 }
 
-bool SCE_IsSquareAttacked(SCE_Context* const ctx, const uint64_t square, const PieceColor attacked_by) {
+bool SCE_IsSquareAttacked(SCE_Context* ctx, uint64_t square, PieceColor attacked_by) {
     if (ctx == NULL || (attacked_by != WHITE && attacked_by != BLACK)) {
         fprintf(stderr, "\033[31m[-] Invalid parameter in SCE_IsSquareAttacked\033[0m\n");
         return false;
@@ -1817,7 +1817,7 @@ uint64_t SCE_AN_To_Bitboard(const char* an) {
     return 1ULL << (uint) idx;
 }
 
-SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
+SCE_Return SCE_Bitboard_To_AN(char* an_out, uint64_t bitboard) {
     if (an_out == NULL || COUNT_SET_BITS(bitboard) != 1) {
         return SCE_INVALID_PARAM;
     }
@@ -1833,7 +1833,7 @@ SCE_Return SCE_Bitboard_To_AN(char* const an_out, uint64_t bitboard) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
+SCE_Return SCE_MakeMove(SCE_Context* ctx, SCE_ChessMove move) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
 
     // Handle empty move (no move) - just switch turn and update Zobrist hash
@@ -2143,7 +2143,7 @@ SCE_Return SCE_MakeMove(SCE_Context* const ctx, const SCE_ChessMove move) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
+SCE_Return SCE_UnmakeMove(SCE_Context* ctx) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
     if (ctx->board.history.count == 0U) return SCE_MOVELIST_EMPTY;
 
@@ -2287,7 +2287,7 @@ SCE_Return SCE_UnmakeMove(SCE_Context* const ctx) {
     return SCE_SUCCESS;
 }
 
-SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* const ptr_movelist, SCE_Context* const ctx) {
+SCE_Return SCE_GenerateLegalMoves(SCE_ChessMoveList* ptr_movelist, SCE_Context* ctx) {
     if (ptr_movelist == NULL || ctx == NULL) return SCE_INVALID_PARAM;
     if (ptr_movelist->count != 0) return SCE_INVALID_PARAM;
 

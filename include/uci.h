@@ -50,7 +50,7 @@ typedef struct {
  * This does not encode information about castling or en passant or any other special moves.
  * Note that EMPTY_MOVE is handled, and will return true.
  */
-bool SCE_MoveToUCIString(const SCE_ChessMove move, char uci_string[6]);
+bool SCE_MoveToUCIString(SCE_ChessMove move, char uci_string[6]);
 
 /**
  * @brief Convert UCI move string to SCE_ChessMove
@@ -58,7 +58,7 @@ bool SCE_MoveToUCIString(const SCE_ChessMove move, char uci_string[6]);
  * @param uci_string UCI string
  * @return SCE_ChessMove Move parsed from UCI string, or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string);
+SCE_ChessMove SCE_UCIStringToMove(const char * uci_string);
 
 /**
  * @brief Parse position line
@@ -67,7 +67,7 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string);
  * @param line The entire line from position command.
  * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
  */
-SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line);
+SCE_Return SCE_UCI_ParsePosition(SCE_Context* ctx, const char * line);
 
 /**
  * @brief Parse setoption line
@@ -76,7 +76,7 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
  * @param line The entire line from position command.
  * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
  */
-SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char* const line);
+SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* ptr_session, const char * line);
 
 /**
  * @brief Parse go line
@@ -85,7 +85,7 @@ SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char
  * @param line The entire line from position command.
  * @return SCE_Return SCE_SUCCESS if successful. Otherwise if failure.
  */
-SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const line);
+SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* session, const char * line);
 
 #ifdef __cplusplus
 }

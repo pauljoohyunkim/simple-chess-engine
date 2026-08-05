@@ -7,14 +7,14 @@
 
 typedef unsigned int uint;
 
-static int SCE_Eval_PawnSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
-static int SCE_Eval_KnightSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
-static int SCE_Eval_BishopSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
-static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
-static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color);
-static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color, const bool is_mg);
+static int SCE_Eval_PawnSquareEval(SCE_Chessboard* ptr_board, PieceColor color);
+static int SCE_Eval_KnightSquareEval(SCE_Chessboard* ptr_board, PieceColor color);
+static int SCE_Eval_BishopSquareEval(SCE_Chessboard* ptr_board, PieceColor color);
+static int SCE_Eval_RookSquareEval(SCE_Chessboard* ptr_board, PieceColor color);
+static int SCE_Eval_QueenSquareEval(SCE_Chessboard* ptr_board, PieceColor color);
+static int SCE_Eval_KingSquareEval(SCE_Chessboard* ptr_board, PieceColor color, bool is_mg);
 
-int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     (void)ptr_engine;       // For compiler warning suppression about unused variable.
     assert(ctx != NULL);
     int material_sum = 0;
@@ -62,7 +62,7 @@ int SCE_Eval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* co
     return (mg_score * phase + eg_score * (TOTAL_PHASE_WEIGHT - phase)) / TOTAL_PHASE_WEIGHT;
 }
 
-static int SCE_Eval_PawnSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
+static int SCE_Eval_PawnSquareEval(SCE_Chessboard* ptr_board, PieceColor color) {
     const int* pst = PST[PST_PAWN];
 
     int part_sum = 0;
@@ -77,7 +77,7 @@ static int SCE_Eval_PawnSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return part_sum;
 }
 
-static int SCE_Eval_KnightSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
+static int SCE_Eval_KnightSquareEval(SCE_Chessboard* ptr_board, PieceColor color) {
     const int* pst = PST[PST_KNIGHT];
 
     int part_sum = 0;
@@ -92,7 +92,7 @@ static int SCE_Eval_KnightSquareEval(SCE_Chessboard* const ptr_board, PieceColor
     return part_sum;
 }
 
-static int SCE_Eval_BishopSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
+static int SCE_Eval_BishopSquareEval(SCE_Chessboard* ptr_board, PieceColor color) {
     const int* pst = PST[PST_BISHOP];
 
     int part_sum = 0;
@@ -107,7 +107,7 @@ static int SCE_Eval_BishopSquareEval(SCE_Chessboard* const ptr_board, PieceColor
     return part_sum;
 }
 
-static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
+static int SCE_Eval_RookSquareEval(SCE_Chessboard* ptr_board, PieceColor color) {
     const int* pst = PST[PST_ROOK];
 
     int part_sum = 0;
@@ -122,7 +122,7 @@ static int SCE_Eval_RookSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return part_sum;
 }
 
-static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor color) {
+static int SCE_Eval_QueenSquareEval(SCE_Chessboard* ptr_board, PieceColor color) {
     const int* pst = PST[PST_QUEEN];
 
     int part_sum = 0;
@@ -137,7 +137,7 @@ static int SCE_Eval_QueenSquareEval(SCE_Chessboard* const ptr_board, PieceColor 
     return part_sum;
 }
 
-static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor color, const bool is_mg) {
+static int SCE_Eval_KingSquareEval(SCE_Chessboard* ptr_board, PieceColor color, bool is_mg) {
     const int* pst = PST[is_mg ? PST_KING_MIDDLE : PST_KING_END];
 
     int part_sum = 0;
@@ -152,7 +152,7 @@ static int SCE_Eval_KingSquareEval(SCE_Chessboard* const ptr_board, PieceColor c
     return part_sum;
 }
 
-int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move) {
+int SCE_DeltaEval_SimplifiedEvaluationFunction(SCE_Context* ctx, SCE_EvalState* ptr_eval_state, SCE_Engine* ptr_engine, SCE_ChessMove move) {
     assert(ctx != NULL);
     assert(ptr_eval_state != NULL);
     assert(ptr_engine != NULL);

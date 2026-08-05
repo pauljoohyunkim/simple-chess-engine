@@ -14,8 +14,8 @@ extern "C" {
 struct SCE_Engine;
 typedef struct SCE_Engine SCE_Engine;
 
-typedef int (*SCE_Eval)(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-typedef int (*SCE_DeltaEval)(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
+typedef int (*SCE_Eval)(SCE_Context* ctx, SCE_Engine* ptr_engine);
+typedef int (*SCE_DeltaEval)(SCE_Context* ctx, SCE_EvalState* ptr_eval_state, SCE_Engine* ptr_engine, SCE_ChessMove move);
 
 #define SCE_ALPHA_INITIAL (INT32_MIN / 2)
 #define SCE_BETA_INITIAL (INT32_MAX / 2)
@@ -94,7 +94,7 @@ typedef struct {
  * The actual size of the transposition table will be 2^(transposition_table_log2_size) entries.
  * @return SCE_Return SCE_SUCCESS for success, otherwise for failure.
  */
-SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine, const SCE_Eval eval_func, const SCE_DeltaEval delta_eval_func, const unsigned int transposition_table_log2_size);
+SCE_Return SCE_Engine_init(SCE_Context* ctx, SCE_Engine* ptr_engine, SCE_Eval eval_func, SCE_DeltaEval delta_eval_func, unsigned int transposition_table_log2_size);
 
 /**
  * @brief Releases dynamically allocated components within SCE_Engine struct and empties it.
@@ -102,7 +102,7 @@ SCE_Return SCE_Engine_init(SCE_Context* const ctx, SCE_Engine* const ptr_engine,
  * @param ptr_engine Pointer to the SCE_Engine struct.
  * @return SCE_Return SCE_SUCCESS for success, otherwise for failure.
  */
-SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
+SCE_Return SCE_Engine_release(SCE_Engine* ptr_engine);
 
 /**
  * @brief Add pawn hash entry to pawn hash table
@@ -118,7 +118,7 @@ SCE_Return SCE_Engine_release(SCE_Engine* const ptr_engine);
  * @return true If successful
  * @return false If failed
  */
-bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash, const int32_t mg_score, const int32_t eg_score, const uint64_t passed_pawns, const uint64_t isolated_pawns, const uint64_t backward_pawns, const uint64_t hanging_pawns);
+bool SCE_Engine_AddPawnHashData(SCE_Engine* ptr_engine, uint64_t pawn_zobrist_hash, int32_t mg_score, int32_t eg_score, uint64_t passed_pawns, uint64_t isolated_pawns, uint64_t backward_pawns, uint64_t hanging_pawns);
 
 /**
  * @brief Get pawn hash entry from pawn hash table
@@ -129,7 +129,7 @@ bool SCE_Engine_AddPawnHashData(SCE_Engine* const ptr_engine, const uint64_t paw
  * @return true If successful
  * @return false If failed
  */
-bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const ptr_engine, const uint64_t pawn_zobrist_hash);
+bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* ptr_engine, uint64_t pawn_zobrist_hash);
 
 /**
  * @brief Returns whether or not there has been a repetition (for draw rule)
@@ -138,7 +138,7 @@ bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* const
  * @return true If there is a repetition.
  * @return false If there is no repetition.
  */
-bool SCE_DetectRepetition(const SCE_Context* const ctx);
+bool SCE_DetectRepetition(const SCE_Context * ctx);
 
 /**
  * @brief Returns whether or not there are insufficient materials (for draw rule)
@@ -147,7 +147,7 @@ bool SCE_DetectRepetition(const SCE_Context* const ctx);
  * @return true If insufficient materials
  * @return false Otherwise
  */
-bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx);
+bool SCE_DetectInsufficientMaterial(const SCE_Context * ctx);
 
 /**
  * @brief Outputs the best move calculated by engine via simple alpha beta search.
@@ -157,7 +157,7 @@ bool SCE_DetectInsufficientMaterial(const SCE_Context* const ctx);
  * @param ptr_ctrl Pointer to the search control structure
  * @return SCE_ChessMove Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
+SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine * ptr_engine, SCE_Context* ctx, const SCE_Engine_SearchControl * ptr_ctrl);
 
 /**
  * @brief Outputs the best move calculated by the engine via iterative deepening with alpha beta.
@@ -167,7 +167,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
  * @param ptr_ctrl Pointer to the search control structure
  * @return SCE_ChessMove Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, SCE_Engine_SearchControl* const ptr_ctrl);
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* ptr_engine, SCE_Context* ctx, SCE_Engine_SearchControl* ptr_ctrl);
 
 #ifdef __cplusplus
 }

@@ -113,7 +113,7 @@ static const int PST[7U][CHESSBOARD_DIMENSION * CHESSBOARD_DIMENSION] = {
  * @param ptr_board Pointer to the SCE_Chessboard struct
  * @return unsigned int Game phase value (0-24, where 0 is opening and 24 is endgame)
  */
-unsigned int SCE_Eval_ComputePhase(const SCE_Chessboard* const ptr_board);
+unsigned int SCE_Eval_ComputePhase(const SCE_Chessboard * ptr_board);
 
 #ifdef __cplusplus
 }
