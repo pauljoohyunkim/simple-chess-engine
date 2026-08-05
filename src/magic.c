@@ -11,8 +11,8 @@ typedef unsigned int uint;
 static uint64_t get_random_uint64_t();
 static uint64_t get_sparse_uint64_t();
 static uint64_t slow_slider_attacks(int sq, uint64_t occupancy, const int directions[], int dir_count);
-static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables);
-static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables);
+static void write_magic_bishop(int idx, SCE_Precomputation_Tables* ptr_precomputation_tables);
+static void write_magic_rook(int idx, SCE_Precomputation_Tables* ptr_precomputation_tables);
 
 static uint64_t seed = 0;
 
@@ -89,7 +89,7 @@ static uint64_t slow_slider_attacks(int idx, uint64_t occupancy, const int direc
     return attacks;
 }
 
-static uint64_t compute_magic_with_premask_and_direction(const int idx, const uint64_t premask, const int directions[], const int dir_count) {
+static uint64_t compute_magic_with_premask_and_direction(int idx, uint64_t premask, const int directions[], int dir_count) {
     const size_t n_bits = COUNT_SET_BITS(premask);
     const size_t shift = CHESSBOARD_N_SQUARES - n_bits;
 
@@ -133,7 +133,7 @@ static uint64_t compute_magic_with_premask_and_direction(const int idx, const ui
 
 }
 
-static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+static void write_magic_bishop(int idx, SCE_Precomputation_Tables* ptr_precomputation_tables) {
     const int directions[] = { NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST };
     const uint64_t premask = (ptr_precomputation_tables->pm_table.rays[NORTHEAST][idx] & ~RANK_8_MASK & ~H_MASK) | 
                              (ptr_precomputation_tables->pm_table.rays[NORTHWEST][idx] & ~RANK_8_MASK & ~A_MASK) |
@@ -146,7 +146,7 @@ static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const p
     ptr_precomputation_tables->magic_table.bishop[idx].magic = magic;
     ptr_precomputation_tables->magic_table.bishop[idx].shift = (CHESSBOARD_N_SQUARES - n_bits);
 
-    uint64_t* const base_ptr = &ptr_precomputation_tables->magic_table.BishopMagicTable[idx * (1<<9)];
+    uint64_t* base_ptr = &ptr_precomputation_tables->magic_table.BishopMagicTable[idx * (1<<9)];
 
     uint64_t occupancy = 0U;
     do {
@@ -160,7 +160,7 @@ static void write_magic_bishop(const int idx, SCE_Precomputation_Tables* const p
     } while (occupancy != 0);
 }
 
-static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+static void write_magic_rook(int idx, SCE_Precomputation_Tables* ptr_precomputation_tables) {
     const int directions[] = { NORTH, SOUTH, EAST, WEST };
     const uint64_t premask = (ptr_precomputation_tables->pm_table.rays[NORTH][idx] & ~RANK_8_MASK) | 
                              (ptr_precomputation_tables->pm_table.rays[SOUTH][idx] & ~RANK_1_MASK) |
@@ -173,7 +173,7 @@ static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr
     ptr_precomputation_tables->magic_table.rook[idx].magic = magic;
     ptr_precomputation_tables->magic_table.rook[idx].shift = (CHESSBOARD_N_SQUARES - n_bits);
 
-    uint64_t* const base_ptr = &ptr_precomputation_tables->magic_table.RookMagicTable[idx * (1<<12)];
+    uint64_t* base_ptr = &ptr_precomputation_tables->magic_table.RookMagicTable[idx * (1<<12)];
 
     uint64_t occupancy = 0U;
     do {
@@ -187,7 +187,7 @@ static void write_magic_rook(const int idx, SCE_Precomputation_Tables* const ptr
     } while (occupancy != 0);
 }
 
-SCE_Return SCE_MagicTable_init(SCE_Precomputation_Tables* const ptr_precomputation_tables) {
+SCE_Return SCE_MagicTable_init(SCE_Precomputation_Tables* ptr_precomputation_tables) {
     if (ptr_precomputation_tables == NULL) return SCE_INVALID_PARAM;
 
     uint64_t occupancy_variations[1<<12] = { 0 };
@@ -209,7 +209,7 @@ SCE_Return SCE_MagicTable_init(SCE_Precomputation_Tables* const ptr_precomputati
     return SCE_SUCCESS;
 }
 
-uint64_t SCE_MagicTable_get_rook_attacks(const int idx, const uint64_t occupancy, const SCE_MagicTable* const ptr_magic_table) {
+uint64_t SCE_MagicTable_get_rook_attacks(int idx, uint64_t occupancy, const SCE_MagicTable * ptr_magic_table) {
     if (ptr_magic_table == NULL) return 0U;
 
     const uint64_t blockers = occupancy & ptr_magic_table->rook[idx].premask;
@@ -219,7 +219,7 @@ uint64_t SCE_MagicTable_get_rook_attacks(const int idx, const uint64_t occupancy
     return ptr_magic_table->RookMagicTable[(idx << 12) + hash];
 }
 
-uint64_t SCE_MagicTable_get_bishop_attacks(const int idx, const uint64_t occupancy, const SCE_MagicTable* const ptr_magic_table) {
+uint64_t SCE_MagicTable_get_bishop_attacks(int idx, uint64_t occupancy, const SCE_MagicTable * ptr_magic_table) {
     if (ptr_magic_table == NULL) return 0U;
 
     const uint64_t blockers = occupancy & ptr_magic_table->bishop[idx].premask;
@@ -229,7 +229,7 @@ uint64_t SCE_MagicTable_get_bishop_attacks(const int idx, const uint64_t occupan
     return ptr_magic_table->BishopMagicTable[(idx << 9) + hash];
 }
 
-uint64_t SCE_MagicTable_get_queen_attacks(const int idx, const uint64_t occupancy, const SCE_MagicTable* const ptr_magic_table) {
+uint64_t SCE_MagicTable_get_queen_attacks(int idx, uint64_t occupancy, const SCE_MagicTable * ptr_magic_table) {
     if (ptr_magic_table == NULL) return 0U;
 
     const uint64_t rook_attacks = SCE_MagicTable_get_rook_attacks(idx, occupancy, ptr_magic_table);

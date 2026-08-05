@@ -14,7 +14,7 @@ extern "C" {
  * @param ptr_engine Pointer to the SCE_Engine struct
  * @return int Evaluation score of the position
  */
-int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
+int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* ctx, SCE_Engine* ptr_engine);
 
 /**
  * @brief Updates the evaluation incrementally based on a move made
@@ -25,7 +25,7 @@ int SCE_Eval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_Engine* c
  * @param move The move that was made
  * @return int Change in evaluation score due to the move
  */
-int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* const ctx, SCE_EvalState* const ptr_eval_state, SCE_Engine* const ptr_engine, const SCE_ChessMove move);
+int SCE_DeltaEval_HandcraftedEvaluationFunction(SCE_Context* ctx, SCE_EvalState* ptr_eval_state, SCE_Engine* ptr_engine, SCE_ChessMove move);
 
 #ifdef __cplusplus
 }

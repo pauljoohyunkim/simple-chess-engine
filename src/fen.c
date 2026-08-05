@@ -16,11 +16,11 @@
 
 typedef unsigned int uint;
 
-static uint count_occurence(const char* const str, const char c);
+static uint count_occurence(const char * str, char c);
 
 // Maximum FEN string is 92 including null terminator.
 #define FEN_STRING_MAX_LEN (92U)
-SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fen) {
+SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* ctx, const char * fen) {
     if (ctx == NULL || fen == NULL) return SCE_INVALID_PARAM;
     size_t fen_len = strlen(fen);
     if (fen_len >= FEN_STRING_MAX_LEN) return SCE_INVALID_PARAM;
@@ -29,7 +29,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     memcpy(fen_cpy, fen, fen_len);
     {
         // Replace newline character to null terminator.
-        char* const ptr = strchr(fen_cpy, '\n');
+        char* ptr = strchr(fen_cpy, '\n');
         if (ptr) {
             *ptr = '\0';
         }
@@ -249,7 +249,7 @@ SCE_Return SCE_Chessboard_FEN_setup(SCE_Context* const ctx, const char* const fe
     return SCE_SUCCESS;
 }
 
-static uint count_occurence(const char* const str, const char c) {
+static uint count_occurence(const char * str, char c) {
     if (str == NULL || c == '\0') return 0U;
     const size_t len = strlen(str);
     uint count = 0U;

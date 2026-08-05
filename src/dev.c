@@ -8,7 +8,7 @@
 
 typedef unsigned int uint;
 
-void print_as_board(const uint64_t val) {
+void print_as_board(uint64_t val) {
     printf("\n");
     for (uint i = 0; i < CHESSBOARD_DIMENSION; i++) {
         for (uint j = 0; j < CHESSBOARD_DIMENSION; j++) {
@@ -24,7 +24,7 @@ void print_as_board(const uint64_t val) {
     printf("\n");
 }
 
-SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * const an, PieceType piece_type) {
+SCE_Return place_piece_on_board(SCE_Chessboard* ptr_board, const char * an, PieceType piece_type) {
     if (ptr_board == NULL || an == NULL || piece_type >= (int) N_TYPES_PIECES) return SCE_INVALID_PARAM;
 
     // Get bitboard form of algebraic notation
@@ -44,7 +44,7 @@ SCE_Return place_piece_on_board(SCE_Chessboard* const ptr_board, const char * co
     return SCE_SUCCESS;
 }
 
-SCE_Return print_move_to_AN(const SCE_ChessMove move) {
+SCE_Return print_move_to_AN(SCE_ChessMove move) {
     const uint64_t src = 1ULL << (move SCE_CHESSMOVE_GET_SRC);
     const uint64_t dst = 1ULL << (move SCE_CHESSMOVE_GET_DST);
     const uint flag = move SCE_CHESSMOVE_GET_FLAG;
@@ -109,7 +109,7 @@ SCE_Return print_move_to_AN(const SCE_ChessMove move) {
     return SCE_SUCCESS;
 }
 
-SCE_Return debug_print_board(const SCE_Context* const ctx) {
+SCE_Return debug_print_board(const SCE_Context * ctx) {
     if (ctx == NULL) return SCE_INVALID_PARAM;
 
     if (SCE_Chessboard_print(ctx, WHITE) != SCE_SUCCESS) return SCE_INVALID_BOARD_STATE;
@@ -130,7 +130,7 @@ SCE_Return debug_print_board(const SCE_Context* const ctx) {
     return SCE_SUCCESS;
 }
 
-unsigned long long perft_count(SCE_Context* const ctx, const uint depth, const bool root) {
+unsigned long long perft_count(SCE_Context* ctx, uint depth, bool root) {
     if (ctx == NULL) return 0U;
     if (depth == 0U) return 1U;
 

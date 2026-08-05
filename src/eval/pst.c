@@ -2,7 +2,7 @@
 #include "chess.h"
 #include "eval/pst.h"
 
-unsigned int SCE_Eval_ComputePhase(const SCE_Chessboard* const ptr_board) {
+unsigned int SCE_Eval_ComputePhase(const SCE_Chessboard * ptr_board) {
     unsigned int phase = 0;
     phase += QUEEN_PHASE_WEIGHT * COUNT_SET_BITS(ptr_board->bitboards[W_QUEEN] ^ ptr_board->bitboards[B_QUEEN]);
     phase += ROOK_PHASE_WEIGHT * COUNT_SET_BITS(ptr_board->bitboards[W_ROOK] ^ ptr_board->bitboards[B_ROOK]);

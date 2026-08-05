@@ -51,12 +51,12 @@ typedef enum {
 #define NPP_WEIGHT_ENDGAME_START (2500)
 
 // Returns true if end of game.
-static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-static Signal check_draw(SCE_Context* const ctx);
-static void deepen(SCE_Context* const ctx, SCE_Engine* const ptr_engine);
-static bool deepen_depth(SCE_Context* const ctx, const int new_depth);
-static unsigned int calculate_npp(const SCE_Context* const ctx);
+static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine);
+static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine);
+static Signal check_draw(SCE_Context* ctx);
+static void deepen(SCE_Context* ctx, SCE_Engine* ptr_engine);
+static bool deepen_depth(SCE_Context* ctx, int new_depth);
+static unsigned int calculate_npp(const SCE_Context * ctx);
 
 int main(int argc, char** argv) {
     if (argc == 1) {
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     SCE_Return ret;
     char input[10] = { 0 };
     char src_an[3] = { 0 };
@@ -245,7 +245,7 @@ static Signal player_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) 
     return SIGNAL_OK;
 }
 
-static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     // ------------------------------------------------
     // Now computer's perspective
     //move = SCE_Engine_AlphaBetaBestMove(&engine, &ctx);
@@ -296,7 +296,7 @@ static Signal computer_move(SCE_Context* const ctx, SCE_Engine* const ptr_engine
     return SIGNAL_OK;
 }
 
-static Signal check_draw(SCE_Context* const ctx) {
+static Signal check_draw(SCE_Context* ctx) {
     assert(ctx != NULL);
 
     // Draw by repetition
@@ -340,7 +340,7 @@ static Signal check_draw(SCE_Context* const ctx) {
     return SIGNAL_OK;
 }
 
-static void deepen(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
+static void deepen(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     assert(ptr_engine != NULL);
 
     // Clamp npp_count to below 16
@@ -353,7 +353,7 @@ static void deepen(SCE_Context* const ctx, SCE_Engine* const ptr_engine) {
     }
 }
 
-static bool deepen_depth(SCE_Context* const ctx, const int new_depth) {
+static bool deepen_depth(SCE_Context* ctx, int new_depth) {
     assert(ctx != NULL);
 
     if (new_depth > ctx->depth) {
@@ -363,7 +363,7 @@ static bool deepen_depth(SCE_Context* const ctx, const int new_depth) {
     return false;
 }
 
-static unsigned int calculate_npp(const SCE_Context* const ctx) {
+static unsigned int calculate_npp(const SCE_Context * ctx) {
     assert(ctx != NULL);
 
     unsigned int val = 0;

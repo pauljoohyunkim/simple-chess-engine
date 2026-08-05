@@ -37,7 +37,7 @@ const unsigned int npp_count_to_depth_offset[] = {
     0,      // 16
 };
 
-static unsigned int calculate_npp_weight(const SCE_Context* const ctx);
+static unsigned int calculate_npp_weight(const SCE_Context * ctx);
 static void* SCE_Search_Thread_Wrapper(void* arg);
 static void* SCE_Search_Manager_Thread(void* arg);
 
@@ -45,7 +45,7 @@ static void* SCE_Search_Manager_Thread(void* arg);
 #define PROMO_TYPE_BISHOP 1
 #define PROMO_TYPE_ROOK 2
 #define PROMO_TYPE_QUEEN 3
-bool SCE_MoveToUCIString(const SCE_ChessMove move, char uci_string[6]) {
+bool SCE_MoveToUCIString(SCE_ChessMove move, char uci_string[6]) {
     if (uci_string == NULL) return false;
     memset(uci_string, 0, 6);
     if (move == EMPTY_MOVE) {
@@ -90,7 +90,7 @@ bool SCE_MoveToUCIString(const SCE_ChessMove move, char uci_string[6]) {
     return true;
 }
 
-SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string) {
+SCE_ChessMove SCE_UCIStringToMove(const char * uci_string) {
     // UCI string has to be 4 or 5 (for promotion)
     if (strlen(uci_string) < 4) return EMPTY_MOVE;
     if (strlen(uci_string) > 5) return EMPTY_MOVE;
@@ -129,7 +129,7 @@ SCE_ChessMove SCE_UCIStringToMove(const char* const uci_string) {
     return move;
 }
 
-SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line) {
+SCE_Return SCE_UCI_ParsePosition(SCE_Context* ctx, const char * line) {
     if (ctx == NULL || line == NULL) return SCE_INVALID_PARAM;
     if (strncmp(line, "position ", 9) != 0) return SCE_INVALID_PARAM;
 
@@ -144,7 +144,7 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
     }
 
     // Separate out mandatory part and optional part
-    char* const moves_substr = strstr(line_cpy, "moves");
+    char* moves_substr = strstr(line_cpy, "moves");
     if (moves_substr) {
         *(moves_substr-1) = '\0';
     }
@@ -228,7 +228,7 @@ SCE_Return SCE_UCI_ParsePosition(SCE_Context* const ctx, const char* const line)
 
 #define FUNC_IDX_SEF (0)
 #define FUNC_IDX_HCEF (1)
-SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* const ptr_session, const char* const line) {
+SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* ptr_session, const char * line) {
     if (ptr_session == NULL || line == NULL) return SCE_INVALID_PARAM;
 
     if (strncmp(line, "setoption", 9) != 0) return SCE_INVALID_PARAM;
@@ -362,7 +362,7 @@ static void* SCE_Search_Thread_Wrapper(void* arg) {
     return NULL;
 }
 
-static unsigned int calculate_npp_weight(const SCE_Context* const ctx) {
+static unsigned int calculate_npp_weight(const SCE_Context * ctx) {
     if (ctx == NULL) return 0;
 
     unsigned int val = 0;
@@ -490,7 +490,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     return NULL;
 }
 
-SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* const session, const char* const line) {
+SCE_Return SCE_UCI_ParseGo(SCE_UCI_Session* session, const char * line) {
     if (session == NULL || line == NULL) return SCE_INVALID_PARAM;
     if (strncmp(line, "go", 2) != 0) return SCE_INVALID_PARAM;
     char line_cpy[BUFSIZ] = { 0 };
