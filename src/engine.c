@@ -5,6 +5,9 @@
 #include "engine.h"
 #include "helper.h"
 
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
+#define MIN(x,y) ((x) > (y) ? (y) : (x))
+
 typedef unsigned int uint;
 
 static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* const ctx, SCE_Engine* const ptr_engine, SCE_ChessMove move);
@@ -701,34 +704,71 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
     return best_move;
 }
 
-SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl) {
-    SCE_ChessMove best_move = EMPTY_MOVE;
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(
+    SCE_Engine* const ptr_engine, 
+    SCE_Context* const ctx, 
+    SCE_Engine_SearchControl* const ptr_ctrl
+) {
+    SCE_ChessMove last_completed_best_move = EMPTY_MOVE;
+    SCE_ChessMove current_depth_best_move = EMPTY_MOVE;
+    int predicted_score = 0;
+
     for (uint iter_depth = ptr_ctrl->start_depth; iter_depth <= ctx->depth; iter_depth++) {
         int alpha = SCE_ALPHA_INITIAL;
         int beta = SCE_BETA_INITIAL;
-        // SCE_ChessMove tt_hint_move = EMPTY_MOVE;
-        ctx->current_search_depth = iter_depth;
 
-        // TT lookup
-        uint64_t transposition_data;
-        bool transposition_data_exists;
-        // uint64_t transposition_data;
-        // bool transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-        // if (transposition_data_exists) {
-        //     tt_hint_move = SCE_TT_GET_MOVE(transposition_data);
-        // }
+        // Apply aspiration window for depth > start_depth
+        if (ptr_ctrl->aspirated_search_delta > 0 && iter_depth > ptr_ctrl->start_depth) {
+            int delta = ptr_ctrl->aspirated_search_delta;
+            alpha = predicted_score - delta;
+            beta = predicted_score + delta;
+        }
 
-        // Call alpha beta search.
-        // This saves best move to TT.
-        SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, iter_depth, alpha, beta);
+        bool pass = false;
+        while (!pass) {
+            ctx->current_search_depth = iter_depth;
+            
+            SCE_Engine_AlphaBetaNegamax(ptr_engine, ctx, ptr_ctrl, iter_depth, alpha, beta);
 
-        if (ptr_engine->stop_searching) break;
+            // Time cutoff hit: Abort immediately and return last COMPLETED depth move
+            if (ptr_engine->stop_searching) {
+                return (last_completed_best_move != EMPTY_MOVE) ? last_completed_best_move : current_depth_best_move;
+            }
 
-        transposition_data_exists = SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash);
-        if (transposition_data_exists) {
-            best_move = SCE_TT_GET_MOVE(transposition_data);
+            uint64_t transposition_data;
+            if (!SCE_Engine_GetTranspositionData(&transposition_data, ptr_engine, ctx->board.zobrist_hash)) {
+                break; // Safety exit if TT doesn't contain root data
+            }
+
+            SCE_ChessMove tt_move = SCE_TT_GET_MOVE(transposition_data);
+            if (tt_move != EMPTY_MOVE) {
+                current_depth_best_move = tt_move;
+            }
+            
+            predicted_score = SCE_TT_GET_SCORE(transposition_data);
+
+            if (ptr_ctrl->aspirated_search_delta > 0) {
+                if (predicted_score <= alpha) {
+                    // Fail-low: Open alpha lower to find true score
+                    alpha = predicted_score - ptr_ctrl->aspirated_search_delta;
+                    // If repeated fail-low, open up completely: alpha = SCE_ALPHA_INITIAL;
+                } else if (predicted_score >= beta) {
+                    // Fail-high: Open beta higher to find true score
+                    beta = predicted_score + ptr_ctrl->aspirated_search_delta;
+                    // If repeated fail-high, open up completely: beta = SCE_BETA_INITIAL;
+                } else {
+                    pass = true; // Score fell inside window
+                }
+            } else {
+                pass = true;
+            }
+        }
+
+        // Successfully completed iteration depth without interruption
+        if (current_depth_best_move != EMPTY_MOVE) {
+            last_completed_best_move = current_depth_best_move;
         }
     }
 
-    return best_move;
+    return (last_completed_best_move != EMPTY_MOVE) ? last_completed_best_move : current_depth_best_move;
 }

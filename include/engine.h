@@ -78,6 +78,7 @@ typedef struct {
     int lmr_bias;
     bool use_nmp;
     int nmp_reduction;          // Set to 3 unless you know what you are doing.
+    int aspirated_search_delta; // Aspiration window delta (50 default, 0 disables)
     //bool check_timeout;
     //uint64_t time_limit;
 } SCE_Engine_SearchControl;
@@ -166,7 +167,7 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine *const ptr_engine, SCE_Con
  * @param ptr_ctrl Pointer to the search control structure
  * @return SCE_ChessMove Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
-SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, const SCE_Engine_SearchControl* const ptr_ctrl);
+SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* const ptr_engine, SCE_Context* const ctx, SCE_Engine_SearchControl* const ptr_ctrl);
 
 #ifdef __cplusplus
 }
