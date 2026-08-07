@@ -10,7 +10,7 @@ extern "C" {
 
 #define SCE_MAX_THREADS 256
 
-#define UCI_TT_TABLE_LOG_2_SIZE 27
+#define UCI_TT_TABLE_LOG_2_SIZE 28
 
 // A struct holding pointers for thread operations
 typedef struct {
