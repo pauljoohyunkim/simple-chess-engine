@@ -516,7 +516,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
             if (ret != SCE_SUCCESS) {
                 printf("info string Could not make move to for PV analysis. Skipping\n");
             }
-            const int pv_score = session->ptr_engine->eval_function(&ctx_pv, session->ptr_engine);
+            const int pv_score = EVAL_FUNCTION(&ctx_pv, session->ptr_engine);
 
             printf("info depth %d score cp %d pv ", current_depth+1, pv_score);
             for (unsigned int move_count = 0; move_count < pv_movelist.count; move_count++) {

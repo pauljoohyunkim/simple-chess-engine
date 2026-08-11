@@ -10,40 +10,12 @@
    - Replaced the delta evaluation call in `SCE_Search_MakeMove_Wrapper` with `DELTA_EVAL_FUNCTION`.
 3. Modified `src/uci.c`:
    - Wrapped the `EvalFunc` option handling in `#ifndef NO_FUNCTION_POINTER` so the option is ignored when the macro is defined.
+   - Replaced the function pointer call in the principal variation (PV) printing section with the `EVAL_FUNCTION` macro.
+4. Updated unit tests:
+   - Wrapped the two SEF tests in `tests/test_engine.cpp` with `#ifndef NO_FUNCTION_POINTER`.
+   - Wrapped the entire file content in `tests/eval/test_sef.cpp` with `#ifndef NO_FUNCTION_POINTER`.
 
-## Remaining Changes
-### Code Changes
-1. In `src/uci.c`, replace the function pointer call in the principal variation (PV) printing section with the `EVAL_FUNCTION` macro:
-   ```c
-   // Find this line (around line 517):
-   const int pv_score = session->ptr_engine->eval_function(&ctx_pv, session->ptr_engine);
-   // Replace with:
-   const int pv_score = EVAL_FUNCTION(&ctx_pv, session->ptr_engine);
-   ```
-
-### Unit Test Updates
-We need to update the unit tests to skip SEF-related tests when `NO_FUNCTION_POINTER` is defined, since SEF will not be used.
-
-1. In `tests/test_engine.cpp`:
-   - Wrap the two SEF tests (`Engine_SEF, AlphaBetaBestMove` and `Engine_SEF, IterativeDeepeningBestMove`) with `#ifndef NO_FUNCTION_POINTER`.
-   - Example:
-     ```c
-     #ifndef NO_FUNCTION_POINTER
-     TEST(Engine_SEF, AlphaBetaBestMove) { ... }
-     TEST(Engine_SEF, IterativeDeepeningBestMove) { ... }
-     #endif
-     ```
-
-2. In `tests/eval/test_sef.cpp`:
-   - Wrap the entire file content in `#ifndef NO_FUNCTION_POINTER` (or wrap each test individually).
-   - Example:
-     ```c
-     #ifndef NO_FUNCTION_POINTER
-     // ... entire existing content ...
-     #endif
-     ```
-
-### Verification
+## Verification Needed
 After making the above changes, verify:
 - The code compiles and runs correctly both with and without `-DNO_FUNCTION_POINTER`.
 - The unit tests pass in both configurations (SEF tests are skipped when the macro is defined).

@@ -2,9 +2,9 @@
 #include "engine.h"
 #include "eval/sef.h"
 #include "setup.h"
-
 #define DEBUG_TT_N_SIZE (24U)
 
+#ifndef NO_FUNCTION_POINTER
 TEST(Engine_SEF, AlphaBetaBestMove) {
     BOARD_SETUP()
     (void)board;
@@ -48,3 +48,4 @@ TEST(Engine_SEF, IterativeDeepeningBestMove) {
     ASSERT_NE(move, EMPTY_MOVE);
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }
+#endif

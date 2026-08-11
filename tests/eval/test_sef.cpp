@@ -1,3 +1,4 @@
+#ifndef NO_FUNCTION_POINTER
 #include <gtest/gtest.h>
 #include "chess.h"
 #include "eval/sef.h"
@@ -131,3 +132,4 @@ TEST(SEF, DeltaEval_Kiwipete_Depth_6) {
 
     ASSERT_EQ(SCE_Engine_release(&engine), SCE_SUCCESS);
 }
+#endif
