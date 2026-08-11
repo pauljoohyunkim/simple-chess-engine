@@ -27,7 +27,7 @@ typedef enum {
     SCE_TF_EXACT = 2,
 } SCE_TranspositionFlag;
 
- // data(8) = score(4) | move(2) | depth(1) | flag(1)
+// data(8) = score(4) | move(2) | depth(1) | flag(1)
 typedef struct {
     uint64_t zobrist_hash_chksum; // zobrist_hash ^ data.
     uint64_t data;
@@ -179,6 +179,17 @@ SCE_ChessMove SCE_Engine_AlphaBetaBestMove(SCE_Engine * ptr_engine, SCE_Context*
  * @return SCE_ChessMove Best move (in which case, can be casted to SCE_ChessMove) or EMPTY_MOVE (0)
  */
 SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* ptr_engine, SCE_Context* ctx, SCE_Engine_SearchControl* ptr_ctrl);
+
+/* Macros to hide function pointers when NO_FUNCTION_POINTER is defined */
+#ifdef NO_FUNCTION_POINTER
+#   define EVAL_FUNCTION(ctx, engine)            SCE_Eval_HandcraftedEvaluationFunction((ctx), (engine))
+#   define DELTA_EVAL_FUNCTION(ctx, state, engine, move) \
+                                                     SCE_DeltaEval_HandcraftedEvaluationFunction((ctx), (state), (engine), (move))
+#else
+#   define EVAL_FUNCTION(ctx, engine)            ((engine)->eval_function((ctx), (engine)))
+#   define DELTA_EVAL_FUNCTION(ctx, state, engine, move) \
+                                                     ((engine)->delta_eval_function((ctx), (state), (engine), (move)))
+#endif
 
 #ifdef __cplusplus
 }

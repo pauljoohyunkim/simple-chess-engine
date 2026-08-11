@@ -32,7 +32,7 @@ static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* ctx, SCE_Engin
     SCE_EvalState eval_state = ctx->eval_state;
 
     // 2. Use delta evaluation on the eval states
-    ptr_engine->delta_eval_function(ctx, &eval_state, ptr_engine, move);
+    DELTA_EVAL_FUNCTION(ctx, &eval_state, ptr_engine, move);
 
     // 3. Try MakeMove.
     SCE_Return ret = SCE_MakeMove(ctx, move);
@@ -48,7 +48,11 @@ static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* ctx, SCE_Engin
 }
 
 SCE_Return SCE_Engine_init(SCE_Context* ctx, SCE_Engine* ptr_engine, SCE_Eval eval_func, SCE_DeltaEval delta_eval_func, unsigned int transposition_table_log2_size) {
+#ifndef NO_FUNCTION_POINTER
     if (ctx == NULL || ptr_engine == NULL || eval_func == NULL || delta_eval_func == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
+#else
+    if (ctx == NULL || ptr_engine == NULL || transposition_table_log2_size == 0) return SCE_INVALID_PARAM;
+#endif
 
     const size_t n_entries = 1ULL << transposition_table_log2_size;
 
@@ -67,7 +71,7 @@ SCE_Return SCE_Engine_init(SCE_Context* ctx, SCE_Engine* ptr_engine, SCE_Eval ev
     }
 
     // Compute the initial evaluation
-    ptr_engine->eval_function(ctx, ptr_engine);
+    EVAL_FUNCTION(ctx, ptr_engine);
 
     return SCE_SUCCESS;
 }

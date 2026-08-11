@@ -277,7 +277,9 @@ SCE_Return SCE_UCI_ParseSetoption(SCE_UCI_Session* ptr_session, const char * lin
             } else {
                 return SCE_INVALID_PARAM;
             }
+#ifndef NO_FUNCTION_POINTER
         } else if (strcmp(word, "EvalFunc") == 0) {
+#endif
             word = strtok_r(NULL, " ", &saveptr);
             if (word == NULL || strcmp(word, "value") != 0) return SCE_INVALID_PARAM;
             word = strtok_r(NULL, " ", &saveptr);
