@@ -16,12 +16,12 @@ static void DeltaEvalTest(SCE_Context* const ctx, SCE_Engine* const ptr_engine, 
         const SCE_ChessMove move = movelist.moves[i];
 
         SCE_EvalState temp_eval_state = ctx->eval_state;
-        const int delta_evaluated = ptr_engine->delta_eval_function(ctx, &temp_eval_state, ptr_engine, move);
+        const int delta_evaluated = DELTA_EVAL_FUNCTION(ctx, &temp_eval_state, ptr_engine, move);
 
         ASSERT_EQ(SCE_MakeMove(ctx, move), SCE_SUCCESS);
         ctx->eval_state = temp_eval_state;
 
-        const int full_evaluated = ptr_engine->eval_function(ctx, ptr_engine);
+        const int full_evaluated = EVAL_FUNCTION(ctx, ptr_engine);
         ASSERT_EQ(delta_evaluated, full_evaluated);
         ASSERT_EQ(temp_eval_state.eg_score, ctx->eval_state.eg_score);
         ASSERT_EQ(temp_eval_state.mg_score, ctx->eval_state.mg_score);

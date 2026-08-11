@@ -240,7 +240,7 @@ static Signal player_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
     // Making player move.
     ret = SCE_MakeMove(ctx, move);
     assert(ret == SCE_SUCCESS);
-    printf("Eval: %0.2f\n", (float) ptr_engine->eval_function(ctx, ptr_engine) / 100);     // Note: This internally updates the score cache, hence necessary!
+    printf("Eval: %0.2f\n", (float) EVAL_FUNCTION(ctx, ptr_engine) / 100);     // Note: This internally updates the score cache, hence necessary!
 
     return SIGNAL_OK;
 }
@@ -292,7 +292,7 @@ static Signal computer_move(SCE_Context* ctx, SCE_Engine* ptr_engine) {
         }
         printf("\n");
     }
-    printf("Eval: %0.2f\n", (float) ptr_engine->eval_function(ctx, ptr_engine) / 100);     // Note: This internally updates the score cache, hence necessary!
+    printf("Eval: %0.2f\n", (float) EVAL_FUNCTION(ctx, ptr_engine) / 100);     // Note: This internally updates the score cache, hence necessary!
     return SIGNAL_OK;
 }
 

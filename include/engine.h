@@ -182,6 +182,7 @@ SCE_ChessMove SCE_Engine_IterativeDeepeningAlphaBetaBestMove(SCE_Engine* ptr_eng
 
 /* Macros to hide function pointers when NO_FUNCTION_POINTER is defined */
 #ifdef NO_FUNCTION_POINTER
+#   include "eval/hcef.h"
 #   define EVAL_FUNCTION(ctx, engine)            SCE_Eval_HandcraftedEvaluationFunction((ctx), (engine))
 #   define DELTA_EVAL_FUNCTION(ctx, state, engine, move) \
                                                      SCE_DeltaEval_HandcraftedEvaluationFunction((ctx), (state), (engine), (move))

@@ -64,8 +64,10 @@ SCE_Return SCE_Engine_init(SCE_Context* ctx, SCE_Engine* ptr_engine, SCE_Eval ev
     memset(ptr_engine->pawn_hash_table, 0, sizeof(ptr_engine->pawn_hash_table));
 
     ptr_engine->stop_searching = false;
+#ifndef NO_FUNCTION_POINTER
     ptr_engine->eval_function = eval_func;
     ptr_engine->delta_eval_function = delta_eval_func;
+#endif
     for (uint i = 0U; i < sizeof(ptr_engine->killer_moves)/sizeof(ptr_engine->killer_moves[0]); i++) {
         ptr_engine->killer_moves[i][0] = EMPTY_MOVE;
         ptr_engine->killer_moves[i][1] = EMPTY_MOVE;
@@ -84,8 +86,10 @@ SCE_Return SCE_Engine_release(SCE_Engine* ptr_engine) {
     memset(ptr_engine->pawn_hash_table, 0, sizeof(ptr_engine->pawn_hash_table));
     ptr_engine->transposition_table.entries = NULL;
     ptr_engine->transposition_table.table_size = 0;
+#ifndef NO_FUNCTION_POINTER
     ptr_engine->eval_function = NULL;
     ptr_engine->delta_eval_function = NULL;
+#endif
 
     return SCE_SUCCESS;
 }
