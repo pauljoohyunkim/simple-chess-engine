@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -388,6 +389,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     const unsigned int depth = session->depth;
     const unsigned int n_helper_threads = session->n_helper_threads;
     const unsigned int npp_weight = calculate_npp_weight(session->ctx);
+    const uint8_t search_depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
     pthread_mutex_unlock(&session->context_mutex);
 
     pthread_t helper_threads[SCE_MAX_THREADS] = { 0 };
@@ -409,7 +411,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
-        task->ctx.depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
+        task->ctx.depth = search_depth;
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_HELPER;
@@ -440,7 +442,7 @@ static void* SCE_Search_Manager_Thread(void* arg) {
         pthread_mutex_lock(&session->context_mutex);
         memcpy(&task->ctx, session->ctx, sizeof(SCE_Context));
         pthread_mutex_unlock(&session->context_mutex);
-        task->ctx.depth = depth + (session->use_dynamic_deepening ? npp_count_to_depth_offset[npp_count] : 0);
+        task->ctx.depth = search_depth;
         task->ptr_engine = session->ptr_engine;
         task->ptr_stdout_mutex = &session->stdout_mutex;
         task->role = SEARCH_TASK_MASTER;
@@ -480,6 +482,55 @@ static void* SCE_Search_Manager_Thread(void* arg) {
     double exe_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;
 
     char uci_str[6] = { 0 };
+    // Info depth score and principal variation.
+    {
+        SCE_Return ret = SCE_SUCCESS;
+        pthread_mutex_lock(&session->stdout_mutex);
+        SCE_Context ctx_pv;
+        memcpy(&ctx_pv, session->ctx, sizeof(SCE_Context));
+        SCE_ChessMoveList pv_movelist;
+        SCE_ChessMoveList_clear(&pv_movelist);
+        for (uint8_t current_depth = 0; current_depth < search_depth; current_depth++) {
+            uint64_t transposition_data = 0U;
+
+            const uint64_t zobrist_hash = SCE_Chessboard_ComputeZobristHash(&ctx_pv);
+            bool tt_access_result = SCE_Engine_GetTranspositionData(&transposition_data, session->ptr_engine, zobrist_hash);
+            if (!tt_access_result || transposition_data == 0ULL) {
+                // Transposition data lookup failure. Give up trying to print principal variation.
+                printf("info string PV analysis failure. Skipping\n");
+                break;
+            }
+
+            const SCE_ChessMove best_move = SCE_TT_GET_MOVE(transposition_data);
+            if (best_move == EMPTY_MOVE) {
+                printf("info string Invalid move during PV analysis. Skipping\n");
+                break;
+            }
+            ret = SCE_AddToMoveList(best_move, &pv_movelist);
+            if (ret != SCE_SUCCESS) {
+                printf("info string Could not add move to PV movelist. Skipping\n");
+            }
+            ret = SCE_MakeMove(&ctx_pv, best_move);
+            if (ret != SCE_SUCCESS) {
+                printf("info string Could not make move to for PV analysis. Skipping\n");
+            }
+            const int pv_score = session->ptr_engine->eval_function(&ctx_pv, session->ptr_engine);
+
+            printf("info depth %d score cp %d pv ", current_depth+1, pv_score);
+            for (unsigned int move_count = 0; move_count < pv_movelist.count; move_count++) {
+                SCE_MoveToUCIString(pv_movelist.moves[move_count], uci_str);
+                printf("%s ", uci_str);
+                memset(uci_str, '\0', sizeof(uci_str));
+            }
+            printf("\n");
+        }
+        pthread_mutex_unlock(&session->stdout_mutex);
+    }
+
+
+
+
+    memset(uci_str, '\0', sizeof(uci_str));
     if (SCE_MoveToUCIString(move, uci_str)) {
         pthread_mutex_lock(&session->stdout_mutex);
         printf("info string Search took %f seconds\n", exe_time);

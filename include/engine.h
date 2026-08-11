@@ -132,6 +132,17 @@ bool SCE_Engine_AddPawnHashData(SCE_Engine* ptr_engine, uint64_t pawn_zobrist_ha
 bool SCE_Engine_GetPawnHashData(SCE_PawnHashTableEntry* entry, SCE_Engine* ptr_engine, uint64_t pawn_zobrist_hash);
 
 /**
+ * @brief Retrieves transposition table data for a given zobrist hash.
+ *
+ * @param data Pointer to store the transposition table entry data.
+ * @param ptr_engine Pointer to the SCE_Engine struct.
+ * @param zobrist_hash Zobrist hash of the position.
+ * @return true If data found and matches hash.
+ * @return false If failed or hash mismatch.
+ */
+bool SCE_Engine_GetTranspositionData(uint64_t* data, const SCE_Engine* ptr_engine, uint64_t zobrist_hash);
+
+/**
  * @brief Returns whether or not there has been a repetition (for draw rule)
  * 
  * @param ctx Pointer to the SCE_Context struct.

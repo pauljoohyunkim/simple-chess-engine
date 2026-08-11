@@ -12,7 +12,6 @@ typedef unsigned int uint;
 
 static inline SCE_Return SCE_Search_MakeMove_Wrapper(SCE_Context* ctx, SCE_Engine* ptr_engine, SCE_ChessMove move);
 static inline bool SCE_Engine_AddTransposition(SCE_Engine* ptr_engine, uint64_t zobrist_hash, int score, uint8_t depth, SCE_ChessMove move, uint8_t flag);
-static inline bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* ptr_engine, uint64_t zobrist_hash);
 static inline int SCE_Engine_ScoreMove(const SCE_Engine* ptr_engine, const SCE_Chessboard * ptr_board, SCE_ChessMove move, int ply);
 static inline SCE_Return SCE_Engine_OrderMove_MVVLVA(SCE_ChessMoveList* ptr_movelist, const SCE_Engine * ptr_engine, const SCE_Chessboard * ptr_board, int tt_hint_move, int ply);
 static inline int SCE_Engine_QuiescenceNegamax(SCE_Engine* ptr_engine,
@@ -156,7 +155,7 @@ static inline bool SCE_Engine_AddTransposition(SCE_Engine* ptr_engine, uint64_t 
     return true;
 }
 
-static inline bool SCE_Engine_GetTranspositionData(uint64_t* data, SCE_Engine* ptr_engine, uint64_t zobrist_hash) {
+bool SCE_Engine_GetTranspositionData(uint64_t* data, const SCE_Engine* ptr_engine, uint64_t zobrist_hash) {
     if (data == NULL || ptr_engine == NULL || zobrist_hash == 0U) return false;
 
     const uint64_t key = zobrist_hash & (ptr_engine->transposition_table.table_size - 1U);
